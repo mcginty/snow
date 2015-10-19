@@ -1,0 +1,7 @@
+[package]
+name = "noiseref"
+version = "0.1.0"
+authors = ["trevp"]
+[dependencies]
+sodiumoxide = { git = "https://github.com/dnaq/sodiumoxide.git" }
+rust-crypto = "*"
