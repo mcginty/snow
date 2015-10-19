@@ -1,24 +1,24 @@
-extern crate sodiumoxide;
 extern crate crypto;
-
-use sodiumoxide::crypto::scalarmult::curve25519;
-use sodiumoxide::crypto::stream::chacha20;
-use sodiumoxide::crypto::hash::sha256;
+extern crate byteorder;
+extern crate rand;
 
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use crypto::hmac::Hmac;
 use crypto::mac::{Mac, MacResult};
+use crypto::aes::KeySize;
+use crypto::aes_gcm::AesGcm;
+use crypto::aead::{AeadEncryptor, AeadDecryptor};
+use crypto::curve25519::{curve25519, curve25519_base};
+
+use byteorder::{ByteOrder, BigEndian};
+use rand::{OsRng, Rng};
 
 const DHLEN : usize = 32;
 const HASHLEN : usize = 32;
 const BLOCKLEN : usize = 64;
 const MACLEN : usize = 16;
 const CIPHERKEYLEN : usize = 32;
-
-fn zero_memory(out: &mut [u8]) {
-    for count in 0..out.len() {out[count] = 0;}
-}
 
 fn copy_memory(data: &[u8], out: &mut [u8]) {
     for count in 0..data.len() {out[count] = data[count];}
@@ -31,11 +31,15 @@ struct KeyPair {
 }
 
 fn GENERATE_KEYPAIR() -> KeyPair {
-    KeyPair{privkey : [0; DHLEN], pubkey : [0; DHLEN]}
+    let mut privkey = [0u8; 32];
+    let mut rng = OsRng::new().unwrap();
+    rng.fill_bytes(&mut privkey);
+    let pubkey = curve25519_base(&privkey); 
+    KeyPair{privkey : privkey, pubkey : pubkey}
 }
 
 fn DH(keypair : &KeyPair, pubkey: &[u8]) -> [u8; DHLEN] {
-    [0u8; DHLEN]
+    curve25519(&keypair.privkey, pubkey)
 }
 
 
@@ -63,12 +67,20 @@ fn HKDF(chaining_key: &[u8], data: &[u8], out: &mut [u8]) {
 
 
 fn ENCRYPT(key: &[u8], nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
-    zero_memory(&mut out[0..plaintext.len() + MACLEN]);
+    let mut nonce_bytes = [0u8; 12];
+    BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+    let mut cipher = AesGcm::new(KeySize::KeySize256, key, &nonce_bytes, authtext);
+    let mut tag = [0u8; MACLEN];
+    cipher.encrypt(plaintext, out, &mut tag);
+    copy_memory(&tag, &mut out[plaintext.len()..]);
 } 
 
 fn DECRYPT(key: &[u8], nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
-    zero_memory(&mut out[0..ciphertext.len() - MACLEN]);
-    true
+    let mut nonce_bytes = [0u8; 12];
+    BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+    let mut cipher = AesGcm::new(KeySize::KeySize256, key, &nonce_bytes, authtext);
+    let mut tag = [0u8; MACLEN];
+    cipher.decrypt(ciphertext, out, &tag)
 } 
 
 enum Token {e, s, dhee, dhes, dhse, dhss}
