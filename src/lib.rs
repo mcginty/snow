@@ -43,7 +43,7 @@ fn dh(keypair : &KeyPair, pubkey: &[u8]) -> [u8; DHLEN] {
 }
 
 
-pub fn hash(data: &[u8], out: &mut [u8]) {
+fn hash(data: &[u8], out: &mut [u8]) {
     let mut h = Sha256::new();
     h.input(data);
     h.result(out);
@@ -110,10 +110,6 @@ pub struct HandshakeState {
 
 impl CipherState {
 
-    fn new() -> CipherState {
-        CipherState{k : [0; CIPHERKEYLEN], n:0}
-    }
-
     pub fn encrypt_and_increment(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) {
         encrypt(&self.k, self.n, authtext, plaintext, out);
         self.n += 1;
@@ -137,7 +133,7 @@ impl SymmetricState {
             0 ... HASHLEN => copy_memory(handshake_name, &mut hname),
             _ => hash(handshake_name, &mut hname)
         }
-        let cipherstate = CipherState::new();
+        let cipherstate = CipherState{k : [0; CIPHERKEYLEN], n:0};
         SymmetricState{cipherstate: cipherstate, has_key : false, ck : hname, h: hname}
     }
 
@@ -185,8 +181,8 @@ impl SymmetricState {
     fn split(&self) -> (CipherState, CipherState) {
         let mut hkdf_output = [0u8; 2*HASHLEN];
         hkdf(&self.ck, &[0u8; 0], &mut hkdf_output);
-        let mut c1 = CipherState::new();
-        let mut c2 = CipherState::new();
+        let mut c1 = CipherState{k : [0; CIPHERKEYLEN], n:0};
+        let mut c2 = CipherState{k : [0; CIPHERKEYLEN], n:0};
         copy_memory( &hkdf_output[0..CIPHERKEYLEN], &mut c1.k);
         copy_memory( &hkdf_output[HASHLEN..HASHLEN+CIPHERKEYLEN], &mut c2.k);
         (c1, c2)
@@ -273,16 +269,42 @@ mod tests {
     extern crate rustc_serialize;
 
     use super::*;
-    use self::rustc_serialize::hex::ToHex;
+    use super::hash;
+    use super::hmac_hash;
+    use super::dh;
+    use super::copy_memory;
+    use self::rustc_serialize::hex::{FromHex, ToHex};
+    
 
     #[test]
     fn crypto_tests() {
 
         // SHA256 test
-        let mut output = [0u8; 32];
-        HASH("abc".as_bytes(), &mut output);
-        assert!(output.to_hex() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        {
+            let mut output = [0u8; 32];
+            hash("abc".as_bytes(), &mut output);
+            assert!(output.to_hex() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        }
 
+        // HMAC-SHA256 test - RFC 4231
+        {
+            let key = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".from_hex().unwrap();
+            let data = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".from_hex().unwrap();
+            let mut output = [0u8; 32];
+            hmac_hash(&key, &data, &mut output);
+            println!("{}, {}, {}", key.len(), data.len(), output.to_hex());
+            assert!(output.to_hex() == "773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe");
+        }
+
+        // Curve25519 test - draft-curves-10
+        {
+            let scalar = "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4".from_hex().unwrap();
+            let mut keypair = KeyPair{privkey: [0; 32], pubkey: [0; 32]};
+            copy_memory(&scalar, &mut keypair.privkey);
+            let public = "e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c".from_hex().unwrap();
+            let output = dh(&keypair, &public);
+            assert!(output.to_hex() == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
+        }
 
     }
 }
