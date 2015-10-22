@@ -307,7 +307,7 @@ mod tests {
             assert!(output.to_hex() == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
         }
 
-        //AES256-GCM tests
+        //AES256-GCM tests - gcm-spec.pdf
         {
             // Test Case 13
             let key = [0u8; 32];
@@ -318,6 +318,11 @@ mod tests {
             encrypt(&key, nonce, &authtext, &plaintext, &mut ciphertext);
             assert!(ciphertext.to_hex() == "530f8afbc74536b9a963b4f1c4cb738b");
 
+            // Test Case 14
+            let plaintext2 = [0u8; 16];
+            let mut ciphertext2 = [0u8; 32];
+            encrypt(&key, nonce, &authtext, &plaintext2, &mut ciphertext2);
+            assert!(ciphertext2.to_hex() == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919");
         }
 
     }
