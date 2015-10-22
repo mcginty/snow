@@ -71,7 +71,7 @@ fn encrypt(key: &[u8], nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[
     BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
     let mut cipher = AesGcm::new(KeySize::KeySize256, key, &nonce_bytes, authtext);
     let mut tag = [0u8; MACLEN];
-    cipher.encrypt(plaintext, out, &mut tag);
+    cipher.encrypt(plaintext, &mut out[..plaintext.len()], &mut tag);
     copy_memory(&tag, &mut out[plaintext.len()..]);
 } 
 
@@ -273,6 +273,7 @@ mod tests {
     use super::hmac_hash;
     use super::dh;
     use super::copy_memory;
+    use super::encrypt;
     use self::rustc_serialize::hex::{FromHex, ToHex};
     
 
@@ -304,6 +305,19 @@ mod tests {
             let public = "e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c".from_hex().unwrap();
             let output = dh(&keypair, &public);
             assert!(output.to_hex() == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
+        }
+
+        //AES256-GCM tests
+        {
+            // Test Case 13
+            let key = [0u8; 32];
+            let nonce = 0u64;
+            let plaintext = [0u8; 0];
+            let authtext = [0u8; 0];
+            let mut ciphertext = [0u8; 16];
+            encrypt(&key, nonce, &authtext, &plaintext, &mut ciphertext);
+            assert!(ciphertext.to_hex() == "530f8afbc74536b9a963b4f1c4cb738b");
+
         }
 
     }
