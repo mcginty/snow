@@ -34,6 +34,9 @@ pub fn generate_keypair() -> KeyPair {
     let mut privkey = [0u8; 32];
     let mut rng = OsRng::new().unwrap();
     rng.fill_bytes(&mut privkey);
+    privkey[0] &= 248;
+    privkey[31] &= 127;
+    privkey[31] |= 64;
     let pubkey = curve25519_base(&privkey); 
     KeyPair{privkey : privkey, pubkey : pubkey}
 }
@@ -57,7 +60,7 @@ fn hmac_hash(key: &[u8], data: &[u8], out: &mut [u8]) {
 
 fn hkdf(chaining_key: &[u8], data: &[u8], out: &mut [u8]) {
     let mut temp_key = [0u8; HASHLEN];
-    let mut in2  = [0u8; HASHLEN];
+    let mut in2 = [0u8; HASHLEN];
     hmac_hash(chaining_key, data, &mut temp_key);
     hmac_hash(&temp_key, &[1u8], &mut out[0..HASHLEN]);
     copy_memory(out as &[u8], &mut in2);
