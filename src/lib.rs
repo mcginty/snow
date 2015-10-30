@@ -19,7 +19,7 @@ const HASHLEN : usize = 32;
 //const BLOCKLEN : usize = 64;
 const MACLEN : usize = 16;
 const CIPHERKEYLEN : usize = 32;
-const MAXMSGLEN = 65535;
+const MAXMSGLEN : usize = 65535;
 
 fn copy_memory(data: &[u8], out: &mut [u8]) {
     for count in 0..data.len() {out[count] = data[count];}
@@ -155,7 +155,7 @@ impl SymmetricState {
     fn mix_hash(&mut self, data: &[u8]) {
         let mut buffer = [0u8; HASHLEN + MAXMSGLEN];
         copy_memory(&self.h, &mut buffer);
-        copy_memory(&data, &mut buffer[HASHLEN..];
+        copy_memory(&data, &mut buffer[HASHLEN..]);
         hash(&buffer[..HASHLEN + data.len()], &mut self.h);
     }
 
