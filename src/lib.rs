@@ -107,10 +107,10 @@ struct SymmetricState {
 
 pub struct HandshakeState {
     symmetricstate: SymmetricState,
-    s: KeyPair,
-    e: KeyPair,
-    rs: [u8; DHLEN],
-    re: [u8; DHLEN],
+    s: Option<KeyPair>,
+    e: Option<KeyPair>,
+    rs: Option<[u8; DHLEN]>,
+    re: Option<[u8; DHLEN]>,
 }
 
 
@@ -198,7 +198,11 @@ impl SymmetricState {
 
 impl HandshakeState {
 
-    pub fn new(handshake_name: &[u8], new_s : KeyPair, new_e : KeyPair, new_rs: [u8; 32], new_re : [u8; 32] ) -> HandshakeState {
+    pub fn new(handshake_name: &[u8], 
+               new_s : Option<KeyPair>, 
+               new_e : Option<KeyPair>, 
+               new_rs: Option<[u8; DHLEN]>, 
+               new_re: Option<[u8; DHLEN]> ) -> HandshakeState {
         let symmetricstate = SymmetricState::new(handshake_name); 
         HandshakeState{symmetricstate: symmetricstate, s: new_s, e: new_e, rs: new_rs, re: new_re}
     }
@@ -212,14 +216,14 @@ impl HandshakeState {
         for token in descriptor {
             match *token {
                 Token::E => {
-                    self.e = generate_keypair(); 
-                    index += self.symmetricstate.encrypt_and_hash(&self.e.pubkey, &mut out[index..]); 
+                    self.e = Some(generate_keypair()); 
+                    index += self.symmetricstate.encrypt_and_hash(&self.e.as_ref().unwrap().pubkey, &mut out[index..]); 
                 },
-                Token::S => index += self.symmetricstate.encrypt_and_hash(&self.s.pubkey, &mut out[index..]),
-                Token::Dhee => self.symmetricstate.mix_key(&dh(&self.e, &self.re)),
-                Token::Dhes => self.symmetricstate.mix_key(&dh(&self.e, &self.rs)),
-                Token::Dhse => self.symmetricstate.mix_key(&dh(&self.s, &self.re)),
-                Token::Dhss => self.symmetricstate.mix_key(&dh(&self.s, &self.rs)),
+                Token::S => index += self.symmetricstate.encrypt_and_hash(&self.s.as_ref().unwrap().pubkey, &mut out[index..]),
+                Token::Dhee => self.symmetricstate.mix_key(&dh(&self.e.as_ref().unwrap(), &self.re.unwrap())),
+                Token::Dhes => self.symmetricstate.mix_key(&dh(&self.e.as_ref().unwrap(), &self.rs.unwrap())),
+                Token::Dhse => self.symmetricstate.mix_key(&dh(&self.s.as_ref().unwrap(), &self.re.unwrap())),
+                Token::Dhss => self.symmetricstate.mix_key(&dh(&self.s.as_ref().unwrap(), &self.rs.unwrap())),
             }
         }
         self.symmetricstate.encrypt_and_hash(payload, &mut out[index..]);
@@ -239,20 +243,23 @@ impl HandshakeState {
             match *token {
                 Token::E | Token::S => {
                     let data = match self.symmetricstate.has_key {
-                        true =>  {let temp = &ptr[..DHLEN+16]; ptr = &ptr[DHLEN+16..]; temp}
-                        false => {let temp = &ptr[..DHLEN];    ptr = &ptr[DHLEN..];    temp}
+                        true =>  {let temp = &ptr[..DHLEN+MACLEN]; ptr = &ptr[DHLEN+MACLEN..]; temp}
+                        false => {let temp = &ptr[..DHLEN];        ptr = &ptr[DHLEN..];        temp}
                     };
-                    if !self.symmetricstate.decrypt_and_hash(data, match *token {
-                            Token::E => &mut self.re,
-                            Token::S => &mut self.rs,
-                            _ => unreachable!()}) {
+                    let mut pubkey = [0u8; DHLEN];
+                    if !self.symmetricstate.decrypt_and_hash(data, &mut pubkey) {
                         return Err(NoiseError::DecryptError);
                     }
+                    match *token {
+                        Token::E => self.re = Some(pubkey),
+                        Token::S => self.rs = Some(pubkey),
+                        _ => unreachable!(),
+                    }
                 },
-                Token::Dhee => self.symmetricstate.mix_key(&dh(&self.e, &self.re)),
-                Token::Dhes => self.symmetricstate.mix_key(&dh(&self.s, &self.re)),
-                Token::Dhse => self.symmetricstate.mix_key(&dh(&self.e, &self.rs)),
-                Token::Dhss => self.symmetricstate.mix_key(&dh(&self.s, &self.rs)),
+                Token::Dhee => self.symmetricstate.mix_key(&dh(&self.e.as_ref().unwrap(), &self.re.unwrap())),
+                Token::Dhes => self.symmetricstate.mix_key(&dh(&self.s.as_ref().unwrap(), &self.re.unwrap())),
+                Token::Dhse => self.symmetricstate.mix_key(&dh(&self.e.as_ref().unwrap(), &self.rs.unwrap())),
+                Token::Dhss => self.symmetricstate.mix_key(&dh(&self.s.as_ref().unwrap(), &self.rs.unwrap())),
             }
         }
         if !self.symmetricstate.decrypt_and_hash(ptr, out) {
