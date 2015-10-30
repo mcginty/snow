@@ -60,10 +60,10 @@ fn hmac_hash(key: &[u8], data: &[u8], out: &mut [u8]) {
 
 fn hkdf(chaining_key: &[u8], data: &[u8], out: &mut [u8]) {
     let mut temp_key = [0u8; HASHLEN];
-    let mut in2 = [0u8; HASHLEN];
+    let mut in2 = [0u8; HASHLEN+1];
     hmac_hash(chaining_key, data, &mut temp_key);
     hmac_hash(&temp_key, &[1u8], &mut out[0..HASHLEN]);
-    copy_memory(out as &[u8], &mut in2);
+    copy_memory(&out[0..HASHLEN], &mut in2);
     in2[HASHLEN] = 2;
     hmac_hash(&temp_key, &in2, &mut out[HASHLEN..2*HASHLEN]);
 }
@@ -277,6 +277,7 @@ mod tests {
     use super::dh;
     use super::copy_memory;
     use super::encrypt;
+    use super::hkdf;
     use self::rustc_serialize::hex::{FromHex, ToHex};
     
 
