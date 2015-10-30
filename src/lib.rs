@@ -82,8 +82,10 @@ fn decrypt(key: &[u8], nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut
     let mut nonce_bytes = [0u8; 12];
     BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
     let mut cipher = AesGcm::new(KeySize::KeySize256, key, &nonce_bytes, authtext);
-    let tag = [0u8; MACLEN];
-    cipher.decrypt(ciphertext, out, &tag)
+    let text_len = ciphertext.len() - MACLEN;
+    let mut tag = [0u8; MACLEN];
+    copy_memory(&ciphertext[text_len..], &mut tag);
+    cipher.decrypt(&ciphertext[..text_len], &mut out[..text_len], &tag)
 } 
 
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss}
@@ -272,12 +274,8 @@ mod tests {
     extern crate rustc_serialize;
 
     use super::*;
-    use super::hash;
-    use super::hmac_hash;
-    use super::dh;
+    use super::{hash, hmac_hash, dh, encrypt, decrypt};
     use super::copy_memory;
-    use super::encrypt;
-    use super::hkdf;
     use self::rustc_serialize::hex::{FromHex, ToHex};
     
 
@@ -321,12 +319,24 @@ mod tests {
             let mut ciphertext = [0u8; 16];
             encrypt(&key, nonce, &authtext, &plaintext, &mut ciphertext);
             assert!(ciphertext.to_hex() == "530f8afbc74536b9a963b4f1c4cb738b");
+            
+            let mut resulttext = [0u8; 1];
+            assert!(decrypt(&key, nonce, &authtext, &ciphertext, &mut resulttext) == true);
+            assert!(resulttext[0] == 0);
+            ciphertext[0] ^= 1;
+            assert!(decrypt(&key, nonce, &authtext, &ciphertext, &mut resulttext) == false);
 
             // Test Case 14
             let plaintext2 = [0u8; 16];
             let mut ciphertext2 = [0u8; 32];
             encrypt(&key, nonce, &authtext, &plaintext2, &mut ciphertext2);
             assert!(ciphertext2.to_hex() == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919");
+            
+            let mut resulttext2 = [1u8; 16];
+            assert!(decrypt(&key, nonce, &authtext, &ciphertext2, &mut resulttext2) == true);
+            assert!(plaintext2 == resulttext2);
+            ciphertext2[0] ^= 1;
+            assert!(decrypt(&key, nonce, &authtext, &ciphertext2, &mut resulttext2) == false);
         }
 
     }
