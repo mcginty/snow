@@ -9,8 +9,8 @@ pub enum NoiseError {DecryptError}
 struct SymmetricState<C: Cipher, H: Hash> {
     cipherstate : C,
     has_key : bool,
-    h : [u8; MAXHASHLEN],
-    ck: [u8; MAXHASHLEN],
+    h : [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
+    ck: [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
     wtf : PhantomData<H>, /* So rust thinks I'm using H, this is ugly */
 }
 
@@ -72,14 +72,14 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
     fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> bool {
         if self.has_key {
-            if !self.cipherstate.decrypt_and_inc(&self.h[..H::hash_len()], data, out) {
-                return false;
+            if !self.cipherstate.decrypt_and_inc(&self.h[..H::hash_len()], data, out) { 
+                return false; 
             }
-            self.mix_hash(data);
-        } else {
-            copy_memory(data, out);
-            self.mix_hash(data);
         }
+        else {
+            copy_memory(data, out)
+        }
+        self.mix_hash(data);
         true
     }
 
