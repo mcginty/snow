@@ -5,13 +5,13 @@ extern crate rand;
 use self::crypto::digest::Digest;
 use self::crypto::sha2::{Sha256, Sha512};
 use self::crypto::blake2b::Blake2b;
-use self::crypto::mac::{Mac};
 use self::crypto::aes::KeySize;
 use self::crypto::aes_gcm::AesGcm;
+use self::crypto::chacha20poly1305::ChaCha20Poly1305;
 use self::crypto::aead::{AeadEncryptor, AeadDecryptor};
 use self::crypto::curve25519::{curve25519, curve25519_base};
 
-use self::byteorder::{ByteOrder, BigEndian};
+use self::byteorder::{ByteOrder, BigEndian, LittleEndian};
 use self::rand::{OsRng, Rng};
 
 use crypto_stuff::*;
@@ -106,6 +106,37 @@ impl Cipher for CipherAESGCM {
 
 }
 
+impl Cipher for CipherChaChaPoly {
+
+    fn new(key: &[u8], nonce: u64) -> CipherChaChaPoly {
+        let mut cipher = CipherChaChaPoly{key: [0u8; 32], nonce: nonce};
+        copy_memory(key, &mut cipher.key);
+        cipher
+    }
+
+    fn encrypt_and_inc(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
+        let mut nonce_bytes = [0u8; 8];
+        LittleEndian::write_u64(&mut nonce_bytes, self.nonce);
+        self.nonce += 1;
+        let mut cipher = ChaCha20Poly1305::new(&self.key, &nonce_bytes, authtext);
+        let mut tag = [0u8; TAGLEN];
+        cipher.encrypt(plaintext, &mut out[..plaintext.len()], &mut tag);
+        copy_memory(&tag, &mut out[plaintext.len()..]);
+    } 
+
+    fn decrypt_and_inc(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
+        let mut nonce_bytes = [0u8; 8];
+        LittleEndian::write_u64(&mut nonce_bytes, self.nonce);
+        self.nonce += 1;
+        let mut cipher = ChaCha20Poly1305::new(&self.key, &nonce_bytes, authtext);
+        let text_len = ciphertext.len() - TAGLEN;
+        let mut tag = [0u8; TAGLEN];
+        copy_memory(&ciphertext[text_len..], &mut tag);
+        cipher.decrypt(&ciphertext[..text_len], &mut out[..text_len], &tag)
+    } 
+
+}
+
 impl Hash for HashSHA256 {
 
     fn new() -> HashSHA256 {
@@ -128,6 +159,53 @@ impl Hash for HashSHA256 {
         self.hasher.result(out);
     }
 }
+
+impl Hash for HashSHA512 {
+
+    fn new() -> HashSHA512 {
+        HashSHA512{hasher : Sha512::new()}
+    }   
+
+    fn block_len() -> usize {
+        return 128;
+    }
+
+    fn hash_len() -> usize {
+        return 64;
+    }
+
+    fn input(&mut self, data: &[u8]) {
+        self.hasher.input(data);
+    }
+
+    fn result(&mut self, out: &mut [u8]) {
+        self.hasher.result(out);
+    }
+}
+
+impl Hash for HashBLAKE2b {
+
+    fn new() -> HashBLAKE2b {
+        HashBLAKE2b{hasher : Blake2b::new(64)}
+    }   
+
+    fn block_len() -> usize {
+        return 128;
+    }
+
+    fn hash_len() -> usize {
+        return 64;
+    }
+
+    fn input(&mut self, data: &[u8]) {
+        self.hasher.input(data);
+    }
+
+    fn result(&mut self, out: &mut [u8]) {
+        self.hasher.result(out);
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
