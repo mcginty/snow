@@ -138,11 +138,12 @@ impl Cipher for CipherChaChaPoly {
         poly.input(&authtext);
         let mut padding = [0u8; 16];
         poly.input(&padding[..(16 - (authtext.len() % 16)) % 16]);
+        poly.input(&out[..plaintext.len()]);
+        poly.input(&padding[..(16 - (plaintext.len() % 16)) % 16]);
         LittleEndian::write_u64(&mut padding, authtext.len() as u64);
         poly.input(&padding[..8]);
         LittleEndian::write_u64(&mut padding, plaintext.len() as u64);
         poly.input(&padding[..8]);
-        poly.input(&out[..plaintext.len()]);
         poly.raw_result(&mut out[plaintext.len()..]);
     } 
 
