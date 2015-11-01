@@ -228,13 +228,32 @@ mod tests {
             assert!(output.to_hex() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
         }
 
-        // HMAC-SHA256 test - RFC 4231
+        // HMAC-SHA256 and HMAC-SHA512 test - RFC 4231
         {
             let key = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".from_hex().unwrap();
             let data = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".from_hex().unwrap();
-            let mut output = [0u8; 32];
-            HashSHA256::hmac(&key, &data, &mut output);
-            assert!(output.to_hex() == "773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe");
+            let mut output1 = [0u8; 32];
+            HashSHA256::hmac(&key, &data, &mut output1);
+            assert!(output1.to_hex() == "773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe");
+
+            let mut output2 = [0u8; 64];
+            HashSHA512::hmac(&key, &data, &mut output2);
+            assert!(output2.to_hex() == "fa73b0089d56a284efb0f0756c890be9\
+                                         b1b5dbdd8ee81a3655f83e33b2279d39\
+                                         bf3e848279a722c806b485a47e67c807\
+                                         b946a337bee8942674278859e13292fb");
+        }
+
+        // BLAKE2b test - draft-saarinen-blake2-06
+        {
+            let mut output = [0u8; 64];
+            let mut hasher = HashBLAKE2b::new();
+            hasher.input("abc".as_bytes());
+            hasher.result(&mut output);
+            assert!(output.to_hex() == "ba80a53f981c4d0d6a2797b69f12f6e9\
+                                        4c212f14685ac4b74b12bb6fdbffa2d1\
+                                        7d87c5392aab792dc252d5de4533cc95\
+                                        18d38aa8dbf1925ab92386edd4009923"); 
         }
 
         // Curve25519 test - draft-curves-10
