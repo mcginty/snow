@@ -4,6 +4,7 @@ use crypto_stuff::*;
 
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss}
 
+#[derive(Debug)]
 pub enum NoiseError {DecryptError}
 
 struct SymmetricState<C: Cipher, H: Hash> {
@@ -104,11 +105,11 @@ impl <D: Dh, C: Cipher, H: Hash> HandshakeState<D, C, H> {
         HandshakeState{symmetricstate: symmetricstate, s: new_s, e: new_e, rs: new_rs, re: new_re}
     }
 
-    pub fn write_handshake_message(&mut self, 
-                               descriptor: &[Token], 
-                               last: bool, 
-                               payload: &[u8], 
-                               out: &mut [u8]) -> Option<(C, C)> { 
+    pub fn write_message(&mut self, 
+                         descriptor: &[Token], 
+                         last: bool, 
+                         payload: &[u8], 
+                         out: &mut [u8]) -> (usize, Option<(C, C)>) { 
         let mut index = 0;
         for token in descriptor {
             match *token {
@@ -123,18 +124,18 @@ impl <D: Dh, C: Cipher, H: Hash> HandshakeState<D, C, H> {
                 Token::Dhss => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.rs.unwrap())),
             }
         }
-        self.symmetricstate.encrypt_and_hash(payload, &mut out[index..]);
+        index += self.symmetricstate.encrypt_and_hash(payload, &mut out[index..]);
         match last {
-            true => Some(self.symmetricstate.split()),
-            false => None 
+            true => (index, Some(self.symmetricstate.split())),
+            false => (index, None)
         }
     }
 
-    pub fn read_handshake_message(&mut self, 
-                              buffer: &[u8], 
-                              descriptor: &[Token], 
-                              last: bool, 
-                              out: &mut [u8]) -> Result<Option<(C, C)>, NoiseError> { 
+    pub fn read_message(&mut self, 
+                        descriptor: &[Token], 
+                        last: bool, 
+                        buffer: &[u8], 
+                        out: &mut [u8]) -> Result<(usize, Option<(C, C)>), NoiseError> { 
         let mut ptr = buffer;
         for token in descriptor {
             match *token {
@@ -167,12 +168,18 @@ impl <D: Dh, C: Cipher, H: Hash> HandshakeState<D, C, H> {
                 Token::Dhss => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.rs.unwrap())),
             }
         }
+        let mut payload_len : usize = 0;
+        if self.symmetricstate.has_key { 
+            payload_len = ptr.len() - TAGLEN; 
+        } else { 
+            payload_len = ptr.len(); 
+        }
         if !self.symmetricstate.decrypt_and_hash(ptr, out) {
             return Err(NoiseError::DecryptError);
         }
         match last {
-            true => Ok(Some(self.symmetricstate.split())),
-            false => Ok(None) 
+            true => Ok( (payload_len, Some(self.symmetricstate.split()) ) ),
+            false => Ok( (payload_len, None) ) 
         }
     }
 
