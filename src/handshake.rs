@@ -168,12 +168,10 @@ impl <D: Dh, C: Cipher, H: Hash> HandshakeState<D, C, H> {
                 Token::Dhss => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.rs.unwrap())),
             }
         }
-        let mut payload_len : usize = 0;
-        if self.symmetricstate.has_key { 
-            payload_len = ptr.len() - TAGLEN; 
-        } else { 
-            payload_len = ptr.len(); 
-        }
+        let payload_len = match self.symmetricstate.has_key { 
+            true => ptr.len() - TAGLEN,
+            false => ptr.len() 
+        };
         if !self.symmetricstate.decrypt_and_hash(ptr, out) {
             return Err(NoiseError::DecryptError);
         }

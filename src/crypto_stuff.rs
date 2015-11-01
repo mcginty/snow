@@ -1,5 +1,4 @@
 
-pub const MAXMSGLEN : usize = 65535;
 pub const CIPHERKEYLEN : usize = 32;
 pub const TAGLEN : usize = 16;
 
