@@ -5,6 +5,12 @@ use crypto_stuff::*;
 #[derive(Copy, Clone)]
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss}
 
+pub trait Pattern {
+    fn name(out: &mut [u8]) -> usize;
+    fn premessages(out: &mut [Token]);
+    fn next_descriptor(msg_index: u8, out: &mut [Token]) -> bool;
+}
+
 #[derive(Debug)]
 pub enum NoiseError {DecryptError}
 
@@ -16,12 +22,14 @@ struct SymmetricState<C: Cipher, H: Hash> {
     wtf : PhantomData<H>, /* So rust thinks I'm using H, this is ugly */
 }
 
-pub struct HandshakeState<D: Dh, C: Cipher, H: Hash> {
+pub struct HandshakeState<P: Pattern, D: Dh, C: Cipher, H: Hash> {
     symmetricstate: SymmetricState<C, H>,
     s: Option<D>,
     e: Option<D>,
     rs: Option<[u8; DHLEN]>,
     re: Option<[u8; DHLEN]>,
+    msg_index: u8,
+    wtf : PhantomData<P>, /* So rust thinks I'm using P, this is ugly */
 }
 
 
@@ -79,7 +87,7 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
             }
         }
         else {
-            copy_memory(data, out)
+            copy_memory(data, out);
         }
         self.mix_hash(data);
         true
@@ -95,37 +103,48 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
 }
 
-impl <D: Dh, C: Cipher, H: Hash> HandshakeState<D, C, H> {
+impl <P: Pattern, D: Dh, C: Cipher, H: Hash> HandshakeState<P, D, C, H> {
 
-    pub fn new(handshake_name: &[u8], 
-               new_s : Option<D>, 
+    pub fn new(new_s : Option<D>, 
                new_e : Option<D>, 
                new_rs: Option<[u8; DHLEN]>, 
-               new_re: Option<[u8; DHLEN]> ) -> HandshakeState<D, C, H> {
-        let symmetricstate = SymmetricState::new(handshake_name); 
-        HandshakeState{symmetricstate: symmetricstate, s: new_s, e: new_e, rs: new_rs, re: new_re}
+               new_re: Option<[u8; DHLEN]> ) -> HandshakeState<P, D, C, H> {
+        let mut handshake_name = [0u8; 128];
+        let mut name_len = P::name(&mut handshake_name);
+        handshake_name[name_len] = '_' as u8;
+        name_len += 1;
+        name_len += D::name(&mut handshake_name[name_len..]);
+        handshake_name[name_len] = '_' as u8;
+        name_len += 1;
+        name_len += C::name(&mut handshake_name[name_len..]);
+        handshake_name[name_len] = '_' as u8;
+        name_len += 1;
+        name_len += H::name(&mut handshake_name[name_len..]);
+
+        let symmetricstate = SymmetricState::new(&handshake_name[..name_len]); 
+        HandshakeState{symmetricstate: symmetricstate, s: new_s, e: new_e, rs: new_rs, re: new_re, msg_index: 0, wtf: PhantomData::<P>}
     }
 
     pub fn write_message(&mut self, 
                          descriptor: &[Token], 
                          last: bool, 
                          payload: &[u8], 
-                         out: &mut [u8]) -> (usize, Option<(C, C)>) { 
+                         message: &mut [u8]) -> (usize, Option<(C, C)>) { 
         let mut index = 0;
         for token in descriptor {
             match *token {
                 Token::E => {
                     self.e = Some(D::generate()); 
-                    index += self.symmetricstate.encrypt_and_hash(&self.e.as_ref().unwrap().pubkey(), &mut out[index..]); 
+                    index += self.symmetricstate.encrypt_and_hash(&self.e.as_ref().unwrap().pubkey(), &mut message[index..]); 
                 },
-                Token::S => index += self.symmetricstate.encrypt_and_hash(&self.s.as_ref().unwrap().pubkey(), &mut out[index..]),
+                Token::S => index += self.symmetricstate.encrypt_and_hash(&self.s.as_ref().unwrap().pubkey(), &mut message[index..]),
                 Token::Dhee => self.symmetricstate.mix_key(&self.e.as_ref().unwrap().dh(&self.re.unwrap())),
                 Token::Dhes => self.symmetricstate.mix_key(&self.e.as_ref().unwrap().dh(&self.rs.unwrap())),
                 Token::Dhse => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.re.unwrap())),
                 Token::Dhss => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.rs.unwrap())),
             }
         }
-        index += self.symmetricstate.encrypt_and_hash(payload, &mut out[index..]);
+        index += self.symmetricstate.encrypt_and_hash(payload, &mut message[index..]);
         match last {
             true => (index, Some(self.symmetricstate.split())),
             false => (index, None)
@@ -135,9 +154,9 @@ impl <D: Dh, C: Cipher, H: Hash> HandshakeState<D, C, H> {
     pub fn read_message(&mut self, 
                         descriptor: &[Token], 
                         last: bool, 
-                        buffer: &[u8], 
-                        out: &mut [u8]) -> Result<(usize, Option<(C, C)>), NoiseError> { 
-        let mut ptr = buffer;
+                        message: &[u8], 
+                        payload: &mut [u8]) -> Result<(usize, Option<(C, C)>), NoiseError> { 
+        let mut ptr = message;
         for token in descriptor {
             match *token {
                 Token::E | Token::S => {
@@ -173,7 +192,7 @@ impl <D: Dh, C: Cipher, H: Hash> HandshakeState<D, C, H> {
             true => ptr.len() - TAGLEN,
             false => ptr.len() 
         };
-        if !self.symmetricstate.decrypt_and_hash(ptr, out) {
+        if !self.symmetricstate.decrypt_and_hash(ptr, payload) {
             return Err(NoiseError::DecryptError);
         }
         match last {

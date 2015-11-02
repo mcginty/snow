@@ -51,6 +51,10 @@ pub struct HashBLAKE2b {
 
 impl Dh for Dh25519 {
 
+    fn name(out : &mut [u8]) -> usize { 
+        copy_memory("25519".as_bytes(), out)
+    }
+
     fn new(privkey: &[u8], pubkey: &[u8]) -> Dh25519 {
         let mut dh = Dh25519{privkey: [0u8; 32], pubkey: [0u8; 32]};
         copy_memory(privkey, &mut dh.privkey); /* RUSTSUCKS: Why can't I convert slice -> array? */
@@ -80,6 +84,10 @@ impl Dh for Dh25519 {
 }
 
 impl Cipher for CipherAESGCM {
+
+    fn name(out : &mut [u8]) -> usize { 
+        copy_memory("AESGCM".as_bytes(), out)
+    }
 
     fn new(key: &[u8], nonce: u64) -> CipherAESGCM {
         let mut cipher = CipherAESGCM{key: [0u8; 32], nonce: nonce};
@@ -111,6 +119,10 @@ impl Cipher for CipherAESGCM {
 }
 
 impl Cipher for CipherChaChaPoly {
+
+    fn name(out : &mut [u8]) -> usize { 
+        copy_memory("ChaChaPoly".as_bytes(), out)
+    }
 
     fn new(key: &[u8], nonce: u64) -> CipherChaChaPoly {
         let mut cipher = CipherChaChaPoly{key: [0u8; 32], nonce: nonce};
@@ -176,6 +188,10 @@ impl Cipher for CipherChaChaPoly {
 
 impl Hash for HashSHA256 {
 
+    fn name(out : &mut [u8]) -> usize { 
+        copy_memory("SHA256".as_bytes(), out)
+    }
+
     fn new() -> HashSHA256 {
         HashSHA256{hasher : Sha256::new()}
     }   
@@ -199,6 +215,10 @@ impl Hash for HashSHA256 {
 
 impl Hash for HashSHA512 {
 
+    fn name(out : &mut [u8]) -> usize { 
+        copy_memory("SHA512".as_bytes(), out)
+    }
+
     fn new() -> HashSHA512 {
         HashSHA512{hasher : Sha512::new()}
     }   
@@ -221,6 +241,10 @@ impl Hash for HashSHA512 {
 }
 
 impl Hash for HashBLAKE2b {
+
+    fn name(out : &mut [u8]) -> usize { 
+        copy_memory("BLAKE2b".as_bytes(), out)
+    }
 
     fn new() -> HashBLAKE2b {
         HashBLAKE2b{hasher : Blake2b::new(64)}

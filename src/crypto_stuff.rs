@@ -7,11 +7,13 @@ pub const MAXHASHLEN : usize = 64;
 pub const MAXBLOCKLEN : usize = 128;
 pub const DHLEN : usize = 32; /* TODO: generalize for Curve448, but annoying without prev item */
 
-pub fn copy_memory(data: &[u8], out: &mut [u8]) {
+pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
     for count in 0..data.len() {out[count] = data[count];}
+    data.len()
 }
 
 pub trait Dh {
+    fn name(out: &mut [u8]) -> usize;
     fn new(privkey: &[u8], pubkey: &[u8]) -> Self;
     fn generate() -> Self; 
     
@@ -20,6 +22,7 @@ pub trait Dh {
 }
 
 pub trait Cipher {
+    fn name(out: &mut [u8]) -> usize;
     fn new(key: &[u8], nonce: u64) -> Self;
 
     fn encrypt_and_inc(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]);
@@ -27,6 +30,7 @@ pub trait Cipher {
 }
 
 pub trait Hash : Sized {
+    fn name(out: &mut [u8]) -> usize;
     fn new() -> Self;
 
     fn block_len() -> usize; /* see TODO at top */

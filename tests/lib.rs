@@ -7,8 +7,8 @@ fn it_works() {
     let s_i = Some(Dh25519::generate());
     let s_r = Some(Dh25519::generate());
     let handshake_name = "Noise_XX_25519_AESGCM_SHA256";
-    let mut h_i = HandshakeState::<Dh25519, CipherAESGCM, HashSHA256>::new(&handshake_name.as_bytes(), s_i, None, None, None);
-    let mut h_r = HandshakeState::<Dh25519, CipherAESGCM, HashSHA256>::new(&handshake_name.as_bytes(), s_r, None, None, None);
+    let mut h_i = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256>::new(s_i, None, None, None);
+    let mut h_r = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256>::new(s_r, None, None, None);
 
     let payload_in_0 = "abcdef".as_bytes();
     let mut buffer = [0u8; 1024];
