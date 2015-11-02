@@ -152,10 +152,9 @@ impl Cipher for CipherChaChaPoly {
         let mut poly_key = [0u8; 64];
         cipher.process(&zeros, &mut poly_key);
 
-        let text_len = ciphertext.len() - TAGLEN;
-
         let mut poly = Poly1305::new(&poly_key[..32]);
         let mut padding = [0u8; 15];
+        let text_len = ciphertext.len() - TAGLEN;
         poly.input(&authtext);
         poly.input(&padding[..(16 - (authtext.len() % 16)) % 16]);
         poly.input(&ciphertext[..text_len]);
@@ -345,7 +344,7 @@ mod tests {
             assert!(cipher4.decrypt_and_inc(&authtext, &ciphertext2, &mut resulttext2) == false);
         }
 
-        // Poly1305 internal test - does it match RFC 7539 = yes!
+        // Poly1305 internal test - RFC 7539
         {
             let key = "85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b".from_hex().unwrap();
             let msg = "43727970746f6772617068696320466f\
@@ -377,7 +376,7 @@ mod tests {
             cipher2.nonce = 0;
             assert!(cipher2.decrypt_and_inc(&authtext, &ciphertext, &mut resulttext) == false);
         }
-        //
+        
         //ChaChaPoly round-trip test, non-empty plaintext
         {
             let key = [0u8; 32];
@@ -394,8 +393,7 @@ mod tests {
             assert!(resulttext.to_hex() == plaintext.to_hex());
         }
 
-        //ChaChaPoly test - RFC 7539 (FAIL?! - problem with test vector???)
-        /*
+        //ChaChaPoly known-answer test - RFC 7539
         {
             let key ="1c9240a5eb55d38af333888604f6b5f0\
                       473917c1402b80099dca5cbc207075c0".from_hex().unwrap();
@@ -406,7 +404,7 @@ mod tests {
                              bdb7b73c321b0100d4f03b7f355894cf\
                              332f830e710b97ce98c8a84abd0b9481\
                              14ad176e008d33bd60f982b1ff37c855\
-                             1797a06ef4f0ef61c186324e2b350638\
+                             9797a06ef4f0ef61c186324e2b350638\
                              3606907b6a7c02b0f9f6157b53c867e4\
                              b9166c767b804d46a59b5216cde7a4e9\
                              9040c5a40433225ee282a1b0a06c523e\
@@ -427,6 +425,6 @@ mod tests {
             let mut cipher = CipherChaChaPoly::new(&key, nonce);
             assert!(cipher.decrypt_and_inc(&authtext, &combined_text[..ciphertext.len()+TAGLEN], &mut out[..ciphertext.len()]));
         }
-        */
+
     }
 }
