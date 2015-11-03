@@ -153,7 +153,7 @@ impl Pattern for NoiseXN {
 
         copy_tokens(&[E], &mut messages[0]);
         copy_tokens(&[E, Dhee], &mut messages[1]);
-        copy_tokens(&[S, Dhse], &mut messages[1]);
+        copy_tokens(&[S, Dhse], &mut messages[2]);
     }
 }
 
@@ -170,7 +170,7 @@ impl Pattern for NoiseXK {
 
         copy_tokens(&[E, Dhes], &mut messages[0]);
         copy_tokens(&[E, Dhee], &mut messages[1]);
-        copy_tokens(&[S, Dhse], &mut messages[1]);
+        copy_tokens(&[S, Dhse], &mut messages[2]);
     }
 }
 
@@ -187,7 +187,7 @@ impl Pattern for NoiseXE {
 
         copy_tokens(&[E, Dhee, Dhes], &mut messages[0]);
         copy_tokens(&[E, Dhee], &mut messages[1]);
-        copy_tokens(&[S, Dhse], &mut messages[1]);
+        copy_tokens(&[S, Dhse], &mut messages[2]);
     }
 }
 
