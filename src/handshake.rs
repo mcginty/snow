@@ -29,6 +29,7 @@ pub struct HandshakeState<P: Pattern, D: Dh, C: Cipher, H: Hash> {
     e: Option<D>,
     rs: Option<[u8; DHLEN]>,
     re: Option<[u8; DHLEN]>,
+    my_turn_to_send : bool,
     msg_index: usize,
     messages : [[Token; 8]; 5],
     wtf : PhantomData<P>, /* So rust thinks I'm using P, this is ugly */
@@ -107,7 +108,8 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
 impl <P: Pattern, D: Dh, C: Cipher, H: Hash> HandshakeState<P, D, C, H> {
 
-    pub fn new(new_s : Option<D>, 
+    pub fn new(initiator: bool,
+               new_s : Option<D>, 
                new_e : Option<D>, 
                new_rs: Option<[u8; DHLEN]>, 
                new_re: Option<[u8; DHLEN]> ) -> HandshakeState<P, D, C, H> {
@@ -123,22 +125,60 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash> HandshakeState<P, D, C, H> {
         name_len += 1;
         name_len += H::name(&mut handshake_name[name_len..]);
 
+        let mut symmetricstate = SymmetricState::new(&handshake_name[..name_len]); 
+
         let mut messages = [[Token::Empty; 8]; 5];
         let mut pre_responder = [Token::Empty; 2];
         let mut pre_initiator = [Token::Empty; 2];
         P::pattern(&mut pre_responder, &mut pre_initiator, &mut messages);
+        if initiator {
+            for token in &pre_initiator {
+                match *token {
+                    Token::S => symmetricstate.mix_hash(new_s.as_ref().unwrap().pubkey()),
+                    Token::E => symmetricstate.mix_hash(new_e.as_ref().unwrap().pubkey()),
+                    Token::Empty => break,
+                    _ => unreachable!()
+                }
+            }
+            for token in &pre_responder {
+                match *token {
+                    Token::S => symmetricstate.mix_hash(&new_rs.unwrap()),
+                    Token::E => symmetricstate.mix_hash(&new_re.unwrap()),
+                    Token::Empty => break,
+                    _ => unreachable!()
+                }
+            }
+        } else {
+            for token in &pre_initiator {
+                match *token {
+                    Token::S => symmetricstate.mix_hash(&new_rs.unwrap()),
+                    Token::E => symmetricstate.mix_hash(&new_re.unwrap()),
+                    Token::Empty => break,
+                    _ => unreachable!()
+                }
+            }
+            for token in &pre_responder {
+                match *token {
+                    Token::S => symmetricstate.mix_hash(new_s.as_ref().unwrap().pubkey()),
+                    Token::E => symmetricstate.mix_hash(new_e.as_ref().unwrap().pubkey()),
+                    Token::Empty => break,
+                    _ => unreachable!()
+                }
+            }
+        }
 
-        let symmetricstate = SymmetricState::new(&handshake_name[..name_len]); 
         HandshakeState{
             symmetricstate: symmetricstate, 
             s: new_s, e: new_e, rs: new_rs, re: new_re, 
+            my_turn_to_send: initiator,
             msg_index: 0, messages: messages, wtf: PhantomData::<P>}
     }
 
     pub fn write_message(&mut self, 
                          payload: &[u8], 
                          message: &mut [u8]) -> (usize, Option<(C, C)>) { 
-        let mut tokens = self.messages[self.msg_index];
+        assert!(self.my_turn_to_send);
+        let tokens = self.messages[self.msg_index];
         let mut last = false;
         if let Token::Empty = self.messages[self.msg_index+1][0] {
             last = true;
@@ -162,6 +202,7 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash> HandshakeState<P, D, C, H> {
                 Token::Empty => break
             }
         }
+        self.my_turn_to_send = false;
         byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]);
         match last {
             true => (byte_index, Some(self.symmetricstate.split())),
@@ -172,7 +213,8 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash> HandshakeState<P, D, C, H> {
     pub fn read_message(&mut self, 
                         message: &[u8], 
                         payload: &mut [u8]) -> Result<(usize, Option<(C, C)>), NoiseError> { 
-        let mut tokens = self.messages[self.msg_index];
+        assert!(self.my_turn_to_send == false);
+        let tokens = self.messages[self.msg_index];
         let mut last = false;
         if let Token::Empty = self.messages[self.msg_index+1][0] {
             last = true;
@@ -219,6 +261,7 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash> HandshakeState<P, D, C, H> {
         if !self.symmetricstate.decrypt_and_hash(ptr, payload) {
             return Err(NoiseError::DecryptError);
         }
+        self.my_turn_to_send = true;
         match last {
             true => Ok( (payload_len, Some(self.symmetricstate.split()) ) ),
             false => Ok( (payload_len, None) ) 

@@ -6,8 +6,8 @@ use noiseref::*;
 fn it_works() {
     let s_i = Dh25519::generate();
     let s_r = Dh25519::generate();
-    let mut h_i = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256>::new(Some(s_i), None, None, None);
-    let mut h_r = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256>::new(Some(s_r), None, None, None);
+    let mut h_i = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256>::new(true, Some(s_i), None, None, None);
+    let mut h_r = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256>::new(false, Some(s_r), None, None, None);
 
     let payload_in_0 = "abcdef".as_bytes();
     let mut buffer = [0u8; 1024];
