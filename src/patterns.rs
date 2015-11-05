@@ -36,8 +36,8 @@ impl Pattern for NoiseN {
         copy_memory("Noise_N".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token],
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -51,8 +51,8 @@ impl Pattern for NoiseK {
         copy_memory("Noise_K".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S], pre_responder);
         copy_tokens(&[S], pre_initiator);
@@ -66,8 +66,8 @@ impl Pattern for NoiseX {
         copy_memory("Noise_K".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -81,8 +81,8 @@ impl Pattern for NoiseNN {
         copy_memory("Noise_NN".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -97,8 +97,8 @@ impl Pattern for NoiseNK {
         copy_memory("Noise_NK".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -113,8 +113,8 @@ impl Pattern for NoiseNE {
         copy_memory("Noise_NN".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S, E], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -129,8 +129,8 @@ impl Pattern for NoiseNX {
         copy_memory("Noise_NX".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -145,8 +145,8 @@ impl Pattern for NoiseXN {
         copy_memory("Noise_XN".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -162,8 +162,8 @@ impl Pattern for NoiseXK {
         copy_memory("Noise_XK".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -179,8 +179,8 @@ impl Pattern for NoiseXE {
         copy_memory("Noise_XE".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S, E], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -196,8 +196,8 @@ impl Pattern for NoiseXX {
         copy_memory("Noise_XX".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[E], &mut messages[0]);
         copy_tokens(&[E, Dhee, S, Dhse], &mut messages[1]);
@@ -210,8 +210,8 @@ impl Pattern for NoiseKN {
         copy_memory("Noise_KN".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[], pre_responder);
         copy_tokens(&[S], pre_initiator);
@@ -226,8 +226,8 @@ impl Pattern for NoiseKK {
         copy_memory("Noise_KK".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S], pre_responder);
         copy_tokens(&[S], pre_initiator);
@@ -242,8 +242,8 @@ impl Pattern for NoiseKE {
         copy_memory("noise_ke".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S, E], pre_responder);
         copy_tokens(&[S], pre_initiator);
@@ -258,8 +258,8 @@ impl Pattern for NoiseKX {
         copy_memory("Noise_KX".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[], pre_responder);
         copy_tokens(&[S], pre_initiator);
@@ -274,8 +274,8 @@ impl Pattern for NoiseIN {
         copy_memory("Noise_IN".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -290,8 +290,8 @@ impl Pattern for NoiseIK {
         copy_memory("Noise_IK".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -306,8 +306,8 @@ impl Pattern for NoiseIE {
         copy_memory("Noise_IE".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[S, E], pre_responder);
         copy_tokens(&[], pre_initiator);
@@ -322,8 +322,8 @@ impl Pattern for NoiseIX {
         copy_memory("Noise_IX".as_bytes(), out)
     }
 
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                messages: &mut [[Token; 8]; 5]) {
         copy_tokens(&[], pre_responder);
         copy_tokens(&[], pre_initiator);

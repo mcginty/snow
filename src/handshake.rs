@@ -7,8 +7,8 @@ pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}
 
 pub trait Pattern {
     fn name(out: &mut [u8]) -> usize;
-    fn pattern(pre_responder: &mut [Token], 
-               pre_initiator: &mut [Token], 
+    fn pattern(pre_initiator: &mut [Token], 
+               pre_responder: &mut [Token], 
                out: &mut [[Token; 8]; 5]);
 }
 
@@ -128,9 +128,9 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash> HandshakeState<P, D, C, H> {
         let mut symmetricstate = SymmetricState::new(&handshake_name[..name_len]); 
 
         let mut messages = [[Token::Empty; 8]; 5];
-        let mut pre_responder = [Token::Empty; 2];
         let mut pre_initiator = [Token::Empty; 2];
-        P::pattern(&mut pre_responder, &mut pre_initiator, &mut messages);
+        let mut pre_responder = [Token::Empty; 2];
+        P::pattern(&mut pre_initiator, &mut pre_responder, &mut messages);
         if initiator {
             for token in &pre_initiator {
                 match *token {
