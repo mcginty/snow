@@ -2,6 +2,8 @@
 use std::marker::PhantomData;
 use crypto_stuff::*;
 
+pub const MAXMSGLEN : usize = 65535;
+
 #[derive(Copy, Clone)]
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}
 
@@ -210,6 +212,7 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
         }
         self.my_turn_to_send = false;
         byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]);
+        assert!(byte_index <= MAXMSGLEN);
         match last {
             true => (byte_index, Some(self.symmetricstate.split(self.initiator))),
             false => (byte_index, None)
@@ -222,6 +225,8 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
                             Result<(usize, Option<(CipherState<C>, CipherState<C>)>), 
                                     NoiseError> { 
         assert!(self.my_turn_to_send == false);
+        assert!(message.len() <= MAXMSGLEN);
+
         let tokens = self.messages[self.msg_index];
         let mut last = false;
         if let Token::Empty = self.messages[self.msg_index+1][0] {
