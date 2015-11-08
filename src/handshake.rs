@@ -5,11 +5,11 @@ use crypto_stuff::*;
 #[derive(Copy, Clone)]
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}
 
-pub trait Pattern {
+pub trait HandshakePattern {
     fn name(out: &mut [u8]) -> usize;
-    fn pattern(pre_initiator: &mut [Token], 
-               pre_responder: &mut [Token], 
-               out: &mut [[Token; 8]; 5]);
+    fn get(premsg_pattern_i: &mut [Token], 
+           premsg_pattern_r: &mut [Token], 
+           msg_patterns: &mut [[Token; 8]; 5]);
 }
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ struct SymmetricState<C: Cipher, H: Hash> {
     wtf : PhantomData<H>, /* So rust thinks I'm using H, this is ugly */
 }
 
-pub struct HandshakeState<P: Pattern, D: Dh, C: Cipher, H: Hash, R: Random> {
+pub struct HandshakeState<P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> {
     symmetricstate: SymmetricState<C, H>,
     s: Option<D>,
     e: Option<D>,
@@ -107,7 +107,7 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
 }
 
-impl <P: Pattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<P, D, C, H, R> {
+impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<P, D, C, H, R> {
 
     pub fn new(initiator: bool,
                new_s : Option<D>, 
@@ -128,12 +128,12 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<P, D, C, 
 
         let mut symmetricstate = SymmetricState::new(&handshake_name[..name_len]); 
 
-        let mut messages = [[Token::Empty; 8]; 5];
-        let mut pre_initiator = [Token::Empty; 2];
-        let mut pre_responder = [Token::Empty; 2];
-        P::pattern(&mut pre_initiator, &mut pre_responder, &mut messages);
+        let mut premsg_pattern_i = [Token::Empty; 2];
+        let mut premsg_pattern_r = [Token::Empty; 2];
+        let mut msg_patterns = [[Token::Empty; 8]; 5];
+        P::get(&mut premsg_pattern_i, &mut premsg_pattern_r, &mut msg_patterns);
         if initiator {
-            for token in &pre_initiator {
+            for token in &premsg_pattern_i {
                 match *token {
                     Token::S => symmetricstate.mix_hash(new_s.as_ref().unwrap().pubkey()),
                     Token::E => symmetricstate.mix_hash(new_e.as_ref().unwrap().pubkey()),
@@ -141,7 +141,7 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<P, D, C, 
                     _ => unreachable!()
                 }
             }
-            for token in &pre_responder {
+            for token in &premsg_pattern_r {
                 match *token {
                     Token::S => symmetricstate.mix_hash(&new_rs.unwrap()),
                     Token::E => symmetricstate.mix_hash(&new_re.unwrap()),
@@ -150,7 +150,7 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<P, D, C, 
                 }
             }
         } else {
-            for token in &pre_initiator {
+            for token in &premsg_pattern_i {
                 match *token {
                     Token::S => symmetricstate.mix_hash(&new_rs.unwrap()),
                     Token::E => symmetricstate.mix_hash(&new_re.unwrap()),
@@ -158,7 +158,7 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<P, D, C, 
                     _ => unreachable!()
                 }
             }
-            for token in &pre_responder {
+            for token in &premsg_pattern_r {
                 match *token {
                     Token::S => symmetricstate.mix_hash(new_s.as_ref().unwrap().pubkey()),
                     Token::E => symmetricstate.mix_hash(new_e.as_ref().unwrap().pubkey()),
@@ -172,7 +172,7 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<P, D, C, 
             symmetricstate: symmetricstate, 
             s: new_s, e: new_e, rs: new_rs, re: new_re, 
             my_turn_to_send: initiator,
-            msg_index: 0, messages: messages, rng: R::new(), wtf: PhantomData::<P>}
+            msg_index: 0, messages: msg_patterns, rng: R::new(), wtf: PhantomData::<P>}
     }
 
     pub fn write_message(&mut self, 
