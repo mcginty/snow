@@ -1,7 +1,6 @@
 
 use std::marker::PhantomData;
 use crypto_stuff::*;
-use wrappers::rand_wrapper::*;
 
 #[derive(Copy, Clone)]
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}

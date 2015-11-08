@@ -4,11 +4,11 @@ use noiseref::*;
 
 #[test]
 fn it_works() {
-    let mut rng = OsRandom::new();
+    let mut rng = RandomOs::new();
     let s_i = Dh25519::generate(&mut rng);
     let s_r = Dh25519::generate(&mut rng);
-    let mut h_i = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, OsRandom>::new(true, Some(s_i), None, None, None);
-    let mut h_r = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, OsRandom>::new(false, Some(s_r), None, None, None);
+    let mut h_i = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomOs>::new(true, Some(s_i), None, None, None);
+    let mut h_r = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomOs>::new(false, Some(s_r), None, None, None);
 
     let payload_in_0 = "abcdef".as_bytes();
     let mut buffer = [0u8; 1024];

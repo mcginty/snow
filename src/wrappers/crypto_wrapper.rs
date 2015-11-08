@@ -1,6 +1,5 @@
 extern crate crypto;
 extern crate byteorder;
-extern crate rand;
 extern crate rustc_serialize;
 
 use self::crypto::digest::Digest;
