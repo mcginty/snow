@@ -32,6 +32,7 @@ pub struct HandshakeState<P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Ran
     my_turn_to_send : bool,
     msg_index: usize,
     messages : [[Token; 8]; 5],
+    initiator: bool,
     rng : R,
     wtf : PhantomData<P>, /* So rust thinks I'm using P, this is ugly */
 }
@@ -97,12 +98,12 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
         true
     }
 
-    fn split(&self) -> (C, C) {
+    fn split(&self, initiator: bool) -> (C, C) {
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
         H::hkdf(&self.ck[..H::hash_len()], &[0u8; 0], &mut hkdf_output.0, &mut hkdf_output.1);
         let c1 = C::new(&hkdf_output.0[..CIPHERKEYLEN], 0);
         let c2 = C::new(&hkdf_output.1[..CIPHERKEYLEN], 0);
-        (c1, c2)
+        if initiator { (c1, c2) } else { (c2, c1) }
     }
 
 }
@@ -172,7 +173,11 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
             symmetricstate: symmetricstate, 
             s: new_s, e: new_e, rs: new_rs, re: new_re, 
             my_turn_to_send: initiator,
-            msg_index: 0, messages: msg_patterns, rng: R::new(), wtf: PhantomData::<P>}
+            msg_index: 0, 
+            messages: msg_patterns, 
+            initiator: initiator, 
+            rng: R::new(), 
+            wtf: PhantomData::<P>}
     }
 
     pub fn write_message(&mut self, 
@@ -206,7 +211,7 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
         self.my_turn_to_send = false;
         byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]);
         match last {
-            true => (byte_index, Some(self.symmetricstate.split())),
+            true => (byte_index, Some(self.symmetricstate.split(self.initiator))),
             false => (byte_index, None)
         }
     }
@@ -264,7 +269,7 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
         }
         self.my_turn_to_send = true;
         match last {
-            true => Ok( (payload_len, Some(self.symmetricstate.split()) ) ),
+            true => Ok( (payload_len, Some(self.symmetricstate.split(self.initiator)) ) ),
             false => Ok( (payload_len, None) ) 
         }
     }
