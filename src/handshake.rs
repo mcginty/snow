@@ -1,6 +1,7 @@
 
 use std::marker::PhantomData;
 use crypto_stuff::*;
+use wrappers::rand_wrapper::*;
 
 #[derive(Copy, Clone)]
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}
@@ -23,7 +24,7 @@ struct SymmetricState<C: Cipher, H: Hash> {
     wtf : PhantomData<H>, /* So rust thinks I'm using H, this is ugly */
 }
 
-pub struct HandshakeState<P: Pattern, D: Dh, C: Cipher, H: Hash> {
+pub struct HandshakeState<P: Pattern, D: Dh, C: Cipher, H: Hash, R: Random> {
     symmetricstate: SymmetricState<C, H>,
     s: Option<D>,
     e: Option<D>,
@@ -32,6 +33,7 @@ pub struct HandshakeState<P: Pattern, D: Dh, C: Cipher, H: Hash> {
     my_turn_to_send : bool,
     msg_index: usize,
     messages : [[Token; 8]; 5],
+    rng : R,
     wtf : PhantomData<P>, /* So rust thinks I'm using P, this is ugly */
 }
 
@@ -106,13 +108,13 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
 }
 
-impl <P: Pattern, D: Dh, C: Cipher, H: Hash> HandshakeState<P, D, C, H> {
+impl <P: Pattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<P, D, C, H, R> {
 
     pub fn new(initiator: bool,
                new_s : Option<D>, 
                new_e : Option<D>, 
                new_rs: Option<[u8; DHLEN]>, 
-               new_re: Option<[u8; DHLEN]> ) -> HandshakeState<P, D, C, H> {
+               new_re: Option<[u8; DHLEN]> ) -> HandshakeState<P, D, C, H, R> {
         let mut handshake_name = [0u8; 128];
         let mut name_len = P::name(&mut handshake_name);
         handshake_name[name_len] = '_' as u8;
@@ -171,7 +173,7 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash> HandshakeState<P, D, C, H> {
             symmetricstate: symmetricstate, 
             s: new_s, e: new_e, rs: new_rs, re: new_re, 
             my_turn_to_send: initiator,
-            msg_index: 0, messages: messages, wtf: PhantomData::<P>}
+            msg_index: 0, messages: messages, rng: R::new(), wtf: PhantomData::<P>}
     }
 
     pub fn write_message(&mut self, 
@@ -189,7 +191,7 @@ impl <P: Pattern, D: Dh, C: Cipher, H: Hash> HandshakeState<P, D, C, H> {
         for token in &tokens {
             match *token {
                 Token::E => {
-                    self.e = Some(D::generate()); 
+                    self.e = Some(D::generate(&mut self.rng)); 
                     byte_index += self.symmetricstate.encrypt_and_hash(
                         &self.e.as_ref().unwrap().pubkey(), &mut message[byte_index..]); 
                 },

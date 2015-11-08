@@ -12,10 +12,15 @@ pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
     data.len()
 }
 
+pub trait Random {
+    fn new() -> Self;
+    fn fill_bytes(&mut self, out: &mut [u8]);
+}
+
 pub trait Dh {
     fn name(out: &mut [u8]) -> usize;
     fn new(privkey: &[u8], pubkey: &[u8]) -> Self;
-    fn generate() -> Self; 
+    fn generate<R: Random>(rng: &mut R) -> Self; 
     
     fn pubkey(&self) -> &[u8];
     fn dh(&self, pubkey: &[u8]) -> [u8; DHLEN];

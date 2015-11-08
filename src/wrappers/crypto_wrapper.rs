@@ -17,7 +17,6 @@ use self::crypto::curve25519::{curve25519, curve25519_base};
 use self::crypto::util::fixed_time_eq;
 
 use self::byteorder::{ByteOrder, BigEndian, LittleEndian};
-use self::rand::{OsRng, Rng};
 
 use crypto_stuff::*;
 
@@ -62,9 +61,8 @@ impl Dh for Dh25519 {
         dh
     }
 
-    fn generate() -> Dh25519 {
+    fn generate<R: Random>(rng: &mut R) -> Dh25519 {
         let mut privkey = [0u8; 32];
-        let mut rng = OsRng::new().unwrap();
         rng.fill_bytes(&mut privkey);
         privkey[0] &= 248;
         privkey[31] &= 127;

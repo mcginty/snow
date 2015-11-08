@@ -1,10 +1,11 @@
 
 mod crypto_stuff;
-mod crypto_wrappers;
+mod wrappers;
 mod handshake;
 mod patterns;
 
-pub use crypto_stuff::{Dh, Cipher, Hash};
-pub use crypto_wrappers::rust_crypto::{Dh25519, CipherAESGCM, HashSHA256};
+pub use crypto_stuff::{Random, Dh, Cipher, Hash};
+pub use wrappers::crypto_wrapper::*;
+pub use wrappers::rand_wrapper::*;
 pub use handshake::{HandshakeState, Token};
 pub use patterns::*;
