@@ -26,12 +26,10 @@ pub struct Dh25519 {
 
 pub struct CipherAESGCM {
     key : [u8; 32],
-    nonce : u64
 }
 
 pub struct CipherChaChaPoly {
     key : [u8; 32],
-    nonce : u64
 }
 
 pub struct HashSHA256 {
@@ -86,26 +84,24 @@ impl Cipher for CipherAESGCM {
         copy_memory("AESGCM".as_bytes(), out)
     }
 
-    fn new(key: &[u8], nonce: u64) -> CipherAESGCM {
-        let mut cipher = CipherAESGCM{key: [0u8; 32], nonce: nonce};
+    fn new(key: &[u8]) -> CipherAESGCM {
+        let mut cipher = CipherAESGCM{key: [0u8; 32]};
         copy_memory(key, &mut cipher.key);
         cipher
     }
 
-    fn encrypt_and_inc(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
+    fn encrypt(&mut self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
         let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], self.nonce);
-        self.nonce += 1;
+        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
         let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
         let mut tag = [0u8; TAGLEN];
         cipher.encrypt(plaintext, &mut out[..plaintext.len()], &mut tag);
         copy_memory(&tag, &mut out[plaintext.len()..]);
     } 
 
-    fn decrypt_and_inc(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
+    fn decrypt(&mut self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
         let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], self.nonce);
-        self.nonce += 1;
+        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
         let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
         let text_len = ciphertext.len() - TAGLEN;
         let mut tag = [0u8; TAGLEN];
@@ -121,16 +117,15 @@ impl Cipher for CipherChaChaPoly {
         copy_memory("ChaChaPoly".as_bytes(), out)
     }
 
-    fn new(key: &[u8], nonce: u64) -> CipherChaChaPoly {
-        let mut cipher = CipherChaChaPoly{key: [0u8; 32], nonce: nonce};
+    fn new(key: &[u8]) -> CipherChaChaPoly {
+        let mut cipher = CipherChaChaPoly{key: [0u8; 32]};
         copy_memory(key, &mut cipher.key);
         cipher
     }
 
-    fn encrypt_and_inc(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
+    fn encrypt(&mut self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
         let mut nonce_bytes = [0u8; 8];
-        LittleEndian::write_u64(&mut nonce_bytes, self.nonce);
-        self.nonce += 1;
+        LittleEndian::write_u64(&mut nonce_bytes, nonce);
 
         let mut cipher = ChaCha20::new(&self.key, &nonce_bytes);
         let zeros = [0u8; 64];
@@ -151,10 +146,9 @@ impl Cipher for CipherChaChaPoly {
         poly.raw_result(&mut out[plaintext.len()..]);
     } 
 
-    fn decrypt_and_inc(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
+    fn decrypt(&mut self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
         let mut nonce_bytes = [0u8; 8];
-        LittleEndian::write_u64(&mut nonce_bytes, self.nonce);
-        self.nonce += 1;
+        LittleEndian::write_u64(&mut nonce_bytes, nonce);
 
         let mut cipher = ChaCha20::new(&self.key, &nonce_bytes);
         let zeros = [0u8; 64];
@@ -335,34 +329,34 @@ mod tests {
             let plaintext = [0u8; 0];
             let authtext = [0u8; 0];
             let mut ciphertext = [0u8; 16];
-            let mut cipher1 = CipherAESGCM::new(&key, nonce);
-            cipher1.encrypt_and_inc(&authtext, &plaintext, &mut ciphertext);
+            let mut cipher1 = CipherState::<CipherAESGCM>::new(&key, nonce);
+            cipher1.encrypt_with_ad(&authtext, &plaintext, &mut ciphertext);
             assert!(ciphertext.to_hex() == "530f8afbc74536b9a963b4f1c4cb738b");
             
             let mut resulttext = [0u8; 1];
-            let mut cipher2 = CipherAESGCM::new(&key, nonce);
-            assert!(cipher2.decrypt_and_inc(&authtext, &ciphertext, &mut resulttext) == true);
+            let mut cipher2 = CipherState::<CipherAESGCM>::new(&key, nonce);
+            assert!(cipher2.decrypt_with_ad(&authtext, &ciphertext, &mut resulttext) == true);
             assert!(resulttext[0] == 0);
             ciphertext[0] ^= 1;
-            assert!(cipher1.nonce == 1 && cipher2.nonce == 1);
-            cipher2.nonce = 0;
-            assert!(cipher2.decrypt_and_inc(&authtext, &ciphertext, &mut resulttext) == false);
+            assert!(cipher1.n == 1 && cipher2.n == 1);
+            cipher2.n = 0;
+            assert!(cipher2.decrypt_with_ad(&authtext, &ciphertext, &mut resulttext) == false);
 
             // Test Case 14
             let plaintext2 = [0u8; 16];
             let mut ciphertext2 = [0u8; 32];
-            let mut cipher3 = CipherAESGCM::new(&key, 0);
-            cipher3.encrypt_and_inc(&authtext, &plaintext2, &mut ciphertext2);
+            let mut cipher3 = CipherState::<CipherAESGCM>::new(&key, 0);
+            cipher3.encrypt_with_ad(&authtext, &plaintext2, &mut ciphertext2);
             assert!(ciphertext2.to_hex() == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919");
             
             let mut resulttext2 = [1u8; 16];
-            let mut cipher4 = CipherAESGCM::new(&key, 0);
-            assert!(cipher4.decrypt_and_inc(&authtext, &ciphertext2, &mut resulttext2) == true);
+            let mut cipher4 = CipherState::<CipherAESGCM>::new(&key, 0);
+            assert!(cipher4.decrypt_with_ad(&authtext, &ciphertext2, &mut resulttext2) == true);
             assert!(plaintext2 == resulttext2);
             ciphertext2[0] ^= 1;
-            assert!(cipher3.nonce == 1 && cipher4.nonce == 1);
-            cipher4.nonce = 0;
-            assert!(cipher4.decrypt_and_inc(&authtext, &ciphertext2, &mut resulttext2) == false);
+            assert!(cipher3.n == 1 && cipher4.n == 1);
+            cipher4.n = 0;
+            assert!(cipher4.decrypt_with_ad(&authtext, &ciphertext2, &mut resulttext2) == false);
         }
 
         // Poly1305 internal test - RFC 7539
@@ -385,17 +379,17 @@ mod tests {
             let plaintext = [0u8; 0];
             let authtext = [0u8; 0];
             let mut ciphertext = [0u8; 16];
-            let mut cipher1 = CipherChaChaPoly::new(&key, nonce);
-            cipher1.encrypt_and_inc(&authtext, &plaintext, &mut ciphertext);
+            let mut cipher1 = CipherState::<CipherChaChaPoly>::new(&key, nonce);
+            cipher1.encrypt_with_ad(&authtext, &plaintext, &mut ciphertext);
 
             let mut resulttext = [0u8; 1];
-            let mut cipher2 = CipherChaChaPoly::new(&key, nonce);
-            assert!(cipher2.decrypt_and_inc(&authtext, &ciphertext, &mut resulttext) == true);
+            let mut cipher2 = CipherState::<CipherChaChaPoly>::new(&key, nonce);
+            assert!(cipher2.decrypt_with_ad(&authtext, &ciphertext, &mut resulttext) == true);
             assert!(resulttext[0] == 0);
             ciphertext[0] ^= 1;
-            assert!(cipher1.nonce == 1 && cipher2.nonce == 1);
-            cipher2.nonce = 0;
-            assert!(cipher2.decrypt_and_inc(&authtext, &ciphertext, &mut resulttext) == false);
+            assert!(cipher1.n == 1 && cipher2.n == 1);
+            cipher2.n = 0;
+            assert!(cipher2.decrypt_with_ad(&authtext, &ciphertext, &mut resulttext) == false);
         }
         
         //ChaChaPoly round-trip test, non-empty plaintext
@@ -405,12 +399,12 @@ mod tests {
             let plaintext = [0x34u8; 117];
             let authtext = [0u8; 0];
             let mut ciphertext = [0u8; 133];
-            let mut cipher1 = CipherChaChaPoly::new(&key, nonce);
-            cipher1.encrypt_and_inc(&authtext, &plaintext, &mut ciphertext);
+            let mut cipher1 = CipherState::<CipherChaChaPoly>::new(&key, nonce);
+            cipher1.encrypt_with_ad(&authtext, &plaintext, &mut ciphertext);
 
             let mut resulttext = [0u8; 117];
-            let mut cipher2 = CipherChaChaPoly::new(&key, nonce);
-            assert!(cipher2.decrypt_and_inc(&authtext, &ciphertext, &mut resulttext) == true);
+            let mut cipher2 = CipherState::<CipherChaChaPoly>::new(&key, nonce);
+            assert!(cipher2.decrypt_with_ad(&authtext, &ciphertext, &mut resulttext) == true);
             assert!(resulttext.to_hex() == plaintext.to_hex());
         }
 
@@ -443,8 +437,8 @@ mod tests {
             copy_memory(&ciphertext, &mut combined_text);
             copy_memory(&tag[0..TAGLEN], &mut combined_text[ciphertext.len()..]);
             
-            let mut cipher = CipherChaChaPoly::new(&key, nonce);
-            assert!(cipher.decrypt_and_inc(&authtext, &combined_text[..ciphertext.len()+TAGLEN], &mut out[..ciphertext.len()]));
+            let mut cipher = CipherState::<CipherChaChaPoly>::new(&key, nonce);
+            assert!(cipher.decrypt_with_ad(&authtext, &combined_text[..ciphertext.len()+TAGLEN], &mut out[..ciphertext.len()]));
             let desired_plaintext = "496e7465726e65742d44726166747320\
                                      61726520647261667420646f63756d65\
                                      6e74732076616c696420666f72206120\

@@ -56,26 +56,26 @@ fn it_works() {
 
         // transport message I -> R
         let payload_3 = "wubba".as_bytes();
-        cipher_states_i.0.encrypt_and_inc(&[0u8;0], &payload_3, &mut buffer);
+        cipher_states_i.0.encrypt(&payload_3, &mut buffer);
 
         let mut payload_3_out = [0u8; 1024];
-        assert!(cipher_states_r.1.decrypt_and_inc(&[0u8;0], &buffer[..21], &mut payload_3_out));
+        assert!(cipher_states_r.1.decrypt(&buffer[..21], &mut payload_3_out));
         assert!(payload_3.to_hex() == payload_3_out[..5].to_hex());
 
         // transport message I -> R again
         let payload_4 = "aleph".as_bytes();
-        cipher_states_i.0.encrypt_and_inc(&[0u8;0], &payload_4, &mut buffer);
+        cipher_states_i.0.encrypt(&payload_4, &mut buffer);
 
         let mut payload_4_out = [0u8; 1024];
-        assert!(cipher_states_r.1.decrypt_and_inc(&[0u8;0], &buffer[..21], &mut payload_4_out));
+        assert!(cipher_states_r.1.decrypt(&buffer[..21], &mut payload_4_out));
         assert!(payload_4.to_hex() == payload_4_out[..5].to_hex());
 
         // transport message R <- I
         let payload_5 = "worri".as_bytes();
-        cipher_states_i.0.encrypt_and_inc(&[0u8;0], &payload_5, &mut buffer);
+        cipher_states_i.0.encrypt(&payload_5, &mut buffer);
 
         let mut payload_5_out = [0u8; 1024];
-        assert!(cipher_states_r.1.decrypt_and_inc(&[0u8;0], &buffer[..21], &mut payload_5_out));
+        assert!(cipher_states_r.1.decrypt(&buffer[..21], &mut payload_5_out));
         assert!(payload_5.to_hex() == payload_5_out[..5].to_hex());
     } 
 }

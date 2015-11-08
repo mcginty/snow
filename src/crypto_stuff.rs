@@ -28,10 +28,10 @@ pub trait Dh {
 
 pub trait Cipher {
     fn name(out: &mut [u8]) -> usize;
-    fn new(key: &[u8], nonce: u64) -> Self;
+    fn new(key: &[u8]) -> Self;
 
-    fn encrypt_and_inc(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]);
-    fn decrypt_and_inc(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool;
+    fn encrypt(&mut self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]);
+    fn decrypt(&mut self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool;
 }
 
 pub trait Hash : Sized {
@@ -71,6 +71,45 @@ pub trait Hash : Sized {
         copy_memory(&out1[0..Self::hash_len()], &mut in2);
         in2[Self::hash_len()] = 2;
         Self::hmac(&temp_key, &in2[..Self::hash_len()+1], out2);
+    }
+}
+
+pub struct CipherState<C: Cipher> {
+    cipher : C,
+    pub n : u64,
+    good : bool
+}
+
+impl<C: Cipher> CipherState<C> {
+
+    pub fn new(key: &[u8], nonce: u64) -> CipherState<C> {
+        CipherState{cipher : C::new(key), n: nonce, good : true}
+    }
+
+    pub fn encrypt_with_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
+        assert!(self.good);
+        self.cipher.encrypt(self.n, authtext, plaintext, out);
+        self.n += 1;
+    }
+
+    pub fn decrypt_with_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
+        assert!(self.good);
+        self.good = self.cipher.decrypt(self.n, authtext, ciphertext, out);
+        self.n += 1;
+        self.good
+    }
+
+    pub fn encrypt(&mut self, plaintext: &[u8], out: &mut[u8]) {
+        assert!(self.good);
+        self.cipher.encrypt(self.n, &[0u8;0], plaintext, out);
+        self.n += 1;
+    }
+
+    pub fn decrypt(&mut self, ciphertext: &[u8], out: &mut[u8]) -> bool {
+        assert!(self.good);
+        self.good = self.cipher.decrypt(self.n, &[0u8;0], ciphertext, out);
+        self.n += 1;
+        self.good
     }
 }
 

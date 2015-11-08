@@ -16,7 +16,7 @@ pub trait HandshakePattern {
 pub enum NoiseError {DecryptError}
 
 struct SymmetricState<C: Cipher, H: Hash> {
-    cipherstate : C,
+    cipherstate : CipherState<C>,
     has_key : bool,
     h : [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
     ck: [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
@@ -50,7 +50,7 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
             hasher.result(&mut hname);
         }
         SymmetricState{
-            cipherstate: C::new(&[0u8; CIPHERKEYLEN], 0), 
+            cipherstate: CipherState::new(&[0u8; CIPHERKEYLEN], 0), 
             has_key : false, 
             h: hname,
             ck : hname, 
@@ -62,7 +62,7 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
         H::hkdf(&self.ck[..H::hash_len()], data, &mut hkdf_output.0, &mut hkdf_output.1);
         copy_memory(&hkdf_output.0, &mut self.ck);
-        self.cipherstate = C::new(&hkdf_output.1[..CIPHERKEYLEN], 0);
+        self.cipherstate = CipherState::new(&hkdf_output.1[..CIPHERKEYLEN], 0);
         self.has_key = true;
     }
 
@@ -75,7 +75,7 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
     fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
         if self.has_key {
-            self.cipherstate.encrypt_and_inc(&self.h[..H::hash_len()], plaintext, out);
+            self.cipherstate.encrypt_with_ad(&self.h[..H::hash_len()], plaintext, out);
             self.mix_hash(&out[..plaintext.len() + TAGLEN]);
             return plaintext.len() + TAGLEN;
         } else {
@@ -87,7 +87,7 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
     fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> bool {
         if self.has_key {
-            if !self.cipherstate.decrypt_and_inc(&self.h[..H::hash_len()], data, out) { 
+            if !self.cipherstate.decrypt_with_ad(&self.h[..H::hash_len()], data, out) { 
                 return false; 
             }
         }
@@ -98,11 +98,11 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
         true
     }
 
-    fn split(&self, initiator: bool) -> (C, C) {
+    fn split(&self, initiator: bool) -> (CipherState<C>, CipherState<C>) {
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
         H::hkdf(&self.ck[..H::hash_len()], &[0u8; 0], &mut hkdf_output.0, &mut hkdf_output.1);
-        let c1 = C::new(&hkdf_output.0[..CIPHERKEYLEN], 0);
-        let c2 = C::new(&hkdf_output.1[..CIPHERKEYLEN], 0);
+        let c1 = CipherState::<C>::new(&hkdf_output.0[..CIPHERKEYLEN], 0);
+        let c2 = CipherState::<C>::new(&hkdf_output.1[..CIPHERKEYLEN], 0);
         if initiator { (c1, c2) } else { (c2, c1) }
     }
 
@@ -182,7 +182,7 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
 
     pub fn write_message(&mut self, 
                          payload: &[u8], 
-                         message: &mut [u8]) -> (usize, Option<(C, C)>) { 
+                         message: &mut [u8]) -> (usize, Option<(CipherState<C>, CipherState<C>)>) { 
         assert!(self.my_turn_to_send);
         let tokens = self.messages[self.msg_index];
         let mut last = false;
@@ -218,7 +218,9 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
 
     pub fn read_message(&mut self, 
                         message: &[u8], 
-                        payload: &mut [u8]) -> Result<(usize, Option<(C, C)>), NoiseError> { 
+                        payload: &mut [u8]) -> 
+                            Result<(usize, Option<(CipherState<C>, CipherState<C>)>), 
+                                    NoiseError> { 
         assert!(self.my_turn_to_send == false);
         let tokens = self.messages[self.msg_index];
         let mut last = false;
