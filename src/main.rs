@@ -1,4 +1,4 @@
-extern crate noiseref;
+extern crate screech;
 
 fn main() {
 }

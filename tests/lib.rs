@@ -1,7 +1,7 @@
-extern crate noiseref;
+extern crate screech;
 extern crate rustc_serialize;
 
-use noiseref::*;
+use screech::*;
 use self::rustc_serialize::hex::{ToHex};
 
 
