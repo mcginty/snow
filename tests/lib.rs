@@ -44,10 +44,10 @@ fn it_works() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h = HS::new(rng, true, None, None, Some(static_pubkey), None);
+        let mut h = HS::new(rng, true, &[0u8;0], None, None, Some(static_pubkey), None);
         let mut buffer = [0u8; 48];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 48);
-        assert!(buffer.to_hex() == "358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd166254a9f57a83ac259e1caf3f2da6ff5264d5");
+        assert!(buffer.to_hex() =="358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662545f87cd6168bddf4ba6a491374ff31e37"); 
     }
 
     // Noise_X test
@@ -59,12 +59,10 @@ fn it_works() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h = HS::new(rng, true, Some(static_i), None, Some(static_pubkey), None);
+        let mut h = HS::new(rng, true, &[0u8;0], Some(static_i), None, Some(static_pubkey), None);
         let mut buffer = [0u8; 96];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
-        assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89a\
-                                    f85a51ad203cd28d81cf65a2da637f557a05728b3ae4abdc3a42d1cda5f719d6cf41d\
-                                    7f180a6e9bbcc0300ba7c6e6761e17110a61d92f4b18da15d5a27f7aace013e2bc");
+        assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad203cd28d81cf65a2da637f557a05728b3ae4abdc3a42d1cda5f719d6cf41d7f13a2aab7210a78fa22af221058962bcb034e42b1b82fa3b4caa5d1995bb33dff");
     } 
 
     // Noise_NN test
@@ -74,8 +72,8 @@ fn it_works() {
         let mut rng_r = RandomInc::new();
         rng_r.next_byte = 1; 
 
-        let mut h_i = HS::new(rng_i, true, None, None, None, None);
-        let mut h_r = HS::new(rng_r, false, None, None, None, None);
+        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, None, None, None);
+        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, None, None, None);
         let mut buffer_msg = [0u8; 64];
         let mut buffer_out = [0u8; 10];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
@@ -86,8 +84,7 @@ fn it_works() {
         assert!(h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap().0 == 4);
         assert!(buffer_out[..4].to_hex() == "64656667");
 
-        assert!(buffer_msg[..52].to_hex() == "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c\
-                                              7c5e4dc954a1f101cdd5a583423fbae23fef0b49ab");
+        assert!(buffer_msg[..52].to_hex() == "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7c5e4dc9545d41b3280f4586a5481829e1e24ec5a0"); 
     } 
 
     // Noise_XX test
@@ -102,8 +99,8 @@ fn it_works() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, Some(static_i), None, None, None);
-        let mut h_r = HS::new(rng_r, false, Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, true, &[0u8;0], Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, false, &[0u8;0], Some(static_r), None, None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
@@ -117,10 +114,7 @@ fn it_works() {
         assert!(h_i.write_message(&[0u8;0], &mut buffer_msg).0 == 64);
         assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
 
-        //println!("{}", buffer_msg[..64].to_hex());
-        assert!(buffer_msg[..64].to_hex() == "8127f4b35cdbdf0935fcf1ec99016d1dcbc350055b8af360be196905dfb\
-                                              50a2ca2f225ac01ab7de84f2f15bb8ec5e26da133c677ea97cfc2b14f77a15d3ade3c");
-                                              
+        assert!(buffer_msg[..64].to_hex() == "8127f4b35cdbdf0935fcf1ec99016d1dcbc350055b8af360be196905dfb50a2c1c38a7ca9cb0cfe8f4576f36c47a4933eee32288f590ac4305d4b53187577be7");
     } 
 
     // Noise_IK test
@@ -135,8 +129,8 @@ fn it_works() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, Some(static_i), None, Some(static_pubkey), None);
-        let mut h_r = HS::new(rng_r, false, Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, true, "ABC".as_bytes(), Some(static_i), None, Some(static_pubkey), None);
+        let mut h_r = HS::new(rng_r, false, "ABC".as_bytes(), Some(static_r), None, None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 99);
@@ -148,8 +142,7 @@ fn it_works() {
         assert!(buffer_out[..4].to_hex() == "64656667");
 
         //println!("{}", buffer_msg[..68].to_hex());
-        assert!(buffer_msg[..68].to_hex() == "5a491c3d8524aee516e7edccba51433ebe651002f0f79fd79dc6a4bf65ecd7b1\
-                                              164dd506e33d03606ebf3a34e88f2b3b7555a941573231837bee4b47054e765508b2aca6");
+        assert!(buffer_msg[..68].to_hex() == "5a491c3d8524aee516e7edccba51433ebe651002f0f79fd79dc6a4bf65ecd7b1a94e5718c446f38b53518a1faea1ddef7555a941a59b45c5c123db0b3e421147b01965f6");
     } 
 
     // Noise_XE test
@@ -167,8 +160,8 @@ fn it_works() {
         let mut eph_pubkey = [0u8; 32];
         copy_memory(eph_r.pubkey(), &mut eph_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, Some(static_i), None, Some(static_pubkey), Some(eph_pubkey));
-        let mut h_r = HS::new(rng_r, false, Some(static_r), Some(eph_r), None, None);
+        let mut h_i = HS::new(rng_i, true, &[0u8;0], Some(static_i), None, Some(static_pubkey), Some(eph_pubkey));
+        let mut h_r = HS::new(rng_r, false, &[0u8;0], Some(static_r), Some(eph_r), None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 51);
@@ -183,8 +176,7 @@ fn it_works() {
         assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
 
         //println!("{}", buffer_msg[..64].to_hex());
-        assert!(buffer_msg[..64].to_hex() == "08439f380b6f128a1465840d558f06abb1141cf5708a9dcf573d6e4fae01f90f\
-                                              8987d8dff8fa2fba7cd7a811496f18e93ac7142fb5297e0737497bc66bb8b3f8");
+        assert!(buffer_msg[..64].to_hex() == "08439f380b6f128a1465840d558f06abb1141cf5708a9dcf573d6e4fae01f90fac8a549d8c8d250a0fd7258d820c135847ffc81d0228e8aa7998d59be58932db");
     } 
 
     // Noise_XX round-trip randomized test
@@ -196,8 +188,8 @@ fn it_works() {
         let mut rng_r = RandomOs::new();
         let static_i = Dh25519::generate(&mut rng_i);
         let static_r = Dh25519::generate(&mut rng_r);
-        let mut h_i = HS::new(rng_i, true, Some(static_i), None, None, None);
-        let mut h_r = HS::new(rng_r, false, Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, true, &[0u8;0], Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, false, &[0u8;0], Some(static_r), None, None, None);
 
         let mut buffer = [0u8; 1024];
 

@@ -114,6 +114,7 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
 
     pub fn new(rng: R,
                initiator: bool,
+               prologue: &[u8],
                new_s : Option<D>, 
                new_e : Option<D>, 
                new_rs: Option<[u8; DHLEN]>, 
@@ -171,6 +172,8 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
                 }
             }
         }
+
+        symmetricstate.mix_hash(prologue);
 
         HandshakeState{
             symmetricstate: symmetricstate, 
