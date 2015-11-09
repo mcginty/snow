@@ -2,7 +2,7 @@ extern crate noiseref;
 extern crate rustc_serialize;
 
 use noiseref::*;
-use self::rustc_serialize::hex::{FromHex, ToHex};
+use self::rustc_serialize::hex::{ToHex};
 
 #[test]
 fn it_works() {

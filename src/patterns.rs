@@ -199,6 +199,10 @@ impl HandshakePattern for NoiseXX {
     fn get(premsg_pattern_i: &mut [Token], 
            premsg_pattern_r: &mut [Token], 
            msg_patterns: &mut [[Token; 8]; 5]) {
+        
+        copy_tokens(&[], premsg_pattern_i);
+        copy_tokens(&[], premsg_pattern_r);
+
         copy_tokens(&[E], &mut msg_patterns[0]);
         copy_tokens(&[E, Dhee, S, Dhse], &mut msg_patterns[1]);
         copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
