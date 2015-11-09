@@ -9,11 +9,15 @@ fn it_works() {
 
     // Noise_XX round-trip randomized test
     {
-        let mut rng = RandomOs::new();
-        let static_i = Dh25519::generate(&mut rng);
-        let static_r = Dh25519::generate(&mut rng);
-        let mut h_i = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomOs>::new(true, Some(static_i), None, None, None);
-        let mut h_r = HandshakeState::<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomOs>::new(false, Some(static_r), None, None, None);
+
+        type  HS = HandshakeState<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomOs>;
+
+        let mut rng_i = RandomOs::new();
+        let mut rng_r = RandomOs::new();
+        let static_i = Dh25519::generate(&mut rng_i);
+        let static_r = Dh25519::generate(&mut rng_r);
+        let mut h_i = HS::new(rng_i, true, Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, false, Some(static_r), None, None, None);
 
         let mut buffer = [0u8; 1024];
 
@@ -78,4 +82,10 @@ fn it_works() {
         assert!(cipher_states_r.1.decrypt(&buffer[..21], &mut payload_5_out));
         assert!(payload_5.to_hex() == payload_5_out[..5].to_hex());
     } 
+
+
+
+    {
+
+    }
 }

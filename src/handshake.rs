@@ -112,11 +112,12 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
 impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<P, D, C, H, R> {
 
-    pub fn new(initiator: bool,
+    pub fn new(rng: R,
+               initiator: bool,
                new_s : Option<D>, 
                new_e : Option<D>, 
                new_rs: Option<[u8; DHLEN]>, 
-               new_re: Option<[u8; DHLEN]> ) -> HandshakeState<P, D, C, H, R> {
+               new_re: Option<[u8; DHLEN]>) -> HandshakeState<P, D, C, H, R> {
         let mut handshake_name = [0u8; 128];
         let mut name_len = P::name(&mut handshake_name);
         handshake_name[name_len] = '_' as u8;
@@ -178,7 +179,7 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
             msg_index: 0, 
             messages: msg_patterns, 
             initiator: initiator, 
-            rng: R::new(), 
+            rng: rng,  
             wtf: PhantomData::<P>}
     }
 
