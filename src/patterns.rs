@@ -63,7 +63,7 @@ impl HandshakePattern for NoiseK {
 
 impl HandshakePattern for NoiseX {
     fn name(out : &mut [u8]) -> usize { 
-        copy_memory("Noise_K".as_bytes(), out)
+        copy_memory("Noise_X".as_bytes(), out)
     }
 
     fn get(premsg_pattern_i: &mut [Token], 
@@ -110,7 +110,7 @@ impl HandshakePattern for NoiseNK {
 
 impl HandshakePattern for NoiseNE {
     fn name(out : &mut [u8]) -> usize { 
-        copy_memory("Noise_NN".as_bytes(), out)
+        copy_memory("Noise_NE".as_bytes(), out)
     }
 
     fn get(premsg_pattern_i: &mut [Token], 
@@ -243,7 +243,7 @@ impl HandshakePattern for NoiseKK {
 
 impl HandshakePattern for NoiseKE {
     fn name(out : &mut [u8]) -> usize { 
-        copy_memory("noise_ke".as_bytes(), out)
+        copy_memory("Noise_KE".as_bytes(), out)
     }
 
     fn get(premsg_pattern_i: &mut [Token], 

@@ -139,9 +139,9 @@ fn it_works() {
         let mut h = HS::new(rng, true, Some(static_i), None, Some(static_pubkey), None);
         let mut buffer = [0u8; 96];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
-        assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51a\
-                                    ba1307ca634d60a54df23d225f2cc3e74b78ad0325159e6d9281839bae1c17f0\
-                                    98feeecf222fd955ad476200ea7515aa4a85e3081a5b5c1eebec8796fba60885");
+        assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89a\
+                                    f85a51ad203cd28d81cf65a2da637f557a05728b3ae4abdc3a42d1cda5f719d6cf41d\
+                                    7f180a6e9bbcc0300ba7c6e6761e17110a61d92f4b18da15d5a27f7aace013e2bc");
     } 
 
     // Noise_NN test
