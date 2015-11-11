@@ -133,6 +133,8 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
 
         let mut symmetricstate = SymmetricState::new(&handshake_name[..name_len]); 
 
+        symmetricstate.mix_hash(prologue);
+
         let mut premsg_pattern_i = [Token::Empty; 2];
         let mut premsg_pattern_r = [Token::Empty; 2];
         let mut msg_patterns = [[Token::Empty; 8]; 5];
@@ -172,8 +174,6 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
                 }
             }
         }
-
-        symmetricstate.mix_hash(prologue);
 
         HandshakeState{
             symmetricstate: symmetricstate, 

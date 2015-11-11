@@ -47,7 +47,8 @@ fn it_works() {
         let mut h = HS::new(rng, true, &[0u8;0], None, None, Some(static_pubkey), None);
         let mut buffer = [0u8; 48];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 48);
-        assert!(buffer.to_hex() =="358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662545f87cd6168bddf4ba6a491374ff31e37"); 
+        //println!("{}", buffer.to_hex());
+        assert!(buffer.to_hex() =="358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662548331a3d1e93b490263abc7a4633867f4"); 
     }
 
     // Noise_X test
@@ -62,7 +63,8 @@ fn it_works() {
         let mut h = HS::new(rng, true, &[0u8;0], Some(static_i), None, Some(static_pubkey), None);
         let mut buffer = [0u8; 96];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
-        assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad203cd28d81cf65a2da637f557a05728b3ae4abdc3a42d1cda5f719d6cf41d7f13a2aab7210a78fa22af221058962bcb034e42b1b82fa3b4caa5d1995bb33dff");
+        //println!("{}", buffer.to_hex());
+        assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad203cd28d81cf65a2da637f557a05728b3ae4abdc3a42d1cda5f719d6cf41d7f2cf1b1c5af10e38a09a9bb7e3b1d589a99492cc50293eaa1f3f391b59bb6990d");
     } 
 
     // Noise_NN test
@@ -84,6 +86,7 @@ fn it_works() {
         assert!(h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap().0 == 4);
         assert!(buffer_out[..4].to_hex() == "64656667");
 
+        //println!("{}", buffer_msg[..52].to_hex());
         assert!(buffer_msg[..52].to_hex() == "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7c5e4dc9545d41b3280f4586a5481829e1e24ec5a0"); 
     } 
 
@@ -142,7 +145,7 @@ fn it_works() {
         assert!(buffer_out[..4].to_hex() == "64656667");
 
         //println!("{}", buffer_msg[..68].to_hex());
-        assert!(buffer_msg[..68].to_hex() == "5a491c3d8524aee516e7edccba51433ebe651002f0f79fd79dc6a4bf65ecd7b1a94e5718c446f38b53518a1faea1ddef7555a941a59b45c5c123db0b3e421147b01965f6");
+        assert!(buffer_msg[..68].to_hex() == "5a491c3d8524aee516e7edccba51433ebe651002f0f79fd79dc6a4bf65ecd7b13543f1cc7910a367ffc3686f9c03e62e7555a9411133bb3194f27a9433507b30d858d578");
     } 
 
     // Noise_XE test
@@ -176,7 +179,7 @@ fn it_works() {
         assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
 
         //println!("{}", buffer_msg[..64].to_hex());
-        assert!(buffer_msg[..64].to_hex() == "08439f380b6f128a1465840d558f06abb1141cf5708a9dcf573d6e4fae01f90fac8a549d8c8d250a0fd7258d820c135847ffc81d0228e8aa7998d59be58932db");
+        assert!(buffer_msg[..64].to_hex() == "08439f380b6f128a1465840d558f06abb1141cf5708a9dcf573d6e4fae01f90f7c9b8ef856bdc483df643a9d240ab6d38d9af9f3812ef44a465e32f8227a7c8b");
     } 
 
     // Noise_XX round-trip randomized test
