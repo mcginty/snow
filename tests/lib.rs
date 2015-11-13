@@ -2,7 +2,7 @@ extern crate screech;
 extern crate rustc_serialize;
 
 use screech::*;
-use self::rustc_serialize::hex::{ToHex};
+use self::rustc_serialize::hex::{FromHex, ToHex};
 
 
 struct RandomInc {
@@ -28,6 +28,27 @@ impl Random for RandomInc {
     }
 }
 
+
+struct RandomSequence {
+    next_bytes: [u8; 1024],
+    next_index: usize
+}
+
+impl Random for RandomSequence {
+
+    fn new() -> RandomSequence {
+        let nb = [0u8; 1024];
+        RandomSequence {next_bytes: nb, next_index: 0}
+    }
+
+    fn fill_bytes(&mut self, out: &mut [u8]) {
+        for count in 0..out.len() {
+            out[count] = self.next_bytes[self.next_index];
+            self.next_index += 1;
+        }
+    }
+}
+
 pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
     for count in 0..data.len() {out[count] = data[count];}
     data.len()
@@ -35,6 +56,31 @@ pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
 
 #[test]
 fn it_works() {
+
+    // Alex's Noise_NN test
+    /*
+    {
+        type HS = HandshakeState<NoiseNN, Dh25519, CipherChaChaPoly, HashSHA256, RandomSequence>;
+        let rng_bytes = "0061147d31f6896e9133e2b26779bb0516c04a05ed6d7b725d52170c1acd999d\
+                         33ddd151a1a0d2cde8e665f0e7dd0b7d8bf5724ff464b489f1f208e4f7bc0667".from_hex().unwrap();
+        let mut rng_i = RandomSequence::new(); 
+        let mut rng_r = RandomSequence::new(); 
+        copy_memory(&rng_bytes, &mut rng_i.next_bytes);
+        copy_memory(&rng_bytes[32..], &mut rng_r.next_bytes);
+        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, None, None, None);
+        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, None, None, None);
+        let mut buffer_msg = [0u8; 200];
+        let mut buffer_out = [0u8; 200];
+        assert!(h_i.write_message(&"6361636f70686f6e79".from_hex().unwrap(), &mut buffer_msg).0 == 41);
+        assert!(buffer_msg[..41].to_hex() =="38c6edef130cb6e318f08a64b7400890a8aaffefeb26b0440e2604b65ba1c74c6361636f70686f6e79"); 
+        assert!(h_r.read_message(&buffer_msg[..41], &mut buffer_out).unwrap().0 == 9);
+
+        assert!(h_r.write_message(&"6361636f70686f6e79".from_hex().unwrap(), &mut buffer_msg).0 == 57);
+        println!("{}", buffer_msg.to_hex());
+        assert!(buffer_msg[..57].to_hex() == "d84285d7856fd76d3f2863cdd619e8e0552546e3eb00acafa3235781ee6cbb38e922caf076cfd365ffb877d526e2a6d75fe17020ae78e8b759"); 
+        assert!(h_i.read_message(&buffer_msg[..57], &mut buffer_out).unwrap().0 == 9);
+    }
+    */
 
     // Noise_N test
     {

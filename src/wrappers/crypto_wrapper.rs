@@ -16,7 +16,7 @@ use self::crypto::curve25519::{curve25519, curve25519_base};
 use self::crypto::util::fixed_time_eq;
 
 use self::byteorder::{ByteOrder, BigEndian, LittleEndian};
-
+//use self::rustc_serialize::hex::{FromHex, ToHex};
 use crypto_stuff::*;
 
 pub struct Dh25519 {
