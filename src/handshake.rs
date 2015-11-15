@@ -32,8 +32,9 @@ pub struct HandshakeState<P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Ran
     rs: Option<[u8; DHLEN]>,
     re: Option<[u8; DHLEN]>,
     my_turn_to_send : bool,
-    msg_index: usize,
-    messages : [[Token; 8]; 5],
+    message_patterns : [[Token; 8]; 5],
+    message_index: usize,
+    has_psk: bool,
     initiator: bool,
     rng : R,
     wtf : PhantomData<P>, /* So rust thinks I'm using P, this is ugly */
@@ -73,6 +74,14 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
         hasher.input(&self.h[..H::hash_len()]);
         hasher.input(data);
         hasher.result(&mut self.h);
+    }
+
+    fn mix_preshared_key(&mut self, psk: &[u8]) {
+        let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
+        H::hkdf(&self.ck[..H::hash_len()], psk, &mut hkdf_output.0, &mut hkdf_output.1);
+        copy_memory(&hkdf_output.0, &mut self.ck);
+        self.mix_hash(&hkdf_output.1[..CIPHERKEYLEN]);
+        self.has_key = true;
     }
 
     fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
@@ -115,6 +124,7 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
     pub fn new(rng: R,
                initiator: bool,
                prologue: &[u8],
+               new_preshared_key: Option<&[u8]>,
                new_s : Option<D>, 
                new_e : Option<D>, 
                new_rs: Option<[u8; DHLEN]>, 
@@ -135,10 +145,16 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
 
         symmetricstate.mix_hash(prologue);
 
+        let mut has_psk = false;
+        if let Some(preshared_key) = new_preshared_key {
+            symmetricstate.mix_preshared_key(preshared_key);
+            has_psk = true;
+        }
+
         let mut premsg_pattern_i = [Token::Empty; 2];
         let mut premsg_pattern_r = [Token::Empty; 2];
-        let mut msg_patterns = [[Token::Empty; 8]; 5];
-        P::get(&mut premsg_pattern_i, &mut premsg_pattern_r, &mut msg_patterns);
+        let mut message_patterns = [[Token::Empty; 8]; 5];
+        P::get(&mut premsg_pattern_i, &mut premsg_pattern_r, &mut message_patterns);
         if initiator {
             for token in &premsg_pattern_i {
                 match *token {
@@ -179,8 +195,9 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
             symmetricstate: symmetricstate, 
             s: new_s, e: new_e, rs: new_rs, re: new_re, 
             my_turn_to_send: initiator,
-            msg_index: 0, 
-            messages: msg_patterns, 
+            message_patterns: message_patterns, 
+            message_index: 0, 
+            has_psk: has_psk,
             initiator: initiator, 
             rng: rng,  
             wtf: PhantomData::<P>}
@@ -190,12 +207,12 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
                          payload: &[u8], 
                          message: &mut [u8]) -> (usize, Option<(CipherState<C>, CipherState<C>)>) { 
         assert!(self.my_turn_to_send);
-        let tokens = self.messages[self.msg_index];
+        let tokens = self.message_patterns[self.message_index];
         let mut last = false;
-        if let Token::Empty = self.messages[self.msg_index+1][0] {
+        if let Token::Empty = self.message_patterns[self.message_index+1][0] {
             last = true;
         }
-        self.msg_index += 1;
+        self.message_index += 1;
 
         let mut byte_index = 0;
         for token in &tokens {
@@ -231,12 +248,12 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
         assert!(self.my_turn_to_send == false);
         assert!(message.len() <= MAXMSGLEN);
 
-        let tokens = self.messages[self.msg_index];
+        let tokens = self.message_patterns[self.message_index];
         let mut last = false;
-        if let Token::Empty = self.messages[self.msg_index+1][0] {
+        if let Token::Empty = self.message_patterns[self.message_index+1][0] {
             last = true;
         }
-        self.msg_index += 1;
+        self.message_index += 1;
 
         let mut ptr = message;
         for token in &tokens {

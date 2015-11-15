@@ -90,7 +90,7 @@ fn it_works() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h = HS::new(rng, true, &[0u8;0], None, None, Some(static_pubkey), None);
+        let mut h = HS::new(rng, true, &[0u8;0], None, None, None, Some(static_pubkey), None);
         let mut buffer = [0u8; 48];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 48);
         //println!("{}", buffer.to_hex());
@@ -106,7 +106,7 @@ fn it_works() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h = HS::new(rng, true, &[0u8;0], Some(static_i), None, Some(static_pubkey), None);
+        let mut h = HS::new(rng, true, &[0u8;0], None, Some(static_i), None, Some(static_pubkey), None);
         let mut buffer = [0u8; 96];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
         //println!("{}", buffer.to_hex());
@@ -120,8 +120,8 @@ fn it_works() {
         let mut rng_r = RandomInc::new();
         rng_r.next_byte = 1; 
 
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, None, None, None);
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, None, None, None);
+        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, None, None, None, None);
+        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, None, None, None, None);
         let mut buffer_msg = [0u8; 64];
         let mut buffer_out = [0u8; 10];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
@@ -148,8 +148,8 @@ fn it_works() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], Some(static_i), None, None, None);
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, Some(static_r), None, None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
@@ -178,8 +178,8 @@ fn it_works() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, "ABC".as_bytes(), Some(static_i), None, Some(static_pubkey), None);
-        let mut h_r = HS::new(rng_r, false, "ABC".as_bytes(), Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, true, "ABC".as_bytes(), None, Some(static_i), None, Some(static_pubkey), None);
+        let mut h_r = HS::new(rng_r, false, "ABC".as_bytes(), None, Some(static_r), None, None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 99);
@@ -209,8 +209,8 @@ fn it_works() {
         let mut eph_pubkey = [0u8; 32];
         copy_memory(eph_r.pubkey(), &mut eph_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], Some(static_i), None, Some(static_pubkey), Some(eph_pubkey));
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], Some(static_r), Some(eph_r), None, None);
+        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, Some(static_i), None, Some(static_pubkey), Some(eph_pubkey));
+        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, Some(static_r), Some(eph_r), None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 51);
@@ -237,8 +237,8 @@ fn it_works() {
         let mut rng_r = RandomOs::new();
         let static_i = Dh25519::generate(&mut rng_i);
         let static_r = Dh25519::generate(&mut rng_r);
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], Some(static_i), None, None, None);
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, Some(static_r), None, None, None);
 
         let mut buffer = [0u8; 1024];
 
