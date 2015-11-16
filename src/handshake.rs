@@ -219,8 +219,13 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
             match *token {
                 Token::E => {
                     self.e = Some(D::generate(&mut self.rng)); 
-                    byte_index += self.symmetricstate.encrypt_and_hash(
-                        &self.e.as_ref().unwrap().pubkey(), &mut message[byte_index..]); 
+                    let pubkey = self.e.as_ref().unwrap().pubkey();
+                    copy_memory(pubkey, &mut message[byte_index..]);
+                    byte_index += DHLEN;
+                    self.symmetricstate.mix_hash(&pubkey);
+                    if self.has_psk {
+                        self.symmetricstate.mix_key(&pubkey);
+                    }
                 },
                 Token::S => byte_index += self.symmetricstate.encrypt_and_hash(
                                 &self.s.as_ref().unwrap().pubkey(), &mut message[byte_index..]),
@@ -258,7 +263,17 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
         let mut ptr = message;
         for token in &tokens {
             match *token {
-                Token::E | Token::S => {
+                Token::E => {
+                    let mut pubkey = [0u8; DHLEN];
+                    copy_memory(&ptr[..DHLEN], &mut pubkey);
+                    ptr = &ptr[DHLEN..];
+                    self.re = Some(pubkey);
+                    self.symmetricstate.mix_hash(&pubkey);
+                    if self.has_psk {
+                        self.symmetricstate.mix_key(&pubkey);
+                    }
+                },
+                Token::S => {
                     let data = match self.symmetricstate.has_key {
                         true =>  {
                             let temp = &ptr[..DHLEN + TAGLEN]; 
@@ -275,11 +290,7 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
                     if !self.symmetricstate.decrypt_and_hash(data, &mut pubkey) {
                         return Err(NoiseError::DecryptError);
                     }
-                    match *token {
-                        Token::E => self.re = Some(pubkey),
-                        Token::S => self.rs = Some(pubkey),
-                        _ => unreachable!(),
-                    }
+                    self.rs = Some(pubkey);
                 },
                 Token::Dhee => self.symmetricstate.mix_key(&self.e.as_ref().unwrap().dh(&self.re.unwrap())),
                 Token::Dhes => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.re.unwrap())),

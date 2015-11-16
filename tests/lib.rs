@@ -57,31 +57,81 @@ pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
 #[test]
 fn it_works() {
 
-    // Alex's Noise_NN test
-    /*
+    // Noise_XX round-trip randomized test
     {
-        type HS = HandshakeState<NoiseNN, Dh25519, CipherChaChaPoly, HashSHA256, RandomSequence>;
-        let rng_bytes = "0061147d31f6896e9133e2b26779bb0516c04a05ed6d7b725d52170c1acd999d\
-                         33ddd151a1a0d2cde8e665f0e7dd0b7d8bf5724ff464b489f1f208e4f7bc0667".from_hex().unwrap();
-        let mut rng_i = RandomSequence::new(); 
-        let mut rng_r = RandomSequence::new(); 
-        copy_memory(&rng_bytes, &mut rng_i.next_bytes);
-        copy_memory(&rng_bytes[32..], &mut rng_r.next_bytes);
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, None, None, None);
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, None, None, None);
-        let mut buffer_msg = [0u8; 200];
-        let mut buffer_out = [0u8; 200];
-        assert!(h_i.write_message(&"6361636f70686f6e79".from_hex().unwrap(), &mut buffer_msg).0 == 41);
-        assert!(buffer_msg[..41].to_hex() =="38c6edef130cb6e318f08a64b7400890a8aaffefeb26b0440e2604b65ba1c74c6361636f70686f6e79"); 
-        assert!(h_r.read_message(&buffer_msg[..41], &mut buffer_out).unwrap().0 == 9);
 
-        assert!(h_r.write_message(&"6361636f70686f6e79".from_hex().unwrap(), &mut buffer_msg).0 == 57);
-        println!("{}", buffer_msg.to_hex());
-        assert!(buffer_msg[..57].to_hex() == "d84285d7856fd76d3f2863cdd619e8e0552546e3eb00acafa3235781ee6cbb38e922caf076cfd365ffb877d526e2a6d75fe17020ae78e8b759"); 
-        assert!(h_i.read_message(&buffer_msg[..57], &mut buffer_out).unwrap().0 == 9);
-    }
-    */
+        type  HS = HandshakeState<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomOs>;
 
+        let mut rng_i = RandomOs::new();
+        let mut rng_r = RandomOs::new();
+        let static_i = Dh25519::generate(&mut rng_i);
+        let static_r = Dh25519::generate(&mut rng_r);
+        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, Some(static_r), None, None, None);
+
+        let mut buffer = [0u8; 1024];
+
+        // -> e
+        let payload_0 = "abcdef".as_bytes();
+        let (msg_0_len, _) = h_i.write_message(&payload_0, &mut buffer);
+        assert!(msg_0_len == 38);
+
+        let mut payload_0_out = [0u8; 1024];
+        let result_0 = h_r.read_message(&buffer[..msg_0_len], &mut payload_0_out);
+        let (payload_0_out_len, _) = result_0.unwrap(); 
+        assert!(payload_0.len() == payload_0_out_len);
+        assert!(payload_0.to_hex() == payload_0_out[..payload_0_out_len].to_hex());
+
+
+        // <- e, dhee, s, dhse
+        let payload_1 = [0u8; 0]; 
+        let (msg_1_len, _) = h_r.write_message(&payload_1, &mut buffer);
+        assert!(msg_1_len == 96);
+
+        let mut payload_1_out = [0u8; 1024];
+        let result_1 = h_i.read_message(&buffer[..msg_1_len], &mut payload_1_out);
+        let (payload_1_out_len, _) = result_1.unwrap(); 
+        assert!(payload_1.len() == payload_1_out_len);
+
+
+        // -> s, dhse
+        let payload_2 = "0123456789012345678901234567890123456789012345678901234567890123456789".as_bytes();
+        let (msg_2_len, cipher_states_i_option) = h_i.write_message(&payload_2, &mut buffer);
+        assert!(msg_2_len == 134);
+
+        let mut payload_2_out = [0u8; 1024];
+        let result_2 = h_r.read_message(&buffer[..msg_2_len], &mut payload_2_out);
+        let (payload_2_out_len, cipher_states_r_option) = result_2.unwrap(); 
+        assert!(payload_2.len() == payload_2_out_len);
+        assert!(payload_2.to_hex() == payload_2_out[..payload_2_out_len].to_hex());
+
+        let mut cipher_states_i = cipher_states_i_option.unwrap();
+        let mut cipher_states_r = cipher_states_r_option.unwrap();
+
+        // transport message I -> R
+        let payload_3 = "wubba".as_bytes();
+        cipher_states_i.0.encrypt(&payload_3, &mut buffer);
+
+        let mut payload_3_out = [0u8; 1024];
+        assert!(cipher_states_r.1.decrypt(&buffer[..21], &mut payload_3_out));
+        assert!(payload_3.to_hex() == payload_3_out[..5].to_hex());
+
+        // transport message I -> R again
+        let payload_4 = "aleph".as_bytes();
+        cipher_states_i.0.encrypt(&payload_4, &mut buffer);
+
+        let mut payload_4_out = [0u8; 1024];
+        assert!(cipher_states_r.1.decrypt(&buffer[..21], &mut payload_4_out));
+        assert!(payload_4.to_hex() == payload_4_out[..5].to_hex());
+
+        // transport message R <- I
+        let payload_5 = "worri".as_bytes();
+        cipher_states_i.0.encrypt(&payload_5, &mut buffer);
+
+        let mut payload_5_out = [0u8; 1024];
+        assert!(cipher_states_r.1.decrypt(&buffer[..21], &mut payload_5_out));
+        assert!(payload_5.to_hex() == payload_5_out[..5].to_hex());
+    } 
     // Noise_N test
     {
         type  HS = HandshakeState<NoiseN, Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
@@ -186,12 +236,12 @@ fn it_works() {
         assert!(h_r.read_message(&buffer_msg[..99], &mut buffer_out).unwrap().0 == 3);
         assert!(buffer_out[..3].to_hex() == "616263");
 
-        assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 68);
-        assert!(h_i.read_message(&buffer_msg[..68], &mut buffer_out).unwrap().0 == 4);
+        assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 52);
+        assert!(h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap().0 == 4);
         assert!(buffer_out[..4].to_hex() == "64656667");
 
-        //println!("{}", buffer_msg[..68].to_hex());
-        assert!(buffer_msg[..68].to_hex() == "5a491c3d8524aee516e7edccba51433ebe651002f0f79fd79dc6a4bf65ecd7b13543f1cc7910a367ffc3686f9c03e62e7555a9411133bb3194f27a9433507b30d858d578");
+        //println!("{}", buffer_msg[..52].to_hex());
+        assert!(buffer_msg[..52].to_hex() == "5869aff450549732cbaaed5e5df9b30a6da31cb0e5742bad5ad4a1a768f1a67b7555a94199d0ce2972e0861b06c2152419a278de");
     } 
 
     // Noise_XE test
@@ -217,92 +267,17 @@ fn it_works() {
         assert!(h_r.read_message(&buffer_msg[..51], &mut buffer_out).unwrap().0 == 3);
         assert!(buffer_out[..3].to_hex() == "616263");
 
-        assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 68);
-        assert!(h_i.read_message(&buffer_msg[..68], &mut buffer_out).unwrap().0 == 4);
+        assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 52);
+        assert!(h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap().0 == 4);
         assert!(buffer_out[..4].to_hex() == "64656667");
 
         assert!(h_i.write_message(&[0u8;0], &mut buffer_msg).0 == 64);
         assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
 
         //println!("{}", buffer_msg[..64].to_hex());
-        assert!(buffer_msg[..64].to_hex() == "08439f380b6f128a1465840d558f06abb1141cf5708a9dcf573d6e4fae01f90f7c9b8ef856bdc483df643a9d240ab6d38d9af9f3812ef44a465e32f8227a7c8b");
+        assert!(buffer_msg[..64].to_hex() == "08439f380b6f128a1465840d558f06abb1141cf5708a9dcf573d6e4fae01f90fd68dec89b26b249f2c4c61add5a1dbcf0a652ef015d7dbe0e80e9ea9af0aa7a2");
     } 
 
-    // Noise_XX round-trip randomized test
-    {
-
-        type  HS = HandshakeState<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomOs>;
-
-        let mut rng_i = RandomOs::new();
-        let mut rng_r = RandomOs::new();
-        let static_i = Dh25519::generate(&mut rng_i);
-        let static_r = Dh25519::generate(&mut rng_r);
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, Some(static_i), None, None, None);
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, Some(static_r), None, None, None);
-
-        let mut buffer = [0u8; 1024];
-
-        // -> e
-        let payload_0 = "abcdef".as_bytes();
-        let (msg_0_len, _) = h_i.write_message(&payload_0, &mut buffer);
-        assert!(msg_0_len == 38);
-
-        let mut payload_0_out = [0u8; 1024];
-        let result_0 = h_r.read_message(&buffer[..msg_0_len], &mut payload_0_out);
-        let (payload_0_out_len, _) = result_0.unwrap(); 
-        assert!(payload_0.len() == payload_0_out_len);
-        assert!(payload_0.to_hex() == payload_0_out[..payload_0_out_len].to_hex());
-
-
-        // <- e, dhee, s, dhse
-        let payload_1 = [0u8; 0]; 
-        let (msg_1_len, _) = h_r.write_message(&payload_1, &mut buffer);
-        assert!(msg_1_len == 96);
-
-        let mut payload_1_out = [0u8; 1024];
-        let result_1 = h_i.read_message(&buffer[..msg_1_len], &mut payload_1_out);
-        let (payload_1_out_len, _) = result_1.unwrap(); 
-        assert!(payload_1.len() == payload_1_out_len);
-
-
-        // -> s, dhse
-        let payload_2 = "0123456789012345678901234567890123456789012345678901234567890123456789".as_bytes();
-        let (msg_2_len, cipher_states_i_option) = h_i.write_message(&payload_2, &mut buffer);
-        assert!(msg_2_len == 134);
-
-        let mut payload_2_out = [0u8; 1024];
-        let result_2 = h_r.read_message(&buffer[..msg_2_len], &mut payload_2_out);
-        let (payload_2_out_len, cipher_states_r_option) = result_2.unwrap(); 
-        assert!(payload_2.len() == payload_2_out_len);
-        assert!(payload_2.to_hex() == payload_2_out[..payload_2_out_len].to_hex());
-
-        let mut cipher_states_i = cipher_states_i_option.unwrap();
-        let mut cipher_states_r = cipher_states_r_option.unwrap();
-
-        // transport message I -> R
-        let payload_3 = "wubba".as_bytes();
-        cipher_states_i.0.encrypt(&payload_3, &mut buffer);
-
-        let mut payload_3_out = [0u8; 1024];
-        assert!(cipher_states_r.1.decrypt(&buffer[..21], &mut payload_3_out));
-        assert!(payload_3.to_hex() == payload_3_out[..5].to_hex());
-
-        // transport message I -> R again
-        let payload_4 = "aleph".as_bytes();
-        cipher_states_i.0.encrypt(&payload_4, &mut buffer);
-
-        let mut payload_4_out = [0u8; 1024];
-        assert!(cipher_states_r.1.decrypt(&buffer[..21], &mut payload_4_out));
-        assert!(payload_4.to_hex() == payload_4_out[..5].to_hex());
-
-        // transport message R <- I
-        let payload_5 = "worri".as_bytes();
-        cipher_states_i.0.encrypt(&payload_5, &mut buffer);
-
-        let mut payload_5_out = [0u8; 1024];
-        assert!(cipher_states_r.1.decrypt(&buffer[..21], &mut payload_5_out));
-        assert!(payload_5.to_hex() == payload_5_out[..5].to_hex());
-    } 
 
 
 }
