@@ -80,7 +80,7 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
         H::hkdf(&self.ck[..H::hash_len()], psk, &mut hkdf_output.0, &mut hkdf_output.1);
         copy_memory(&hkdf_output.0, &mut self.ck);
-        self.mix_hash(&hkdf_output.1[..CIPHERKEYLEN]);
+        self.mix_hash(&hkdf_output.1[..H::hash_len()]);
         self.has_key = true;
     }
 

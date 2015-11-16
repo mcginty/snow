@@ -417,7 +417,7 @@ fn psk_test() {
         assert!(buffer_out[..4].to_hex() == "64656667");
 
         //println!("{}", buffer_msg[..52].to_hex());
-        assert!(buffer_msg[..52].to_hex() == "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7c4f28d0b024906f0bea60a488b9d4de56ab7e1f9d"); 
+        assert!(buffer_msg[..52].to_hex() == "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7c4f28d0b09ff91e2ff6bb55bb99bc74436056c0d1"); 
     } 
 
     // NoisePSK_XX test
