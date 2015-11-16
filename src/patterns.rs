@@ -284,7 +284,7 @@ impl HandshakePattern for NoiseIN {
         copy_tokens(&[], premsg_pattern_i);
         copy_tokens(&[], premsg_pattern_r);
 
-        copy_tokens(&[S, E], &mut msg_patterns[0]);
+        copy_tokens(&[E, S], &mut msg_patterns[0]);
         copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
     }
 }
@@ -332,7 +332,7 @@ impl HandshakePattern for NoiseIX {
         copy_tokens(&[], premsg_pattern_i);
         copy_tokens(&[], premsg_pattern_r);
 
-        copy_tokens(&[S, E], &mut msg_patterns[0]);
+        copy_tokens(&[E, S], &mut msg_patterns[0]);
         copy_tokens(&[E, Dhee, Dhes, S, Dhse], &mut msg_patterns[1]);
     }
 }
