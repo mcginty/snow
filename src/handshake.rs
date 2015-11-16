@@ -130,7 +130,17 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
                new_rs: Option<[u8; DHLEN]>, 
                new_re: Option<[u8; DHLEN]>) -> HandshakeState<P, D, C, H, R> {
         let mut handshake_name = [0u8; 128];
-        let mut name_len = P::name(&mut handshake_name);
+        let mut name_len: usize;
+        let mut has_psk = false;
+        if let Some(_) = new_preshared_key {
+            copy_memory("NoisePSK_".as_bytes(), &mut handshake_name);
+            name_len = 9;
+            has_psk = true;
+        } else {
+            copy_memory("Noise_".as_bytes(), &mut handshake_name);
+            name_len = 6;
+        }
+        name_len += P::name(&mut handshake_name[name_len..]);
         handshake_name[name_len] = '_' as u8;
         name_len += 1;
         name_len += D::name(&mut handshake_name[name_len..]);
@@ -145,10 +155,8 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
 
         symmetricstate.mix_hash(prologue);
 
-        let mut has_psk = false;
-        if let Some(preshared_key) = new_preshared_key {
+        if let Some(preshared_key) = new_preshared_key { 
             symmetricstate.mix_preshared_key(preshared_key);
-            has_psk = true;
         }
 
         let mut premsg_pattern_i = [Token::Empty; 2];

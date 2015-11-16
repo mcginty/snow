@@ -374,7 +374,7 @@ fn psk_test() {
         let mut buffer = [0u8; 48];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 48);
         //println!("{}", buffer.to_hex());
-        assert!(buffer.to_hex() =="358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662544b0cd7adf589d2ff2a2d40a15878d330"); 
+        assert!(buffer.to_hex() =="358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd16625475344a60649da3ec23ce8e3ed779e766"); 
     }
 
     // NoisePSK_X test
@@ -391,7 +391,7 @@ fn psk_test() {
         let mut buffer = [0u8; 96];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
         //println!("{}", buffer.to_hex());
-        assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51a983a01a35059140decfb16a5748b5673a261e4bb69a11f0d698cf6d5117f99eadcacaa2082307089ab2c633970cdbe1da510833a29ba3211174d35780b58e99c");
+        assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51a12d5cf01bc576e8f0124b14db3ed7a00d20f16186e8f1e2c861fb3d4113f39b290f0048404b8d21e2098958b6bdf50f41dfb1143700310482cfb52c9002261bd");
     } 
 
     // NoisePSK_NN test (prologue AND psk)
@@ -417,7 +417,7 @@ fn psk_test() {
         assert!(buffer_out[..4].to_hex() == "64656667");
 
         //println!("{}", buffer_msg[..52].to_hex());
-        assert!(buffer_msg[..52].to_hex() == "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7c4f28d0b09ff91e2ff6bb55bb99bc74436056c0d1"); 
+        assert!(buffer_msg[..52].to_hex() == "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7cfda657b21e8eac78df67b6bd453c0b11372364a6"); 
     } 
 
     // NoisePSK_XX test
@@ -450,7 +450,7 @@ fn psk_test() {
         assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
 
         //println!("{}", buffer_msg[..64].to_hex());
-        assert!(buffer_msg[..64].to_hex() == "eb8f3a6d5b68c7048cf61cbbff4a19959fed3ad315ef0d088f00681f3f38295d5d2aee59874e22cf9e86c2df3aaea03449435de887bab9bde1ee7ef392785fdf");
+        assert!(buffer_msg[..64].to_hex() == "2b9c628158a517e3984dc619245d4b9cd73561944f266181b183812ca73499881e30f6e7eeb576c258acc713c2c62874fd1beb76b122f6303f974109aefd7e2a");
     } 
 }
 
