@@ -31,6 +31,8 @@ pub struct NoiseIK;
 pub struct NoiseIE;
 pub struct NoiseIX;
 
+pub struct NoiseXXfallback;
+
 impl HandshakePattern for NoiseN {
     fn name(out : &mut [u8]) -> usize { 
         copy_memory("N".as_bytes(), out)
@@ -334,5 +336,21 @@ impl HandshakePattern for NoiseIX {
 
         copy_tokens(&[E, S], &mut msg_patterns[0]);
         copy_tokens(&[E, Dhee, Dhes, S, Dhse], &mut msg_patterns[1]);
+    }
+}
+
+impl HandshakePattern for NoiseXXfallback {
+    fn name(out : &mut [u8]) -> usize { 
+        copy_memory("XXfallback".as_bytes(), out)
+    }
+
+    fn get(premsg_pattern_i: &mut [Token], 
+           premsg_pattern_r: &mut [Token], 
+           msg_patterns: &mut [[Token; 8]; 5]) {
+        copy_tokens(&[], premsg_pattern_i);
+        copy_tokens(&[E], premsg_pattern_r);
+
+        copy_tokens(&[E, Dhee, S, Dhse], &mut msg_patterns[0]);
+        copy_tokens(&[S, Dhse], &mut msg_patterns[1]);
     }
 }

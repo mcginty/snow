@@ -49,6 +49,21 @@ impl Random for RandomSequence {
     }
 }
 
+struct RandomZeros;
+
+impl Random for RandomZeros {
+
+    fn new() -> RandomZeros {
+        RandomZeros
+    }
+
+    fn fill_bytes(&mut self, out: &mut [u8]) {
+        for count in 0..out.len() {
+            out[count] = 0;
+        }
+    }
+}
+
 pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
     for count in 0..data.len() {out[count] = data[count];}
     data.len()
@@ -277,6 +292,95 @@ fn non_psk_test() {
 
         //println!("{}", buffer_msg[..64].to_hex());
         assert!(buffer_msg[..64].to_hex() == "08439f380b6f128a1465840d558f06abb1141cf5708a9dcf573d6e4fae01f90fd68dec89b26b249f2c4c61add5a1dbcf0a652ef015d7dbe0e80e9ea9af0aa7a2");
+    } 
+
+
+    // Noise_XX test with zeros
+    {
+        type  HS = HandshakeState<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomZeros>;
+        let mut rng_i = RandomZeros::new();
+        let mut rng_r = RandomZeros::new();
+
+        let static_i = Dh25519::generate(&mut rng_i);
+        let static_r = Dh25519::generate(&mut rng_r);
+        let mut static_pubkey = [0u8; 32];
+        copy_memory(static_r.pubkey(), &mut static_pubkey);
+
+        let mut h_i = HS::new(rng_i, true, "".as_bytes(), None, Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, false, "".as_bytes(), None, Some(static_r), None, None, None);
+        let mut buffer_msg = [0u8; 200];
+        let mut buffer_out = [0u8; 200];
+        assert!(h_i.write_message("".as_bytes(), &mut buffer_msg).0 == 32);
+        assert!(h_r.read_message(&buffer_msg[..32], &mut buffer_out).unwrap().0 == 0);
+        //assert!(buffer_out[..3].to_hex() == "616263");
+
+        assert!(h_r.write_message("".as_bytes(), &mut buffer_msg).0 == 96);
+        assert!(h_i.read_message(&buffer_msg[..96], &mut buffer_out).unwrap().0 == 0);
+        //assert!(buffer_out[..4].to_hex() == "64656667");
+
+        assert!(h_i.write_message("".as_bytes(), &mut buffer_msg).0 == 64);
+        assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
+
+
+        //println!("{}", buffer_msg[..64].to_hex());
+        assert!(buffer_msg[..64].to_hex() == "e98401c3c2cd0d167d492a41740000bc78ed5a47bcce3b32aacb08b2739b9969c98cf225d0d937656769e61c19e950b07b9fa73007b0a98a279c48040968a2af");
+    } 
+
+    // Noise_IK test with zeros
+    {
+        type  HS = HandshakeState<NoiseIK, Dh25519, CipherAESGCM, HashSHA256, RandomZeros>;
+        let mut rng_i = RandomZeros::new();
+        let mut rng_r = RandomZeros::new();
+
+        let static_i = Dh25519::generate(&mut rng_i);
+        let static_r = Dh25519::generate(&mut rng_r);
+        let mut static_pubkey = [0u8; 32];
+        copy_memory(static_r.pubkey(), &mut static_pubkey);
+
+        let mut h_i = HS::new(rng_i, true, "".as_bytes(), None, Some(static_i), None, Some(static_pubkey), None);
+        let mut h_r = HS::new(rng_r, false, "".as_bytes(), None, Some(static_r), None, None, None);
+        let mut buffer_msg = [0u8; 200];
+        let mut buffer_out = [0u8; 200];
+        assert!(h_i.write_message("".as_bytes(), &mut buffer_msg).0 == 96);
+        assert!(h_r.read_message(&buffer_msg[..96], &mut buffer_out).unwrap().0 == 0);
+        //assert!(buffer_out[..3].to_hex() == "");
+
+        assert!(h_r.write_message("".as_bytes(), &mut buffer_msg).0 == 48);
+        assert!(h_i.read_message(&buffer_msg[..48], &mut buffer_out).unwrap().0 == 0);
+        //assert!(buffer_out[..4].to_hex() == "");
+
+        //println!("{}", buffer_msg[..48].to_hex());
+        assert!(buffer_msg[..48].to_hex() == "2fe57da347cd62431528daac5fbb290730fff684afc4cfc2ed90995f58cb3b745a1e05164a38bc5e0ed07a0c15871dae");
+    } 
+
+    // Noise_XXfallback test with zeros
+    {
+        type  HS = HandshakeState<NoiseXXfallback, Dh25519, CipherAESGCM, HashSHA256, RandomZeros>;
+        let mut rng_i = RandomZeros::new();
+        let mut rng_r = RandomZeros::new();
+
+        let static_i = Dh25519::generate(&mut rng_i);
+        let static_r = Dh25519::generate(&mut rng_r);
+        let eph_r = Dh25519::generate(&mut rng_r);
+        let mut static_pubkey = [0u8; 32];
+        copy_memory(static_r.pubkey(), &mut static_pubkey);
+        let mut eph_pubkey = [0u8; 32];
+        copy_memory(eph_r.pubkey(), &mut eph_pubkey);
+
+        let mut h_i = HS::new(rng_i, true, "".as_bytes(), None, Some(static_i), None, None, Some(eph_pubkey));
+        let mut h_r = HS::new(rng_r, false, "".as_bytes(), None, Some(static_r), Some(eph_r), None, None);
+        let mut buffer_msg = [0u8; 200];
+        let mut buffer_out = [0u8; 200];
+        assert!(h_i.write_message("".as_bytes(), &mut buffer_msg).0 == 96);
+        assert!(h_r.read_message(&buffer_msg[..96], &mut buffer_out).unwrap().0 == 0);
+        //assert!(buffer_out[..3].to_hex() == "616263");
+
+        assert!(h_r.write_message("".as_bytes(), &mut buffer_msg).0 == 64);
+        assert!(h_i.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
+        //assert!(buffer_out[..4].to_hex() == "64656667");
+
+        //println!("{}", buffer_msg[..64].to_hex());
+        assert!(buffer_msg[..64].to_hex() == "78c8860d6f147066ef956925de58379fbe6d49b9dd885b7ba3401f885b9bb31a9d9c7d136999fc5573369eb775cc027f8f1bd7f2b8a5f024c520ed91af85dbb4");
     } 
 
 }
