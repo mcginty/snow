@@ -87,7 +87,7 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
     fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
         if self.has_k {
-            self.cipherstate.encrypt_with_ad(&self.h[..H::hash_len()], plaintext, out);
+            self.cipherstate.encrypt_ad(&self.h[..H::hash_len()], plaintext, out);
             self.mix_hash(&out[..plaintext.len() + TAGLEN]);
             return plaintext.len() + TAGLEN;
         } else {
@@ -99,7 +99,7 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
     fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> bool {
         if self.has_k {
-            if !self.cipherstate.decrypt_with_ad(&self.h[..H::hash_len()], data, out) { 
+            if !self.cipherstate.decrypt_ad(&self.h[..H::hash_len()], data, out) { 
                 return false; 
             }
         }

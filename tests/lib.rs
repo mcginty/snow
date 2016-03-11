@@ -260,41 +260,6 @@ fn non_psk_test() {
         assert!(buffer_msg[..52].to_hex() == "5869aff450549732cbaaed5e5df9b30a6da31cb0e5742bad5ad4a1a768f1a67b7555a94199d0ce2972e0861b06c2152419a278de");
     } 
 
-    // Noise_XE test
-    {
-        type  HS = HandshakeState<NoiseXE, Dh25519, CipherChaChaPoly, HashBLAKE2b, RandomInc>;
-        let mut rng_i = RandomInc::new();
-        let mut rng_r = RandomInc::new();
-        rng_r.next_byte = 1; 
-
-        let static_i = Dh25519::generate(&mut rng_i);
-        let static_r = Dh25519::generate(&mut rng_r);
-        let eph_r = Dh25519::generate(&mut rng_r);
-        let mut static_pubkey = [0u8; 32];
-        copy_memory(static_r.pubkey(), &mut static_pubkey);
-        let mut eph_pubkey = [0u8; 32];
-        copy_memory(eph_r.pubkey(), &mut eph_pubkey);
-
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, Some(static_i), None, Some(static_pubkey), Some(eph_pubkey));
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, Some(static_r), Some(eph_r), None, None);
-        let mut buffer_msg = [0u8; 200];
-        let mut buffer_out = [0u8; 200];
-        assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 51);
-        assert!(h_r.read_message(&buffer_msg[..51], &mut buffer_out).unwrap().0 == 3);
-        assert!(buffer_out[..3].to_hex() == "616263");
-
-        assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 52);
-        assert!(h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap().0 == 4);
-        assert!(buffer_out[..4].to_hex() == "64656667");
-
-        assert!(h_i.write_message(&[0u8;0], &mut buffer_msg).0 == 64);
-        assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
-
-        //println!("{}", buffer_msg[..64].to_hex());
-        assert!(buffer_msg[..64].to_hex() == "08439f380b6f128a1465840d558f06abb1141cf5708a9dcf573d6e4fae01f90fd68dec89b26b249f2c4c61add5a1dbcf0a652ef015d7dbe0e80e9ea9af0aa7a2");
-    } 
-
-
     // Noise_XX test with zeros
     {
         type  HS = HandshakeState<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomZeros>;

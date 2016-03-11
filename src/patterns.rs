@@ -13,22 +13,19 @@ pub struct NoiseX;
 
 pub struct NoiseNN;
 pub struct NoiseNK;
-pub struct NoiseNE;
 pub struct NoiseNX;
 
 pub struct NoiseXN;
 pub struct NoiseXK;
-pub struct NoiseXE;
 pub struct NoiseXX;
+pub struct NoiseXR;
 
 pub struct NoiseKN;
 pub struct NoiseKK;
-pub struct NoiseKE;
 pub struct NoiseKX;
 
 pub struct NoiseIN;
 pub struct NoiseIK;
-pub struct NoiseIE;
 pub struct NoiseIX;
 
 pub struct NoiseXXfallback;
@@ -110,22 +107,6 @@ impl HandshakePattern for NoiseNK {
     }
 }
 
-impl HandshakePattern for NoiseNE {
-    fn name(out : &mut [u8]) -> usize { 
-        copy_memory("NE".as_bytes(), out)
-    }
-
-    fn get(premsg_pattern_i: &mut [Token], 
-           premsg_pattern_r: &mut [Token], 
-           msg_patterns: &mut [[Token; 8]; 5]) {
-        copy_tokens(&[], premsg_pattern_i);
-        copy_tokens(&[S, E], premsg_pattern_r);
-
-        copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[0]);
-        copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
-    }
-}
-
 impl HandshakePattern for NoiseNX {
     fn name(out : &mut [u8]) -> usize { 
         copy_memory("NX".as_bytes(), out)
@@ -176,23 +157,6 @@ impl HandshakePattern for NoiseXK {
     }
 }
 
-impl HandshakePattern for NoiseXE {
-    fn name(out : &mut [u8]) -> usize { 
-        copy_memory("XE".as_bytes(), out)
-    }
-
-    fn get(premsg_pattern_i: &mut [Token], 
-           premsg_pattern_r: &mut [Token], 
-           msg_patterns: &mut [[Token; 8]; 5]) {
-        copy_tokens(&[], premsg_pattern_i);
-        copy_tokens(&[S, E], premsg_pattern_r);
-
-        copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[0]);
-        copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
-        copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
-    }
-}
-
 impl HandshakePattern for NoiseXX {
     fn name(out : &mut [u8]) -> usize { 
         copy_memory("XX".as_bytes(), out)
@@ -208,6 +172,25 @@ impl HandshakePattern for NoiseXX {
         copy_tokens(&[E], &mut msg_patterns[0]);
         copy_tokens(&[E, Dhee, S, Dhse], &mut msg_patterns[1]);
         copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
+    }
+}
+
+impl HandshakePattern for NoiseXR {
+    fn name(out : &mut [u8]) -> usize { 
+        copy_memory("XR".as_bytes(), out)
+    }
+
+    fn get(premsg_pattern_i: &mut [Token], 
+           premsg_pattern_r: &mut [Token], 
+           msg_patterns: &mut [[Token; 8]; 5]) {
+        
+        copy_tokens(&[], premsg_pattern_i);
+        copy_tokens(&[], premsg_pattern_r);
+
+        copy_tokens(&[E], &mut msg_patterns[0]);
+        copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
+        copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
+        copy_tokens(&[S, Dhse], &mut msg_patterns[3]);
     }
 }
 
@@ -239,22 +222,6 @@ impl HandshakePattern for NoiseKK {
         copy_tokens(&[S], premsg_pattern_r);
 
         copy_tokens(&[E, Dhes, Dhss], &mut msg_patterns[0]);
-        copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
-    }
-}
-
-impl HandshakePattern for NoiseKE {
-    fn name(out : &mut [u8]) -> usize { 
-        copy_memory("KE".as_bytes(), out)
-    }
-
-    fn get(premsg_pattern_i: &mut [Token], 
-           premsg_pattern_r: &mut [Token], 
-           msg_patterns: &mut [[Token; 8]; 5]) {
-        copy_tokens(&[S], premsg_pattern_i);
-        copy_tokens(&[S, E], premsg_pattern_r);
-
-        copy_tokens(&[E, Dhee, Dhes, Dhse], &mut msg_patterns[0]);
         copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
     }
 }
@@ -303,22 +270,6 @@ impl HandshakePattern for NoiseIK {
         copy_tokens(&[S], premsg_pattern_r);
 
         copy_tokens(&[E, Dhes, S, Dhss], &mut msg_patterns[0]);
-        copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
-    }
-}
-
-impl HandshakePattern for NoiseIE {
-    fn name(out : &mut [u8]) -> usize { 
-        copy_memory("IE".as_bytes(), out)
-    }
-
-    fn get(premsg_pattern_i: &mut [Token], 
-           premsg_pattern_r: &mut [Token], 
-           msg_patterns: &mut [[Token; 8]; 5]) {
-        copy_tokens(&[], premsg_pattern_i);
-        copy_tokens(&[S, E], premsg_pattern_r);
-
-        copy_tokens(&[E, Dhee, Dhes, S, Dhse], &mut msg_patterns[0]);
         copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
     }
 }

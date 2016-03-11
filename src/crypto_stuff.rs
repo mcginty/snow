@@ -86,13 +86,13 @@ impl<C: Cipher> CipherState<C> {
         CipherState{cipher : C::new(key), n: nonce, good : true}
     }
 
-    pub fn encrypt_with_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
+    pub fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
         assert!(self.good);
         self.cipher.encrypt(self.n, authtext, plaintext, out);
         self.n += 1;
     }
 
-    pub fn decrypt_with_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
+    pub fn decrypt_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
         assert!(self.good);
         self.good = self.cipher.decrypt(self.n, authtext, ciphertext, out);
         self.n += 1;

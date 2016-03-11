@@ -330,33 +330,33 @@ mod tests {
             let authtext = [0u8; 0];
             let mut ciphertext = [0u8; 16];
             let mut cipher1 = CipherState::<CipherAESGCM>::new(&key, nonce);
-            cipher1.encrypt_with_ad(&authtext, &plaintext, &mut ciphertext);
+            cipher1.encrypt_ad(&authtext, &plaintext, &mut ciphertext);
             assert!(ciphertext.to_hex() == "530f8afbc74536b9a963b4f1c4cb738b");
             
             let mut resulttext = [0u8; 1];
             let mut cipher2 = CipherState::<CipherAESGCM>::new(&key, nonce);
-            assert!(cipher2.decrypt_with_ad(&authtext, &ciphertext, &mut resulttext) == true);
+            assert!(cipher2.decrypt_ad(&authtext, &ciphertext, &mut resulttext) == true);
             assert!(resulttext[0] == 0);
             ciphertext[0] ^= 1;
             assert!(cipher1.n == 1 && cipher2.n == 1);
             cipher2.n = 0;
-            assert!(cipher2.decrypt_with_ad(&authtext, &ciphertext, &mut resulttext) == false);
+            assert!(cipher2.decrypt_ad(&authtext, &ciphertext, &mut resulttext) == false);
 
             // Test Case 14
             let plaintext2 = [0u8; 16];
             let mut ciphertext2 = [0u8; 32];
             let mut cipher3 = CipherState::<CipherAESGCM>::new(&key, 0);
-            cipher3.encrypt_with_ad(&authtext, &plaintext2, &mut ciphertext2);
+            cipher3.encrypt_ad(&authtext, &plaintext2, &mut ciphertext2);
             assert!(ciphertext2.to_hex() == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919");
             
             let mut resulttext2 = [1u8; 16];
             let mut cipher4 = CipherState::<CipherAESGCM>::new(&key, 0);
-            assert!(cipher4.decrypt_with_ad(&authtext, &ciphertext2, &mut resulttext2) == true);
+            assert!(cipher4.decrypt_ad(&authtext, &ciphertext2, &mut resulttext2) == true);
             assert!(plaintext2 == resulttext2);
             ciphertext2[0] ^= 1;
             assert!(cipher3.n == 1 && cipher4.n == 1);
             cipher4.n = 0;
-            assert!(cipher4.decrypt_with_ad(&authtext, &ciphertext2, &mut resulttext2) == false);
+            assert!(cipher4.decrypt_ad(&authtext, &ciphertext2, &mut resulttext2) == false);
         }
 
         // Poly1305 internal test - RFC 7539
@@ -380,16 +380,16 @@ mod tests {
             let authtext = [0u8; 0];
             let mut ciphertext = [0u8; 16];
             let mut cipher1 = CipherState::<CipherChaChaPoly>::new(&key, nonce);
-            cipher1.encrypt_with_ad(&authtext, &plaintext, &mut ciphertext);
+            cipher1.encrypt_ad(&authtext, &plaintext, &mut ciphertext);
 
             let mut resulttext = [0u8; 1];
             let mut cipher2 = CipherState::<CipherChaChaPoly>::new(&key, nonce);
-            assert!(cipher2.decrypt_with_ad(&authtext, &ciphertext, &mut resulttext) == true);
+            assert!(cipher2.decrypt_ad(&authtext, &ciphertext, &mut resulttext) == true);
             assert!(resulttext[0] == 0);
             ciphertext[0] ^= 1;
             assert!(cipher1.n == 1 && cipher2.n == 1);
             cipher2.n = 0;
-            assert!(cipher2.decrypt_with_ad(&authtext, &ciphertext, &mut resulttext) == false);
+            assert!(cipher2.decrypt_ad(&authtext, &ciphertext, &mut resulttext) == false);
         }
         
         //ChaChaPoly round-trip test, non-empty plaintext
@@ -400,11 +400,11 @@ mod tests {
             let authtext = [0u8; 0];
             let mut ciphertext = [0u8; 133];
             let mut cipher1 = CipherState::<CipherChaChaPoly>::new(&key, nonce);
-            cipher1.encrypt_with_ad(&authtext, &plaintext, &mut ciphertext);
+            cipher1.encrypt_ad(&authtext, &plaintext, &mut ciphertext);
 
             let mut resulttext = [0u8; 117];
             let mut cipher2 = CipherState::<CipherChaChaPoly>::new(&key, nonce);
-            assert!(cipher2.decrypt_with_ad(&authtext, &ciphertext, &mut resulttext) == true);
+            assert!(cipher2.decrypt_ad(&authtext, &ciphertext, &mut resulttext) == true);
             assert!(resulttext.to_hex() == plaintext.to_hex());
         }
 
@@ -438,7 +438,7 @@ mod tests {
             copy_memory(&tag[0..TAGLEN], &mut combined_text[ciphertext.len()..]);
             
             let mut cipher = CipherState::<CipherChaChaPoly>::new(&key, nonce);
-            assert!(cipher.decrypt_with_ad(&authtext, &combined_text[..ciphertext.len()+TAGLEN], &mut out[..ciphertext.len()]));
+            assert!(cipher.decrypt_ad(&authtext, &combined_text[..ciphertext.len()+TAGLEN], &mut out[..ciphertext.len()]));
             let desired_plaintext = "496e7465726e65742d44726166747320\
                                      61726520647261667420646f63756d65\
                                      6e74732076616c696420666f72206120\
