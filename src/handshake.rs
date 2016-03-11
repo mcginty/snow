@@ -233,8 +233,11 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
                         self.symmetricstate.mix_key(&pubkey);
                     }
                 },
-                Token::S => byte_index += self.symmetricstate.encrypt_and_hash(
-                                &self.s.as_ref().unwrap().pubkey(), &mut message[byte_index..]),
+                Token::S => {
+                    byte_index += self.symmetricstate.encrypt_and_hash(
+                                        &self.s.as_ref().unwrap().pubkey(), 
+                                        &mut message[byte_index..]);
+                },
                 Token::Dhee => self.symmetricstate.mix_key(&self.e.as_ref().unwrap().dh(&self.re.unwrap())),
                 Token::Dhes => self.symmetricstate.mix_key(&self.e.as_ref().unwrap().dh(&self.rs.unwrap())),
                 Token::Dhse => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.re.unwrap())),
