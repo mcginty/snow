@@ -18,11 +18,10 @@ pub trait HandshakePattern {
 pub enum NoiseError {DecryptError}
 
 struct SymmetricState<C: Cipher, H: Hash> {
-    cipherstate : CipherState<C>,
-    has_k: bool,
-    has_psk: bool,
+    cipherstate : Option< CipherState<C> >,
     h : [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
     ck: [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
+    has_psk: bool,
     wtf : PhantomData<H>, /* So rust thinks I'm using H, this is ugly */
 }
 
@@ -53,11 +52,10 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
             hasher.result(&mut hname);
         }
         SymmetricState{
-            cipherstate: CipherState::new(&[0u8; CIPHERKEYLEN], 0), 
-            has_k : false, 
-            has_psk: false,
+            cipherstate: None,
             h: hname,
             ck : hname, 
+            has_psk: false,
             wtf: PhantomData::<H>
         }
     }
@@ -66,8 +64,7 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
         H::hkdf(&self.ck[..H::hash_len()], data, &mut hkdf_output.0, &mut hkdf_output.1);
         copy_memory(&hkdf_output.0, &mut self.ck);
-        self.cipherstate = CipherState::new(&hkdf_output.1[..CIPHERKEYLEN], 0);
-        self.has_k = true;
+        self.cipherstate = Some(CipherState::new(&hkdf_output.1[..CIPHERKEYLEN], 0));
     }
 
     fn mix_hash(&mut self, data: &[u8]) {
@@ -86,20 +83,22 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
     }
 
     fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
-        if self.has_k {
-            self.cipherstate.encrypt_ad(&self.h[..H::hash_len()], plaintext, out);
-            self.mix_hash(&out[..plaintext.len() + TAGLEN]);
-            return plaintext.len() + TAGLEN;
-        } else {
-            copy_memory(plaintext, out);
-            self.mix_hash(plaintext);
-            return plaintext.len();
+        let output_len:usize;
+        if let Some(ref mut cipherstate) = self.cipherstate {
+            cipherstate.encrypt_ad(&self.h[..H::hash_len()], plaintext, out);
+            output_len = plaintext.len() + TAGLEN;
         }
+        else {
+            copy_memory(plaintext, out);
+            output_len = plaintext.len();
+        }
+        self.mix_hash(&out[..output_len]);
+        output_len
     }
 
     fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> bool {
-        if self.has_k {
-            if !self.cipherstate.decrypt_ad(&self.h[..H::hash_len()], data, out) { 
+        if let Some(ref mut cipherstate) = self.cipherstate {
+            if !cipherstate.decrypt_ad(&self.h[..H::hash_len()], data, out) { 
                 return false; 
             }
         }
@@ -283,13 +282,13 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
                     }
                 },
                 Token::S => {
-                    let data = match self.symmetricstate.has_k {
-                        true =>  {
+                    let data = match self.symmetricstate.cipherstate {
+                        Some(_) =>  {
                             let temp = &ptr[..DHLEN + TAGLEN]; 
                             ptr = &ptr[DHLEN + TAGLEN..]; 
                             temp
                         }
-                        false => {
+                        None => {
                             let temp = &ptr[..DHLEN];        
                             ptr = &ptr[DHLEN..];        
                             temp
@@ -308,9 +307,9 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
                 Token::Empty => break
             }
         }
-        let payload_len = match self.symmetricstate.has_k { 
-            true => ptr.len() - TAGLEN,
-            false => ptr.len() 
+        let payload_len = match self.symmetricstate.cipherstate { 
+            Some(_) => ptr.len() - TAGLEN,
+            None => ptr.len() 
         };
         if !self.symmetricstate.decrypt_and_hash(ptr, payload) {
             return Err(NoiseError::DecryptError);
