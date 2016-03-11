@@ -90,26 +90,30 @@ impl<C: Cipher> CipherState<C> {
         assert!(self.good);
         self.cipher.encrypt(self.n, authtext, plaintext, out);
         self.n += 1;
+        self.good = self.n != 0; // check for wrap-around
     }
 
     pub fn decrypt_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
         assert!(self.good);
-        self.good = self.cipher.decrypt(self.n, authtext, ciphertext, out);
+        let result = self.cipher.decrypt(self.n, authtext, ciphertext, out);
         self.n += 1;
-        self.good
+        self.good = self.n != 0; // check for wrap-around
+        result
     }
 
     pub fn encrypt(&mut self, plaintext: &[u8], out: &mut[u8]) {
         assert!(self.good);
         self.cipher.encrypt(self.n, &[0u8;0], plaintext, out);
         self.n += 1;
+        self.good = self.n != 0; // check for wrap-around
     }
 
     pub fn decrypt(&mut self, ciphertext: &[u8], out: &mut[u8]) -> bool {
         assert!(self.good);
-        self.good = self.cipher.decrypt(self.n, &[0u8;0], ciphertext, out);
+        let result = self.cipher.decrypt(self.n, &[0u8;0], ciphertext, out);
         self.n += 1;
-        self.good
+        self.good = self.n != 0; // check for wrap-around
+        result
     }
 }
 
