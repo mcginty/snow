@@ -7,5 +7,5 @@ mod patterns;
 pub use crypto_stuff::{Random, Dh, Cipher, Hash, CipherState};
 pub use wrappers::crypto_wrapper::*;
 pub use wrappers::rand_wrapper::*;
-pub use handshake::{HandshakeState, Token};
-pub use patterns::*;
+pub use handshake::{HandshakeState};
+pub use patterns::{HandshakePattern};

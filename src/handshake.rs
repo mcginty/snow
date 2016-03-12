@@ -1,18 +1,9 @@
 
 use std::marker::PhantomData;
 use crypto_stuff::*;
+use patterns::*;
 
 pub const MAXMSGLEN : usize = 65535;
-
-#[derive(Copy, Clone)]
-pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}
-
-pub trait HandshakePattern {
-    fn name(out: &mut [u8]) -> usize;
-    fn get(premsg_pattern_i: &mut [Token], 
-           premsg_pattern_r: &mut [Token], 
-           msg_patterns: &mut [[Token; 8]; 5]);
-}
 
 #[derive(Debug)]
 pub enum NoiseError {DecryptError}
@@ -25,18 +16,17 @@ struct SymmetricState<C: Cipher, H: Hash> {
     wtf : PhantomData<H>, /* So rust thinks I'm using H, this is ugly */
 }
 
-pub struct HandshakeState<P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> {
+pub struct HandshakeState<D: Dh, C: Cipher, H: Hash, R: Random> {
     symmetricstate: SymmetricState<C, H>,
     s: Option<D>,
     e: Option<D>,
     rs: Option<[u8; DHLEN]>,
     re: Option<[u8; DHLEN]>,
     my_turn_to_send : bool,
-    message_patterns : [[Token; 8]; 5],
+    message_patterns : [[Token; 10]; 10],
     message_index: usize,
     initiator: bool,
     rng : R,
-    wtf : PhantomData<P>, /* So rust thinks I'm using P, this is ugly */
 }
 
 
@@ -119,18 +109,23 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
 }
 
-impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<P, D, C, H, R> {
+impl <D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<D, C, H, R> {
 
     pub fn new(rng: R,
+               handshake_pattern: HandshakePattern,
                initiator: bool,
                prologue: &[u8],
                new_preshared_key: Option<&[u8]>,
                new_s : Option<D>, 
                new_e : Option<D>, 
                new_rs: Option<[u8; DHLEN]>, 
-               new_re: Option<[u8; DHLEN]>) -> HandshakeState<P, D, C, H, R> {
+               new_re: Option<[u8; DHLEN]>) -> HandshakeState<D, C, H, R> {
         let mut handshake_name = [0u8; 128];
         let mut name_len: usize;
+        let mut premsg_pattern_i = [Token::Empty; 2];
+        let mut premsg_pattern_r = [Token::Empty; 2];
+        let mut message_patterns = [[Token::Empty; 10]; 10];
+
         if let Some(_) = new_preshared_key {
             copy_memory("NoisePSK_".as_bytes(), &mut handshake_name);
             name_len = 9;
@@ -138,7 +133,11 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
             copy_memory("Noise_".as_bytes(), &mut handshake_name);
             name_len = 6;
         }
-        name_len += P::name(&mut handshake_name[name_len..]);
+        name_len += resolve_handshake_pattern(handshake_pattern,
+                                              &mut handshake_name[name_len..],
+                                              &mut premsg_pattern_i, 
+                                              &mut premsg_pattern_r, 
+                                              &mut message_patterns);
         handshake_name[name_len] = '_' as u8;
         name_len += 1;
         name_len += D::name(&mut handshake_name[name_len..]);
@@ -157,10 +156,6 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
             symmetricstate.mix_preshared_key(preshared_key);
         }
 
-        let mut premsg_pattern_i = [Token::Empty; 2];
-        let mut premsg_pattern_r = [Token::Empty; 2];
-        let mut message_patterns = [[Token::Empty; 8]; 5];
-        P::get(&mut premsg_pattern_i, &mut premsg_pattern_r, &mut message_patterns);
         if initiator {
             for token in &premsg_pattern_i {
                 match *token {
@@ -205,7 +200,7 @@ impl <P: HandshakePattern, D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<
             message_index: 0, 
             initiator: initiator, 
             rng: rng,  
-            wtf: PhantomData::<P>}
+            }
     }
 
     pub fn write_message(&mut self, 

@@ -4,6 +4,57 @@ extern crate rustc_serialize;
 use screech::*;
 use self::rustc_serialize::hex::{FromHex, ToHex};
 
+use std::io::prelude::*;
+use std::io::BufReader;
+use std::fs::File;
+
+
+#[test]
+fn file_test() {
+
+    let mut init_static = Vec::<u8>::new();
+    let mut init_ephemeral = Vec::<u8>::new();
+    let mut resp_static = Vec::<u8>::new();
+    let mut resp_ephemeral = Vec::<u8>::new();
+    let mut gen_init_ephemeral = Vec::<u8>::new();
+    let mut gen_resp_ephemeral = Vec::<u8>::new();
+    let mut prologue = Vec::<u8>::new();
+    let mut preshared_key = Vec::<u8>::new();
+
+    let f = File::open("vectors.txt").unwrap();
+    for line_option in BufReader::new(f).lines() {
+        //println!("{}", line.unwrap());
+        let line = line_option.unwrap(); 
+        if line.starts_with("handshake=") {
+            println!("{}", line);
+        }
+        if line.starts_with("init_static=") {
+            init_static = line["init_static=".len()..].from_hex().unwrap();    
+        }
+        if line.starts_with("init_ephemeral=") {
+            init_static = line["init_ephemeral=".len()..].from_hex().unwrap();    
+        }
+        if line.starts_with("resp_static=") {
+            init_static = line["resp_static=".len()..].from_hex().unwrap();    
+        }
+        if line.starts_with("resp_ephemeral=") {
+            init_static = line["resp_ephemeral=".len()..].from_hex().unwrap();    
+        }
+        if line.starts_with("gen_init_ephemeral=") {
+            init_static = line["gen_init_ephemeral=".len()..].from_hex().unwrap();    
+        }
+        if line.starts_with("gen_resp_ephemeral=") {
+            init_static = line["gen_resp_ephemeral=".len()..].from_hex().unwrap();    
+        }
+        if line.starts_with("preshared_key=") {
+            init_static = line["preshared_key=".len()..].from_hex().unwrap();    
+        }
+        if line.starts_with("prologue=") {
+            init_static = line["prologue=".len()..].from_hex().unwrap();    
+        }
+    }
+}
+
 
 struct RandomInc {
     next_byte: u8
@@ -75,14 +126,14 @@ fn non_psk_test() {
     // Noise_XX round-trip randomized test
     {
 
-        type  HS = HandshakeState<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomOs>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomOs>;
 
         let mut rng_i = RandomOs::new();
         let mut rng_r = RandomOs::new();
         let static_i = Dh25519::generate(&mut rng_i);
         let static_r = Dh25519::generate(&mut rng_r);
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, Some(static_i), None, None, None);
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, HandshakePattern::XX, true, &[0u8;0], None, Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, HandshakePattern::XX, false, &[0u8;0], None, Some(static_r), None, None, None);
 
         let mut buffer = [0u8; 1024];
 
@@ -150,13 +201,13 @@ fn non_psk_test() {
 
     // Noise_N test
     {
-        type  HS = HandshakeState<NoiseN, Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
         let mut rng = RandomInc::new();
         let static_r = Dh25519::generate(&mut rng);
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h = HS::new(rng, true, &[0u8;0], None, None, None, Some(static_pubkey), None);
+        let mut h = HS::new(rng, HandshakePattern::N, true, &[0u8;0], None, None, None, Some(static_pubkey), None);
         let mut buffer = [0u8; 48];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 48);
         //println!("{}", buffer.to_hex());
@@ -165,14 +216,14 @@ fn non_psk_test() {
 
     // Noise_X test
     {
-        type  HS = HandshakeState<NoiseX, Dh25519, CipherChaChaPoly, HashSHA256, RandomInc>;
+        type  HS = HandshakeState<Dh25519, CipherChaChaPoly, HashSHA256, RandomInc>;
         let mut rng = RandomInc::new();
         let static_i = Dh25519::generate(&mut rng);
         let static_r = Dh25519::generate(&mut rng);
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h = HS::new(rng, true, &[0u8;0], None, Some(static_i), None, Some(static_pubkey), None);
+        let mut h = HS::new(rng, HandshakePattern::X, true, &[0u8;0], None, Some(static_i), None, Some(static_pubkey), None);
         let mut buffer = [0u8; 96];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
         //println!("{}", buffer.to_hex());
@@ -181,13 +232,13 @@ fn non_psk_test() {
 
     // Noise_NN test
     {
-        type  HS = HandshakeState<NoiseNN, Dh25519, CipherAESGCM, HashSHA512, RandomInc>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA512, RandomInc>;
         let rng_i = RandomInc::new();
         let mut rng_r = RandomInc::new();
         rng_r.next_byte = 1; 
 
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, None, None, None, None);
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, None, None, None, None);
+        let mut h_i = HS::new(rng_i, HandshakePattern::NN, true, &[0u8;0], None, None, None, None, None);
+        let mut h_r = HS::new(rng_r, HandshakePattern::NN, false, &[0u8;0], None, None, None, None, None);
         let mut buffer_msg = [0u8; 64];
         let mut buffer_out = [0u8; 10];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
@@ -204,7 +255,7 @@ fn non_psk_test() {
 
     // Noise_XX test
     {
-        type  HS = HandshakeState<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
         let mut rng_i = RandomInc::new();
         let mut rng_r = RandomInc::new();
         rng_r.next_byte = 1; 
@@ -214,8 +265,8 @@ fn non_psk_test() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], None, Some(static_i), None, None, None);
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], None, Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, HandshakePattern::XX, true, &[0u8;0], None, Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, HandshakePattern::XX, false, &[0u8;0], None, Some(static_r), None, None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
@@ -234,7 +285,7 @@ fn non_psk_test() {
 
     // Noise_IK test
     {
-        type  HS = HandshakeState<NoiseIK, Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
         let mut rng_i = RandomInc::new();
         let mut rng_r = RandomInc::new();
         rng_r.next_byte = 1; 
@@ -244,8 +295,8 @@ fn non_psk_test() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, "ABC".as_bytes(), None, Some(static_i), None, Some(static_pubkey), None);
-        let mut h_r = HS::new(rng_r, false, "ABC".as_bytes(), None, Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, HandshakePattern::IK, true, "ABC".as_bytes(), None, Some(static_i), None, Some(static_pubkey), None);
+        let mut h_r = HS::new(rng_r, HandshakePattern::IK, false, "ABC".as_bytes(), None, Some(static_r), None, None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 99);
@@ -262,7 +313,7 @@ fn non_psk_test() {
 
     // Noise_XX test with zeros
     {
-        type  HS = HandshakeState<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomZeros>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomZeros>;
         let mut rng_i = RandomZeros::new();
         let mut rng_r = RandomZeros::new();
 
@@ -271,8 +322,8 @@ fn non_psk_test() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, "".as_bytes(), None, Some(static_i), None, None, None);
-        let mut h_r = HS::new(rng_r, false, "".as_bytes(), None, Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, HandshakePattern::XX, true, "".as_bytes(), None, Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, HandshakePattern::XX, false, "".as_bytes(), None, Some(static_r), None, None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("".as_bytes(), &mut buffer_msg).0 == 32);
@@ -293,7 +344,7 @@ fn non_psk_test() {
 
     // Noise_IK test with zeros
     {
-        type  HS = HandshakeState<NoiseIK, Dh25519, CipherAESGCM, HashSHA256, RandomZeros>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomZeros>;
         let mut rng_i = RandomZeros::new();
         let mut rng_r = RandomZeros::new();
 
@@ -302,8 +353,8 @@ fn non_psk_test() {
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, "".as_bytes(), None, Some(static_i), None, Some(static_pubkey), None);
-        let mut h_r = HS::new(rng_r, false, "".as_bytes(), None, Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, HandshakePattern::IK, true, "".as_bytes(), None, Some(static_i), None, Some(static_pubkey), None);
+        let mut h_r = HS::new(rng_r, HandshakePattern::IK, false, "".as_bytes(), None, Some(static_r), None, None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("".as_bytes(), &mut buffer_msg).0 == 96);
@@ -320,7 +371,7 @@ fn non_psk_test() {
 
     // Noise_XXfallback test with zeros
     {
-        type  HS = HandshakeState<NoiseXXfallback, Dh25519, CipherAESGCM, HashSHA256, RandomZeros>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomZeros>;
         let mut rng_i = RandomZeros::new();
         let mut rng_r = RandomZeros::new();
 
@@ -332,8 +383,8 @@ fn non_psk_test() {
         let mut eph_pubkey = [0u8; 32];
         copy_memory(eph_r.pubkey(), &mut eph_pubkey);
 
-        let mut h_i = HS::new(rng_i, true, "".as_bytes(), None, Some(static_i), None, None, Some(eph_pubkey));
-        let mut h_r = HS::new(rng_r, false, "".as_bytes(), None, Some(static_r), Some(eph_r), None, None);
+        let mut h_i = HS::new(rng_i, HandshakePattern::XXfallback, true, "".as_bytes(), None, Some(static_i), None, None, Some(eph_pubkey));
+        let mut h_r = HS::new(rng_r, HandshakePattern::XXfallback, false, "".as_bytes(), None, Some(static_r), Some(eph_r), None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("".as_bytes(), &mut buffer_msg).0 == 96);
@@ -356,15 +407,15 @@ fn psk_test() {
     // NoisePSK_XX round-trip randomized test
     {
 
-        type  HS = HandshakeState<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomOs>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomOs>;
 
         let mut rng_i = RandomOs::new();
         let mut rng_r = RandomOs::new();
         let static_i = Dh25519::generate(&mut rng_i);
         let static_r = Dh25519::generate(&mut rng_r);
         let psk = [1u8, 2u8, 3u8];
-        let mut h_i = HS::new(rng_i, true, &[0u8;0], Some(&psk), Some(static_i), None, None, None);
-        let mut h_r = HS::new(rng_r, false, &[0u8;0], Some(&psk), Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, HandshakePattern::XX, true, &[0u8;0], Some(&psk), Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, HandshakePattern::XX, false, &[0u8;0], Some(&psk), Some(static_r), None, None, None);
 
         let mut buffer = [0u8; 1024];
 
@@ -432,14 +483,14 @@ fn psk_test() {
 
     // NoisePSK_N test
     {
-        type  HS = HandshakeState<NoiseN, Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
         let mut rng = RandomInc::new();
         let static_r = Dh25519::generate(&mut rng);
         let mut static_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
         let psk = [1u8, 2u8, 3u8];
 
-        let mut h = HS::new(rng, true, &[0u8;0], Some(&psk), None, None, Some(static_pubkey), None);
+        let mut h = HS::new(rng, HandshakePattern::N, true, &[0u8;0], Some(&psk), None, None, Some(static_pubkey), None);
         let mut buffer = [0u8; 48];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 48);
         //println!("{}", buffer.to_hex());
@@ -448,7 +499,7 @@ fn psk_test() {
 
     // NoisePSK_X test
     {
-        type  HS = HandshakeState<NoiseX, Dh25519, CipherChaChaPoly, HashSHA256, RandomInc>;
+        type  HS = HandshakeState<Dh25519, CipherChaChaPoly, HashSHA256, RandomInc>;
         let mut rng = RandomInc::new();
         let static_i = Dh25519::generate(&mut rng);
         let static_r = Dh25519::generate(&mut rng);
@@ -456,7 +507,7 @@ fn psk_test() {
         copy_memory(static_r.pubkey(), &mut static_pubkey);
         let psk = [1u8, 2u8, 3u8];
 
-        let mut h = HS::new(rng, true, &[0u8;0], Some(&psk), Some(static_i), None, Some(static_pubkey), None);
+        let mut h = HS::new(rng, HandshakePattern::X, true, &[0u8;0], Some(&psk), Some(static_i), None, Some(static_pubkey), None);
         let mut buffer = [0u8; 96];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
         //println!("{}", buffer.to_hex());
@@ -465,7 +516,7 @@ fn psk_test() {
 
     // NoisePSK_NN test (prologue AND psk)
     {
-        type  HS = HandshakeState<NoiseNN, Dh25519, CipherAESGCM, HashSHA512, RandomInc>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA512, RandomInc>;
         let rng_i = RandomInc::new();
         let mut rng_r = RandomInc::new();
         rng_r.next_byte = 1; 
@@ -473,8 +524,8 @@ fn psk_test() {
         let psk = [4u8, 5u8, 6u8];
 
 
-        let mut h_i = HS::new(rng_i, true, &prologue, Some(&psk), None, None, None, None);
-        let mut h_r = HS::new(rng_r, false, &prologue, Some(&psk), None, None, None, None);
+        let mut h_i = HS::new(rng_i, HandshakePattern::NN, true, &prologue, Some(&psk), None, None, None, None);
+        let mut h_r = HS::new(rng_r, HandshakePattern::NN, false, &prologue, Some(&psk), None, None, None, None);
         let mut buffer_msg = [0u8; 64];
         let mut buffer_out = [0u8; 10];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 51);
@@ -491,7 +542,7 @@ fn psk_test() {
 
     // NoisePSK_XX test
     {
-        type  HS = HandshakeState<NoiseXX, Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
+        type  HS = HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomInc>;
         let mut rng_i = RandomInc::new();
         let mut rng_r = RandomInc::new();
         rng_r.next_byte = 1; 
@@ -503,8 +554,8 @@ fn psk_test() {
         let prologue = [1u8, 2u8, 3u8];
         let psk = [4u8, 5u8, 6u8];
 
-        let mut h_i = HS::new(rng_i, true, &prologue, Some(&psk), Some(static_i), None, None, None);
-        let mut h_r = HS::new(rng_r, false, &prologue, Some(&psk), Some(static_r), None, None, None);
+        let mut h_i = HS::new(rng_i, HandshakePattern::XX, true, &prologue, Some(&psk), Some(static_i), None, None, None);
+        let mut h_r = HS::new(rng_r, HandshakePattern::XX, false, &prologue, Some(&psk), Some(static_r), None, None, None);
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
         assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 51);
