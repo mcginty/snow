@@ -21,37 +21,116 @@ fn file_test() {
     let mut prologue = Vec::<u8>::new();
     let mut preshared_key = Vec::<u8>::new();
 
+    let mut initializing = false;
+    let mut psk_required = false;
+    
+    let mut handshake_pattern: HandshakePattern;
+
+    let mut init_rng = RandomSequence{next_bytes: [0u8; 1024], next_index: 0};
+    let mut resp_rng = RandomSequence{next_bytes: [0u8; 1024], next_index: 0};
+    
+    let mut hs_i_25519_aesgcm_sha256: HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomSequence>;
+    let mut hs_r_25519_aesgcm_sha256: HandshakeState<Dh25519, CipherAESGCM, HashSHA256, RandomSequence>;
+
+    let mut hs_i_25519_aesgcm_sha512: HandshakeState<Dh25519, CipherAESGCM, HashSHA512, RandomSequence>;
+    let mut hs_r_25519_aesgcm_sha512: HandshakeState<Dh25519, CipherAESGCM, HashSHA512, RandomSequence>;
+
+    let mut hs_i_25519_aesgcm_blake2b: HandshakeState<Dh25519, CipherAESGCM, HashBLAKE2b, RandomSequence>;
+    let mut hs_r_25519_aesgcm_blake2b: HandshakeState<Dh25519, CipherAESGCM, HashBLAKE2b, RandomSequence>;
+
+    let mut hs_i_25519_chachapoly_sha256: HandshakeState<Dh25519, CipherChaChaPoly, HashSHA256, RandomSequence>;
+    let mut hs_r_25519_chachapoly_sha256: HandshakeState<Dh25519, CipherChaChaPoly, HashSHA256, RandomSequence>;
+
+    let mut hs_i_25519_chachapoly_sha512: HandshakeState<Dh25519, CipherChaChaPoly, HashSHA512, RandomSequence>;
+    let mut hs_r_25519_chachapoly_sha512: HandshakeState<Dh25519, CipherChaChaPoly, HashSHA512, RandomSequence>;
+
+    let mut hs_i_25519_chachapoly_blake2b: HandshakeState<Dh25519, CipherChaChaPoly, HashBLAKE2b, RandomSequence>;
+    let mut hs_r_25519_chachapoly_blake2b: HandshakeState<Dh25519, CipherChaChaPoly, HashBLAKE2b, RandomSequence>;
+
     let f = File::open("vectors.txt").unwrap();
     for line_option in BufReader::new(f).lines() {
         //println!("{}", line.unwrap());
         let line = line_option.unwrap(); 
         if line.starts_with("handshake=") {
             println!("{}", line);
+            initializing = true;
+            psk_required = false;
+            
+            let mut line_remainder = &line["handshake=".len()..];
+            if line_remainder.starts_with("Noise_PSK") {
+                line_remainder = &line["NoisePSK_".len()..];
+                psk_required = true;
+            } else {
+                line_remainder = &line["Noise_".len()..];
+            }
+            let mut split = line_remainder.split("_");
+            let name_vec: Vec<&str> = split.collect();
+            /*
+            match name_vec[0] {
+                "N" => handshake_pattern = HandshakePattern::N,
+                "K" => handshake_pattern = HandshakePattern::K,
+                "X" => handshake_pattern = HandshakePattern::X,
+                "NN" => handshake_pattern = HandshakePattern::NN,
+                "NK" => handshake_pattern = HandshakePattern::NK,
+                "NX" => handshake_pattern = HandshakePattern::NX,
+                "XN" => handshake_pattern = HandshakePattern::XN,
+                "XK" => handshake_pattern = HandshakePattern::XK,
+                "XX" => handshake_pattern = HandshakePattern::XX,
+                "XR" => handshake_pattern = HandshakePattern::XR,
+                "KN" => handshake_pattern = HandshakePattern::KN,
+                "KK" => handshake_pattern = HandshakePattern::KK,
+                "KX" => handshake_pattern = HandshakePattern::KX,
+                "IN" => handshake_pattern = HandshakePattern::IN,
+                "IK" => handshake_pattern = HandshakePattern::IK,
+                "IX" => handshake_pattern = HandshakePattern::IX,
+                "XXfallback" => handshake_pattern = HandshakePattern::XXfallback,
+                _ as xyz => { println!("{}", xyz); panic!();}
+            }
+            */
         }
-        if line.starts_with("init_static=") {
+        else if line.starts_with("init_static=") {
             init_static = line["init_static=".len()..].from_hex().unwrap();    
         }
-        if line.starts_with("init_ephemeral=") {
+        else if line.starts_with("init_ephemeral=") {
             init_static = line["init_ephemeral=".len()..].from_hex().unwrap();    
         }
-        if line.starts_with("resp_static=") {
+        else if line.starts_with("resp_static=") {
             init_static = line["resp_static=".len()..].from_hex().unwrap();    
         }
-        if line.starts_with("resp_ephemeral=") {
+        else if line.starts_with("resp_ephemeral=") {
             init_static = line["resp_ephemeral=".len()..].from_hex().unwrap();    
         }
-        if line.starts_with("gen_init_ephemeral=") {
+        else if line.starts_with("gen_init_ephemeral=") {
             init_static = line["gen_init_ephemeral=".len()..].from_hex().unwrap();    
         }
-        if line.starts_with("gen_resp_ephemeral=") {
+        else if line.starts_with("gen_resp_ephemeral=") {
             init_static = line["gen_resp_ephemeral=".len()..].from_hex().unwrap();    
         }
-        if line.starts_with("preshared_key=") {
+        else if line.starts_with("preshared_key=") {
             init_static = line["preshared_key=".len()..].from_hex().unwrap();    
         }
-        if line.starts_with("prologue=") {
+        else if line.starts_with("prologue=") {
             init_static = line["prologue=".len()..].from_hex().unwrap();    
         }
+        else if line.starts_with("msg_0_payload=") {
+            copy_memory(gen_init_ephemeral.as_slice(), &mut init_rng.next_bytes);
+            copy_memory(gen_resp_ephemeral.as_slice(), &mut resp_rng.next_bytes);
+            init_rng.next_index = 0;
+            resp_rng.next_index = 0;
+
+/*
+            match handshake_name {
+                "Noise_X" => {
+                    let static_i = Dh25519::generate(&mut rng_i);
+                    let static_r = Dh25519::generate(&mut rng_r);
+                    //let mut h_i = HS::new(rng_i, HandshakePattern::XX, true, &[0u8;0], None, Some(static_i), None, None, None);
+                    //let mut h_r = HS::new(rng_r, HandshakePattern::XX, false, &[0u8;0], None, Some(static_r), None, None, None);
+                }
+
+            }
+*/
+        }
+
     }
 }
 
@@ -78,7 +157,6 @@ impl Random for RandomInc {
         }
     }
 }
-
 
 struct RandomSequence {
     next_bytes: [u8; 1024],
