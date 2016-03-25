@@ -58,7 +58,7 @@ impl Dh for Dh25519 {
         dh
     }
 
-    fn generate<R: Random>(rng: &mut R) -> Dh25519 {
+    fn generate(rng: &mut Random) -> Dh25519 {
         let mut privkey = [0u8; 32];
         rng.fill_bytes(&mut privkey);
         privkey[0] &= 248;

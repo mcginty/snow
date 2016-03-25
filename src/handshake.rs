@@ -16,7 +16,7 @@ struct SymmetricState<C: Cipher, H: Hash> {
     wtf : PhantomData<H>, /* So rust thinks I'm using H, this is ugly */
 }
 
-pub struct HandshakeState<D: Dh, C: Cipher, H: Hash, R: Random> {
+pub struct HandshakeState<'a, D: Dh, C: Cipher, H: Hash> {
     symmetricstate: SymmetricState<C, H>,
     s: Option<D>,
     e: Option<D>,
@@ -26,7 +26,7 @@ pub struct HandshakeState<D: Dh, C: Cipher, H: Hash, R: Random> {
     message_patterns : [[Token; 10]; 10],
     message_index: usize,
     initiator: bool,
-    rng : R,
+    rng : &'a mut Random,
 }
 
 
@@ -109,9 +109,9 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
 }
 
-impl <D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<D, C, H, R> {
+impl <'a, D: Dh, C: Cipher, H: Hash> HandshakeState<'a, D, C, H> {
 
-    pub fn new(rng: R,
+    pub fn new(rng: &'a mut Random,
                handshake_pattern: HandshakePattern,
                initiator: bool,
                prologue: &[u8],
@@ -119,7 +119,7 @@ impl <D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<D, C, H, R> {
                new_s : Option<D>, 
                new_e : Option<D>, 
                new_rs: Option<[u8; DHLEN]>, 
-               new_re: Option<[u8; DHLEN]>) -> HandshakeState<D, C, H, R> {
+               new_re: Option<[u8; DHLEN]>) -> HandshakeState<'a, D, C, H> {
         let mut handshake_name = [0u8; 128];
         let mut name_len: usize;
         let mut premsg_pattern_i = [Token::Empty; 2];
@@ -218,7 +218,7 @@ impl <D: Dh, C: Cipher, H: Hash, R: Random> HandshakeState<D, C, H, R> {
         for token in &tokens {
             match *token {
                 Token::E => {
-                    self.e = Some(D::generate(&mut self.rng)); 
+                    self.e = Some(D::generate(self.rng)); 
                     let pubkey = self.e.as_ref().unwrap().pubkey();
                     copy_memory(pubkey, &mut message[byte_index..]);
                     byte_index += DHLEN;

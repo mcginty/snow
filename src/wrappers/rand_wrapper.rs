@@ -7,14 +7,14 @@ pub struct RandomOs {
     rng : OsRng
 }
 
-impl Random for RandomOs {
-
-    fn new() -> RandomOs {
+impl RandomOs {
+    pub fn new() -> RandomOs {
         RandomOs {rng: OsRng::new().unwrap()}
     }
+}
 
+impl Random for RandomOs {
     fn fill_bytes(&mut self, out: &mut [u8]) {
         self.rng.fill_bytes(out); 
     }
-
 }
