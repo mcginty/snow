@@ -17,10 +17,9 @@ pub trait Random {
 }
 
 pub trait Dh {
-    fn name(out: &mut [u8]) -> usize;
-    fn new(privkey: &[u8], pubkey: &[u8]) -> Self;
-    fn generate(rng: &mut Random) -> Self; 
-    
+    fn name(&self, out: &mut [u8]) -> usize;
+    fn generate(&mut self, rng: &mut Random); 
+    fn is_empty(&self) -> bool;
     fn pubkey(&self) -> &[u8];
     fn dh(&self, pubkey: &[u8]) -> [u8; DHLEN];
 }

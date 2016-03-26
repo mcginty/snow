@@ -21,7 +21,8 @@ use crypto_stuff::*;
 
 pub struct Dh25519 {
     privkey : [u8; 32],
-    pubkey  : [u8; 32]
+    pubkey  : [u8; 32],
+    is_empty: bool
 }
 
 pub struct CipherAESGCM {
@@ -44,35 +45,51 @@ pub struct HashBLAKE2b {
     hasher : Blake2b
 }
 
+impl Dh25519 {
+
+    pub fn new() -> Dh25519 {
+        Dh25519{privkey: [0u8; 32], pubkey: [0u8; 32], is_empty: false}
+    }
+
+    pub fn set(&mut self, privkey: &[u8], pubkey: &[u8]) {
+        copy_memory(privkey, &mut self.privkey); /* RUSTSUCKS: Why can't I convert slice -> array? */
+        copy_memory(pubkey, &mut self.pubkey);
+        self.is_empty = false;
+    }
+
+    pub fn clear(&mut self) {
+        self.is_empty = true;
+    }
+
+}
 
 impl Dh for Dh25519 {
 
-    fn name(out : &mut [u8]) -> usize { 
+    fn name(&self, out : &mut [u8]) -> usize { 
         copy_memory("25519".as_bytes(), out)
     }
 
-    fn new(privkey: &[u8], pubkey: &[u8]) -> Dh25519 {
-        let mut dh = Dh25519{privkey: [0u8; 32], pubkey: [0u8; 32]};
-        copy_memory(privkey, &mut dh.privkey); /* RUSTSUCKS: Why can't I convert slice -> array? */
-        copy_memory(pubkey, &mut dh.pubkey);
-        dh
+    fn is_empty(&self) -> bool {
+        self.is_empty
     }
 
-    fn generate(rng: &mut Random) -> Dh25519 {
-        let mut privkey = [0u8; 32];
-        rng.fill_bytes(&mut privkey);
-        privkey[0] &= 248;
-        privkey[31] &= 127;
-        privkey[31] |= 64;
-        let pubkey = curve25519_base(&privkey); 
-        Dh25519{privkey : privkey, pubkey : pubkey}
+    fn generate(&mut self, rng: &mut Random) {
+        rng.fill_bytes(&mut self.privkey);
+        self.privkey[0] &= 248;
+        self.privkey[31] &= 127;
+        self.privkey[31] |= 64;
+        let pubkey = curve25519_base(&self.privkey); 
+        copy_memory(&pubkey, &mut self.pubkey);
+        self.is_empty = false;
     }
 
     fn pubkey(&self) -> &[u8] {
+        assert!(!self.is_empty);
         &self.pubkey
     }
 
     fn dh(&self, pubkey: &[u8]) -> [u8; DHLEN] {
+        assert!(!self.is_empty);
         curve25519(&self.privkey, pubkey)
     }
 
@@ -313,7 +330,7 @@ mod tests {
 
         // Curve25519 test - draft-curves-10
         {
-            let mut keypair = Dh25519::new(&[0; 32], &[0; 32]);
+            let mut keypair = Dh25519::new();
             let scalar = "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4".from_hex().unwrap();
             copy_memory(&scalar, &mut keypair.privkey);
             let public = "e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c".from_hex().unwrap();

@@ -7,7 +7,24 @@ pub const MAXMSGLEN : usize = 65535;
 
 #[derive(Debug)]
 pub enum NoiseError {DecryptError}
+/*
+trait SymmetricStateTrait {
 
+    fn mix_key(&mut self, data: &[u8]);
+    fn mix_hash(&mut self, data: &[u8]);
+    fn mix_preshared_key(&mut self, psk: &[u8]);
+    fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]);
+    fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]);
+    fn split(&self, initiator: bool) -> (CipherState<C>, CipherState<C>) {
+        let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
+        H::hkdf(&self.ck[..H::hash_len()], &[0u8; 0], &mut hkdf_output.0, &mut hkdf_output.1);
+        let c1 = CipherState::<C>::new(&hkdf_output.0[..CIPHERKEYLEN], 0);
+        let c2 = CipherState::<C>::new(&hkdf_output.1[..CIPHERKEYLEN], 0);
+        if initiator { (c1, c2) } else { (c2, c1) }
+    }
+
+}
+*/
 struct SymmetricState<C: Cipher, H: Hash> {
     cipherstate : Option< CipherState<C> >,
     h : [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
@@ -16,10 +33,10 @@ struct SymmetricState<C: Cipher, H: Hash> {
     wtf : PhantomData<H>, /* So rust thinks I'm using H, this is ugly */
 }
 
-pub struct HandshakeState<'a, D: Dh, C: Cipher, H: Hash> {
+pub struct HandshakeState<'a, C: Cipher, H: Hash> {
     symmetricstate: SymmetricState<C, H>,
-    s: Option<D>,
-    e: Option<D>,
+    s: &'a Dh,
+    e: &'a mut Dh,
     rs: Option<[u8; DHLEN]>,
     re: Option<[u8; DHLEN]>,
     my_turn_to_send : bool,
@@ -109,17 +126,17 @@ impl <C: Cipher, H: Hash> SymmetricState<C, H> {
 
 }
 
-impl <'a, D: Dh, C: Cipher, H: Hash> HandshakeState<'a, D, C, H> {
+impl <'a, C: Cipher, H: Hash> HandshakeState<'a, C, H> {
 
     pub fn new(rng: &'a mut Random,
                handshake_pattern: HandshakePattern,
                initiator: bool,
                prologue: &[u8],
                new_preshared_key: Option<&[u8]>,
-               new_s : Option<D>, 
-               new_e : Option<D>, 
+               new_s : &'a Dh, 
+               new_e : &'a mut Dh, 
                new_rs: Option<[u8; DHLEN]>, 
-               new_re: Option<[u8; DHLEN]>) -> HandshakeState<'a, D, C, H> {
+               new_re: Option<[u8; DHLEN]>) -> HandshakeState<'a, C, H> {
         let mut handshake_name = [0u8; 128];
         let mut name_len: usize;
         let mut premsg_pattern_i = [Token::Empty; 2];
@@ -140,7 +157,7 @@ impl <'a, D: Dh, C: Cipher, H: Hash> HandshakeState<'a, D, C, H> {
                                               &mut message_patterns);
         handshake_name[name_len] = '_' as u8;
         name_len += 1;
-        name_len += D::name(&mut handshake_name[name_len..]);
+        name_len += new_s.name(&mut handshake_name[name_len..]);
         handshake_name[name_len] = '_' as u8;
         name_len += 1;
         name_len += C::name(&mut handshake_name[name_len..]);
@@ -159,8 +176,8 @@ impl <'a, D: Dh, C: Cipher, H: Hash> HandshakeState<'a, D, C, H> {
         if initiator {
             for token in &premsg_pattern_i {
                 match *token {
-                    Token::S => symmetricstate.mix_hash(new_s.as_ref().unwrap().pubkey()),
-                    Token::E => symmetricstate.mix_hash(new_e.as_ref().unwrap().pubkey()),
+                    Token::S => symmetricstate.mix_hash(new_s.pubkey()),
+                    Token::E => symmetricstate.mix_hash(new_e.pubkey()),
                     Token::Empty => break,
                     _ => unreachable!()
                 }
@@ -184,8 +201,8 @@ impl <'a, D: Dh, C: Cipher, H: Hash> HandshakeState<'a, D, C, H> {
             }
             for token in &premsg_pattern_r {
                 match *token {
-                    Token::S => symmetricstate.mix_hash(new_s.as_ref().unwrap().pubkey()),
-                    Token::E => symmetricstate.mix_hash(new_e.as_ref().unwrap().pubkey()),
+                    Token::S => symmetricstate.mix_hash(new_s.pubkey()),
+                    Token::E => symmetricstate.mix_hash(new_e.pubkey()),
                     Token::Empty => break,
                     _ => unreachable!()
                 }
@@ -218,8 +235,8 @@ impl <'a, D: Dh, C: Cipher, H: Hash> HandshakeState<'a, D, C, H> {
         for token in &tokens {
             match *token {
                 Token::E => {
-                    self.e = Some(D::generate(self.rng)); 
-                    let pubkey = self.e.as_ref().unwrap().pubkey();
+                    self.e.generate(self.rng); 
+                    let pubkey = self.e.pubkey();
                     copy_memory(pubkey, &mut message[byte_index..]);
                     byte_index += DHLEN;
                     self.symmetricstate.mix_hash(&pubkey);
@@ -229,13 +246,13 @@ impl <'a, D: Dh, C: Cipher, H: Hash> HandshakeState<'a, D, C, H> {
                 },
                 Token::S => {
                     byte_index += self.symmetricstate.encrypt_and_hash(
-                                        &self.s.as_ref().unwrap().pubkey(), 
+                                        &self.s.pubkey(), 
                                         &mut message[byte_index..]);
                 },
-                Token::Dhee => self.symmetricstate.mix_key(&self.e.as_ref().unwrap().dh(&self.re.unwrap())),
-                Token::Dhes => self.symmetricstate.mix_key(&self.e.as_ref().unwrap().dh(&self.rs.unwrap())),
-                Token::Dhse => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.re.unwrap())),
-                Token::Dhss => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.rs.unwrap())),
+                Token::Dhee => self.symmetricstate.mix_key(&self.e.dh(&self.re.unwrap())),
+                Token::Dhes => self.symmetricstate.mix_key(&self.e.dh(&self.rs.unwrap())),
+                Token::Dhse => self.symmetricstate.mix_key(&self.s.dh(&self.re.unwrap())),
+                Token::Dhss => self.symmetricstate.mix_key(&self.s.dh(&self.rs.unwrap())),
                 Token::Empty => break
             }
         }
@@ -295,10 +312,10 @@ impl <'a, D: Dh, C: Cipher, H: Hash> HandshakeState<'a, D, C, H> {
                     }
                     self.rs = Some(pubkey);
                 },
-                Token::Dhee => self.symmetricstate.mix_key(&self.e.as_ref().unwrap().dh(&self.re.unwrap())),
-                Token::Dhes => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.re.unwrap())),
-                Token::Dhse => self.symmetricstate.mix_key(&self.e.as_ref().unwrap().dh(&self.rs.unwrap())),
-                Token::Dhss => self.symmetricstate.mix_key(&self.s.as_ref().unwrap().dh(&self.rs.unwrap())),
+                Token::Dhee => self.symmetricstate.mix_key(&self.e.dh(&self.re.unwrap())),
+                Token::Dhes => self.symmetricstate.mix_key(&self.s.dh(&self.re.unwrap())),
+                Token::Dhse => self.symmetricstate.mix_key(&self.e.dh(&self.rs.unwrap())),
+                Token::Dhss => self.symmetricstate.mix_key(&self.s.dh(&self.rs.unwrap())),
                 Token::Empty => break
             }
         }
