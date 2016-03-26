@@ -1,5 +1,5 @@
 
-use crypto_stuff::{copy_memory};
+use utils::*;
 
 #[derive(Copy, Clone)]
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}

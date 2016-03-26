@@ -1,7 +1,7 @@
 extern crate rand;
 
 use self::rand::{OsRng, Rng};
-use crypto_stuff::*;
+use crypto_types::*;
 
 pub struct RandomOs {
     rng : OsRng

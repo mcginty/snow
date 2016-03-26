@@ -17,7 +17,10 @@ use self::crypto::util::fixed_time_eq;
 
 use self::byteorder::{ByteOrder, BigEndian, LittleEndian};
 //use self::rustc_serialize::hex::{FromHex, ToHex};
-use crypto_stuff::*;
+
+use crypto_types::*;
+use constants::*;
+use utils::*;
 
 pub struct Dh25519 {
     privkey : [u8; 32],
