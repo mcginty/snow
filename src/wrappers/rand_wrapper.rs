@@ -13,7 +13,7 @@ impl RandomOs {
     }
 }
 
-impl Random for RandomOs {
+impl RandomType for RandomOs {
     fn fill_bytes(&mut self, out: &mut [u8]) {
         self.rng.fill_bytes(out); 
     }

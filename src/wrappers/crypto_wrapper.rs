@@ -51,29 +51,31 @@ impl Dh25519 {
         Dh25519{privkey: [0u8; 32], pubkey: [0u8; 32], is_empty: false}
     }
 
-    pub fn set(&mut self, privkey: &[u8], pubkey: &[u8]) {
+}
+
+impl DhType for Dh25519 {
+
+    fn name(&self, out : &mut [u8]) -> usize { 
+        copy_memory("25519".as_bytes(), out)
+    }
+
+    fn set(&mut self, privkey: &[u8], pubkey: &[u8]) {
         copy_memory(privkey, &mut self.privkey); /* RUSTSUCKS: Why can't I convert slice -> array? */
         copy_memory(pubkey, &mut self.pubkey);
         self.is_empty = false;
     }
 
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         self.is_empty = true;
-    }
-
-}
-
-impl Dh for Dh25519 {
-
-    fn name(&self, out : &mut [u8]) -> usize { 
-        copy_memory("25519".as_bytes(), out)
+        self.privkey = [0u8; 32];
+        self.pubkey = [0u8; 32];
     }
 
     fn is_empty(&self) -> bool {
         self.is_empty
     }
 
-    fn generate(&mut self, rng: &mut Random) {
+    fn generate(&mut self, rng: &mut RandomType) {
         rng.fill_bytes(&mut self.privkey);
         self.privkey[0] &= 248;
         self.privkey[31] &= 127;
@@ -95,19 +97,21 @@ impl Dh for Dh25519 {
 
 }
 
-impl Cipher for CipherAESGCM {
+impl CipherType for CipherAESGCM {
 
-    fn name(out : &mut [u8]) -> usize { 
+    fn name(&self, out : &mut [u8]) -> usize { 
         copy_memory("AESGCM".as_bytes(), out)
     }
 
-    fn new(key: &[u8]) -> CipherAESGCM {
-        let mut cipher = CipherAESGCM{key: [0u8; 32]};
-        copy_memory(key, &mut cipher.key);
-        cipher
+    fn set(&mut self, key: &[u8]) {
+        copy_memory(key, &mut self.key);
     }
 
-    fn encrypt(&mut self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
+    fn clear(&mut self) {
+        self.key = [0u8; 32];
+    }
+
+    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
         let mut nonce_bytes = [0u8; 12];
         BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
         let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
@@ -116,7 +120,7 @@ impl Cipher for CipherAESGCM {
         copy_memory(&tag, &mut out[plaintext.len()..]);
     } 
 
-    fn decrypt(&mut self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
+    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
         let mut nonce_bytes = [0u8; 12];
         BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
         let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
@@ -128,19 +132,21 @@ impl Cipher for CipherAESGCM {
 
 }
 
-impl Cipher for CipherChaChaPoly {
+impl CipherType for CipherChaChaPoly {
 
-    fn name(out : &mut [u8]) -> usize { 
+    fn name(&self, out : &mut [u8]) -> usize { 
         copy_memory("ChaChaPoly".as_bytes(), out)
     }
 
-    fn new(key: &[u8]) -> CipherChaChaPoly {
-        let mut cipher = CipherChaChaPoly{key: [0u8; 32]};
-        copy_memory(key, &mut cipher.key);
-        cipher
+    fn set(&mut self, key: &[u8]) {
+        copy_memory(key, &mut self.key);
     }
 
-    fn encrypt(&mut self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
+    fn clear(&mut self) {
+        self.key = [0u8; 32];
+    }
+
+    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
         let mut nonce_bytes = [0u8; 8];
         LittleEndian::write_u64(&mut nonce_bytes, nonce);
 
@@ -163,7 +169,7 @@ impl Cipher for CipherChaChaPoly {
         poly.raw_result(&mut out[plaintext.len()..]);
     } 
 
-    fn decrypt(&mut self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
+    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
         let mut nonce_bytes = [0u8; 8];
         LittleEndian::write_u64(&mut nonce_bytes, nonce);
 
@@ -194,24 +200,24 @@ impl Cipher for CipherChaChaPoly {
 
 }
 
-impl Hash for HashSHA256 {
+impl HashType for HashSHA256 {
 
-    fn name(out : &mut [u8]) -> usize { 
-        copy_memory("SHA256".as_bytes(), out)
-    }
-
-    fn new() -> HashSHA256 {
-        HashSHA256{hasher : Sha256::new()}
-    }   
-
-    fn block_len() -> usize {
+    fn block_len(&self) -> usize {
         return 64;
     }
 
-    fn hash_len() -> usize {
+    fn hash_len(&self) -> usize {
         return 32;
     }
 
+    fn name(&self, out : &mut [u8]) -> usize { 
+        copy_memory("SHA256".as_bytes(), out)
+    }
+
+    fn reset(&mut self) {
+        self.hasher = Sha256::new();
+    }   
+
     fn input(&mut self, data: &[u8]) {
         self.hasher.input(data);
     }
@@ -221,23 +227,23 @@ impl Hash for HashSHA256 {
     }
 }
 
-impl Hash for HashSHA512 {
+impl HashType for HashSHA512 {
 
-    fn name(out : &mut [u8]) -> usize { 
+    fn name(&self, out: &mut [u8]) -> usize { 
         copy_memory("SHA512".as_bytes(), out)
     }
 
-    fn new() -> HashSHA512 {
-        HashSHA512{hasher : Sha512::new()}
-    }   
-
-    fn block_len() -> usize {
+    fn block_len(&self) -> usize {
         return 128;
     }
 
-    fn hash_len() -> usize {
+    fn hash_len(&self) -> usize {
         return 64;
     }
+
+    fn reset(&mut self) {
+        self.hasher = Sha512::new();
+    }   
 
     fn input(&mut self, data: &[u8]) {
         self.hasher.input(data);
@@ -248,23 +254,23 @@ impl Hash for HashSHA512 {
     }
 }
 
-impl Hash for HashBLAKE2b {
+impl HashType for HashBLAKE2b {
 
-    fn name(out : &mut [u8]) -> usize { 
+    fn name(&self, out : &mut [u8]) -> usize { 
         copy_memory("BLAKE2b".as_bytes(), out)
     }
 
-    fn new() -> HashBLAKE2b {
-        HashBLAKE2b{hasher : Blake2b::new(64)}
-    }   
-
-    fn block_len() -> usize {
+    fn block_len(&self) -> usize {
         return 128;
     }
 
-    fn hash_len() -> usize {
+    fn hash_len(&self) -> usize {
         return 64;
     }
+
+    fn reset(&mut self) {
+        self.hasher = Blake2b::new(64);
+    }   
 
     fn input(&mut self, data: &[u8]) {
         crypto::digest::Digest::input(&mut self.hasher, data);
