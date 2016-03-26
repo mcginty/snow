@@ -5,7 +5,7 @@ pub trait CipherStateType {
     fn name(&self, out: &mut [u8]) -> usize;
     fn clear(&mut self);
     fn is_empty(&self) -> bool;
-    fn set(&mut self, key: &[u8], nonce: u64);
+    fn set(&mut self, key: &[u8], n: u64);
     fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]);
     fn decrypt_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool;
     fn encrypt(&mut self, plaintext: &[u8], out: &mut[u8]);
@@ -34,9 +34,9 @@ impl<C: CipherType> CipherStateType for CipherState<C> {
         self.empty
     }
 
-    fn set(&mut self, key: &[u8], nonce: u64) {
+    fn set(&mut self, key: &[u8], n: u64) {
         self.cipher.set(key);
-        self.n = nonce;
+        self.n = n;
         self.empty = false;
     }
 
