@@ -12,17 +12,21 @@ pub const MAXMSGLEN : usize = 65535;
 pub enum NoiseError {DecryptError}
 
 pub struct HandshakeState<'a> {
-    symmetricstate : &'a mut SymmetricStateType,
-    cipherstate1: &'a mut CipherStateType,
-    cipherstate2: &'a mut CipherStateType,
+    rng : &'a mut RandomType,                    /* for generating ephemerals */
+    symmetricstate : &'a mut SymmetricStateType, /* for handshaking */
+    cipherstate1: &'a mut CipherStateType,       /* for I->R transport msgs */
+    cipherstate2: &'a mut CipherStateType,       /* for I<-R transport msgs */ 
     s: &'a DhType,
     e: &'a mut DhType,
-    rs: Option<[u8; DHLEN]>,
-    re: Option<[u8; DHLEN]>,
+    rs: &'a mut [u8],
+    re: &'a mut [u8],
+    has_s: bool,
+    has_e: bool,
+    has_rs: bool,
+    has_re: bool,
     my_turn_to_send : bool,
     message_patterns : [[Token; 10]; 10],
     message_index: usize,
-    rng : &'a mut RandomType,
 }
 
 impl<'a> HandshakeState<'a> {
@@ -31,14 +35,18 @@ impl<'a> HandshakeState<'a> {
                symmetricstate: &'a mut SymmetricStateType,
                cipherstate1: &'a mut CipherStateType,
                cipherstate2: &'a mut CipherStateType,
-               handshake_pattern: HandshakePattern,
-               initiator: bool,
-               prologue: &[u8],
-               optional_preshared_key: Option<&[u8]>,
                s : &'a DhType, 
                e : &'a mut DhType, 
-               rs: Option<[u8; DHLEN]>, 
-               re: Option<[u8; DHLEN]>) -> HandshakeState<'a> {
+               rs: &'a mut [u8],
+               re: &'a mut [u8],
+               has_s: bool,
+               has_e: bool,
+               has_rs: bool,
+               has_re: bool,
+               initiator: bool,
+               handshake_pattern: HandshakePattern,
+               prologue: &[u8],
+               optional_preshared_key: Option<&[u8]>) -> HandshakeState<'a> {
         let mut handshake_name = [0u8; 128];
         let mut name_len: usize;
         let mut premsg_pattern_i = [Token::Empty; 2];
@@ -85,8 +93,8 @@ impl<'a> HandshakeState<'a> {
             }
             for token in &premsg_pattern_r {
                 match *token {
-                    Token::S => symmetricstate.mix_hash(&rs.unwrap()),
-                    Token::E => symmetricstate.mix_hash(&re.unwrap()),
+                    Token::S => symmetricstate.mix_hash(rs),
+                    Token::E => symmetricstate.mix_hash(re),
                     Token::Empty => break,
                     _ => unreachable!()
                 }
@@ -94,8 +102,8 @@ impl<'a> HandshakeState<'a> {
         } else {
             for token in &premsg_pattern_i {
                 match *token {
-                    Token::S => symmetricstate.mix_hash(&rs.unwrap()),
-                    Token::E => symmetricstate.mix_hash(&re.unwrap()),
+                    Token::S => symmetricstate.mix_hash(rs),
+                    Token::E => symmetricstate.mix_hash(re),
                     Token::Empty => break,
                     _ => unreachable!()
                 }
@@ -111,14 +119,16 @@ impl<'a> HandshakeState<'a> {
         }
 
         HandshakeState{
+            rng: rng,  
             symmetricstate: symmetricstate, 
             cipherstate1: cipherstate1,
             cipherstate2: cipherstate2,
             s: s, e: e, rs: rs, re: re, 
+            has_s: has_s, has_e: has_e,
+            has_rs: has_rs, has_re: has_re,
             my_turn_to_send: initiator,
             message_patterns: message_patterns, 
             message_index: 0, 
-            rng: rng,  
             }
     }
 
@@ -145,16 +155,18 @@ impl<'a> HandshakeState<'a> {
                     if self.symmetricstate.has_preshared_key() {
                         self.symmetricstate.mix_key(&pubkey);
                     }
+                    self.has_e = true;
                 },
                 Token::S => {
+                    assert!(self.has_s);
                     byte_index += self.symmetricstate.encrypt_and_hash(
                                         &self.s.pubkey(), 
                                         &mut message[byte_index..]);
                 },
-                Token::Dhee => self.symmetricstate.mix_key(&self.e.dh(&self.re.unwrap())),
-                Token::Dhes => self.symmetricstate.mix_key(&self.e.dh(&self.rs.unwrap())),
-                Token::Dhse => self.symmetricstate.mix_key(&self.s.dh(&self.re.unwrap())),
-                Token::Dhss => self.symmetricstate.mix_key(&self.s.dh(&self.rs.unwrap())),
+                Token::Dhee => {assert!(self.has_e && self.has_re); self.symmetricstate.mix_key(&self.e.dh(&self.re));}
+                Token::Dhes => {assert!(self.has_e && self.has_rs); self.symmetricstate.mix_key(&self.e.dh(&self.rs));}
+                Token::Dhse => {assert!(self.has_s && self.has_re); self.symmetricstate.mix_key(&self.s.dh(&self.re));}
+                Token::Dhss => {assert!(self.has_s && self.has_rs); self.symmetricstate.mix_key(&self.s.dh(&self.rs));}
                 Token::Empty => break
             }
         }
@@ -184,14 +196,13 @@ impl<'a> HandshakeState<'a> {
         for token in &tokens {
             match *token {
                 Token::E => {
-                    let mut pubkey = [0u8; DHLEN];
-                    copy_memory(&ptr[..DHLEN], &mut pubkey);
+                    copy_memory(&ptr[..DHLEN], self.re);
                     ptr = &ptr[DHLEN..];
-                    self.re = Some(pubkey);
-                    self.symmetricstate.mix_hash(&pubkey);
+                    self.symmetricstate.mix_hash(self.re);
                     if self.symmetricstate.has_preshared_key() {
-                        self.symmetricstate.mix_key(&pubkey);
+                        self.symmetricstate.mix_key(self.re);
                     }
+                    self.has_re = true;
                 },
                 Token::S => {
                     let data = if self.symmetricstate.has_key() {
@@ -204,15 +215,15 @@ impl<'a> HandshakeState<'a> {
                         temp
                     };
                     let mut pubkey = [0u8; DHLEN];
-                    if !self.symmetricstate.decrypt_and_hash(data, &mut pubkey) {
+                    if !self.symmetricstate.decrypt_and_hash(data, self.rs) {
                         return Err(NoiseError::DecryptError);
                     }
-                    self.rs = Some(pubkey);
+                    self.has_rs = true;
                 },
-                Token::Dhee => self.symmetricstate.mix_key(&self.e.dh(&self.re.unwrap())),
-                Token::Dhes => self.symmetricstate.mix_key(&self.s.dh(&self.re.unwrap())),
-                Token::Dhse => self.symmetricstate.mix_key(&self.e.dh(&self.rs.unwrap())),
-                Token::Dhss => self.symmetricstate.mix_key(&self.s.dh(&self.rs.unwrap())),
+                Token::Dhee => {assert!(self.has_e && self.has_re); self.symmetricstate.mix_key(&self.e.dh(&self.re));},
+                Token::Dhes => {assert!(self.has_s && self.has_re); self.symmetricstate.mix_key(&self.s.dh(&self.re));},
+                Token::Dhse => {assert!(self.has_e && self.has_rs); self.symmetricstate.mix_key(&self.e.dh(&self.rs));},
+                Token::Dhss => {assert!(self.has_e && self.has_rs); self.symmetricstate.mix_key(&self.e.dh(&self.rs));},
                 Token::Empty => break
             }
         }

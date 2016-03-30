@@ -8,8 +8,6 @@ pub trait RandomType {
 pub trait DhType {
     fn name(&self, out: &mut [u8]) -> usize;
 
-    fn clear(&mut self);
-    fn is_empty(&self) -> bool;
     fn set(&mut self, privkey: &[u8], pubkey: &[u8]);
     fn generate(&mut self, rng: &mut RandomType); 
     fn pubkey(&self) -> &[u8];
@@ -19,7 +17,6 @@ pub trait DhType {
 pub trait CipherType {
     fn name(&self, out: &mut [u8]) -> usize;
 
-    fn clear(&mut self);
     fn set(&mut self, key: &[u8]);
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]);
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool;
@@ -37,7 +34,7 @@ pub trait HashType {
     fn hmac(&mut self, key: &[u8], data: &[u8], out: &mut [u8]) {
         assert!(key.len() <= self.block_len());
         let block_len = self.block_len();
-        let hash_len = self.block_len();
+        let hash_len = self.hash_len();
         let mut ipad = [0x36u8; MAXBLOCKLEN];
         let mut opad = [0x5cu8; MAXBLOCKLEN];
         for count in 0..key.len() {

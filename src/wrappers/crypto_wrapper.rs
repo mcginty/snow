@@ -25,7 +25,6 @@ use utils::*;
 pub struct Dh25519 {
     privkey : [u8; 32],
     pubkey  : [u8; 32],
-    is_empty: bool
 }
 
 pub struct CipherAESGCM {
@@ -51,7 +50,7 @@ pub struct HashBLAKE2b {
 impl Dh25519 {
 
     pub fn new() -> Dh25519 {
-        Dh25519{privkey: [0u8; 32], pubkey: [0u8; 32], is_empty: false}
+        Dh25519{privkey: [0u8; 32], pubkey: [0u8; 32]}
     }
 
 }
@@ -65,17 +64,6 @@ impl DhType for Dh25519 {
     fn set(&mut self, privkey: &[u8], pubkey: &[u8]) {
         copy_memory(privkey, &mut self.privkey); /* RUSTSUCKS: Why can't I convert slice -> array? */
         copy_memory(pubkey, &mut self.pubkey);
-        self.is_empty = false;
-    }
-
-    fn clear(&mut self) {
-        self.is_empty = true;
-        self.privkey = [0u8; 32];
-        self.pubkey = [0u8; 32];
-    }
-
-    fn is_empty(&self) -> bool {
-        self.is_empty
     }
 
     fn generate(&mut self, rng: &mut RandomType) {
@@ -85,16 +73,13 @@ impl DhType for Dh25519 {
         self.privkey[31] |= 64;
         let pubkey = curve25519_base(&self.privkey); 
         copy_memory(&pubkey, &mut self.pubkey);
-        self.is_empty = false;
     }
 
     fn pubkey(&self) -> &[u8] {
-        assert!(!self.is_empty);
         &self.pubkey
     }
 
     fn dh(&self, pubkey: &[u8]) -> [u8; DHLEN] {
-        assert!(!self.is_empty);
         curve25519(&self.privkey, pubkey)
     }
 
@@ -108,10 +93,6 @@ impl CipherType for CipherAESGCM {
 
     fn set(&mut self, key: &[u8]) {
         copy_memory(key, &mut self.key);
-    }
-
-    fn clear(&mut self) {
-        self.key = [0u8; 32];
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
@@ -143,10 +124,6 @@ impl CipherType for CipherChaChaPoly {
 
     fn set(&mut self, key: &[u8]) {
         copy_memory(key, &mut self.key);
-    }
-
-    fn clear(&mut self) {
-        self.key = [0u8; 32];
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
