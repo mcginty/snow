@@ -132,6 +132,33 @@ impl<'a> HandshakeState<'a> {
             }
     }
 
+    fn dh_len(&self) -> usize {
+        self.s.pub_len()
+    }
+
+    fn dh(&mut self, local_s: bool, remote_s: bool) {
+        assert!(!local_s || self.has_s);
+        assert!(local_s || self.has_e);
+        assert!(!remote_s || self.has_rs);
+        assert!(remote_s || self.has_re);
+
+        let dh_len = self.dh_len();
+        let mut dh_out = [0u8; MAXDHLEN];
+        if local_s && remote_s {
+            self.s.dh(self.rs, &mut dh_out);
+        }
+        if local_s && !remote_s {
+            self.s.dh(self.re, &mut dh_out);
+        }
+        if !local_s && remote_s {
+            self.e.dh(self.rs, &mut dh_out);
+        }
+        if !local_s && !remote_s {
+            self.e.dh(self.re, &mut dh_out);
+        }
+        self.symmetricstate.mix_key(&dh_out[..dh_len]);
+    }
+
     pub fn write_message(&mut self, 
                          payload: &[u8], 
                          message: &mut [u8]) -> (usize, bool) { 
@@ -150,7 +177,7 @@ impl<'a> HandshakeState<'a> {
                     self.e.generate(self.rng); 
                     let pubkey = self.e.pubkey();
                     copy_memory(pubkey, &mut message[byte_index..]);
-                    byte_index += DHLEN;
+                    byte_index += self.s.pub_len();
                     self.symmetricstate.mix_hash(&pubkey);
                     if self.symmetricstate.has_preshared_key() {
                         self.symmetricstate.mix_key(&pubkey);
@@ -163,10 +190,10 @@ impl<'a> HandshakeState<'a> {
                                         &self.s.pubkey(), 
                                         &mut message[byte_index..]);
                 },
-                Token::Dhee => {assert!(self.has_e && self.has_re); self.symmetricstate.mix_key(&self.e.dh(&self.re));}
-                Token::Dhes => {assert!(self.has_e && self.has_rs); self.symmetricstate.mix_key(&self.e.dh(&self.rs));}
-                Token::Dhse => {assert!(self.has_s && self.has_re); self.symmetricstate.mix_key(&self.s.dh(&self.re));}
-                Token::Dhss => {assert!(self.has_s && self.has_rs); self.symmetricstate.mix_key(&self.s.dh(&self.rs));}
+                Token::Dhee => self.dh(false, false),
+                Token::Dhes => self.dh(false, true),
+                Token::Dhse => self.dh(true, false),
+                Token::Dhss => self.dh(true, true),
                 Token::Empty => break
             }
         }
@@ -196,8 +223,8 @@ impl<'a> HandshakeState<'a> {
         for token in &tokens {
             match *token {
                 Token::E => {
-                    copy_memory(&ptr[..DHLEN], self.re);
-                    ptr = &ptr[DHLEN..];
+                    copy_memory(&ptr[..self.dh_len()], self.re);
+                    ptr = &ptr[self.dh_len()..];
                     self.symmetricstate.mix_hash(self.re);
                     if self.symmetricstate.has_preshared_key() {
                         self.symmetricstate.mix_key(self.re);
@@ -206,24 +233,23 @@ impl<'a> HandshakeState<'a> {
                 },
                 Token::S => {
                     let data = if self.symmetricstate.has_key() {
-                        let temp = &ptr[..DHLEN + TAGLEN]; 
-                        ptr = &ptr[DHLEN + TAGLEN..]; 
+                        let temp = &ptr[..self.dh_len() + TAGLEN];
+                        ptr = &ptr[self.dh_len() + TAGLEN..];
                         temp
                     } else {
-                        let temp = &ptr[..DHLEN];        
-                        ptr = &ptr[DHLEN..];        
+                        let temp = &ptr[..self.dh_len()];
+                        ptr = &ptr[self.dh_len()..];
                         temp
                     };
-                    let mut pubkey = [0u8; DHLEN];
                     if !self.symmetricstate.decrypt_and_hash(data, self.rs) {
                         return Err(NoiseError::DecryptError);
                     }
                     self.has_rs = true;
                 },
-                Token::Dhee => {assert!(self.has_e && self.has_re); self.symmetricstate.mix_key(&self.e.dh(&self.re));},
-                Token::Dhes => {assert!(self.has_s && self.has_re); self.symmetricstate.mix_key(&self.s.dh(&self.re));},
-                Token::Dhse => {assert!(self.has_e && self.has_rs); self.symmetricstate.mix_key(&self.e.dh(&self.rs));},
-                Token::Dhss => {assert!(self.has_e && self.has_rs); self.symmetricstate.mix_key(&self.e.dh(&self.rs));},
+                Token::Dhee => self.dh(false, false),
+                Token::Dhes => self.dh(true, false),
+                Token::Dhse => self.dh(false, true),
+                Token::Dhss => self.dh(true, true),
                 Token::Empty => break
             }
         }

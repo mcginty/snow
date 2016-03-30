@@ -61,6 +61,10 @@ impl DhType for Dh25519 {
         copy_memory("25519".as_bytes(), out)
     }
 
+    fn pub_len(&self) -> usize {
+        return 32;
+    }
+
     fn set(&mut self, privkey: &[u8], pubkey: &[u8]) {
         copy_memory(privkey, &mut self.privkey); /* RUSTSUCKS: Why can't I convert slice -> array? */
         copy_memory(pubkey, &mut self.pubkey);
@@ -79,8 +83,9 @@ impl DhType for Dh25519 {
         &self.pubkey
     }
 
-    fn dh(&self, pubkey: &[u8]) -> [u8; DHLEN] {
-        curve25519(&self.privkey, pubkey)
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) {
+        let result = curve25519(&self.privkey, pubkey);
+        copy_memory(&result, out);
     }
 
 }

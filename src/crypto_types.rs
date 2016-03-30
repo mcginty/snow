@@ -7,11 +7,12 @@ pub trait RandomType {
 
 pub trait DhType {
     fn name(&self, out: &mut [u8]) -> usize;
+    fn pub_len(&self) -> usize;
 
     fn set(&mut self, privkey: &[u8], pubkey: &[u8]);
     fn generate(&mut self, rng: &mut RandomType); 
     fn pubkey(&self) -> &[u8];
-    fn dh(&self, pubkey: &[u8]) -> [u8; DHLEN];
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]);
 }
 
 pub trait CipherType {
