@@ -48,11 +48,9 @@ pub struct HashBLAKE2b {
 }
 
 impl Dh25519 {
-
     pub fn new() -> Dh25519 {
         Dh25519{privkey: [0u8; 32], pubkey: [0u8; 32]}
     }
-
 }
 
 impl DhType for Dh25519 {
@@ -90,6 +88,12 @@ impl DhType for Dh25519 {
 
 }
 
+impl CipherAESGCM {
+    fn new() -> CipherAESGCM {
+        CipherAESGCM{key: [0u8; 32]}
+    }
+}
+
 impl CipherType for CipherAESGCM {
 
     fn name(&self, out : &mut [u8]) -> usize { 
@@ -119,6 +123,12 @@ impl CipherType for CipherAESGCM {
         cipher.decrypt(&ciphertext[..text_len], &mut out[..text_len], &tag)
     } 
 
+}
+
+impl CipherChaChaPoly {
+    fn new() -> CipherChaChaPoly {
+        CipherChaChaPoly{key: [0u8; 32]}
+    }
 }
 
 impl CipherType for CipherChaChaPoly {
@@ -185,6 +195,12 @@ impl CipherType for CipherChaChaPoly {
 
 }
 
+impl HashSHA256 {
+    fn new() -> HashSHA256 {
+        HashSHA256{hasher: Sha256::new()}
+    }
+}
+
 impl HashType for HashSHA256 {
 
     fn block_len(&self) -> usize {
@@ -212,6 +228,12 @@ impl HashType for HashSHA256 {
     }
 }
 
+impl HashSHA512 {
+    fn new() -> HashSHA512 {
+        HashSHA512{hasher: Sha512::new()}
+    }
+}
+
 impl HashType for HashSHA512 {
 
     fn name(&self, out: &mut [u8]) -> usize { 
@@ -236,6 +258,12 @@ impl HashType for HashSHA512 {
 
     fn result(&mut self, out: &mut [u8]) {
         self.hasher.result(out);
+    }
+}
+
+impl HashBLAKE2b {
+    fn new() -> HashBLAKE2b {
+        HashBLAKE2b{hasher: Blake2b::new(64)}
     }
 }
 
