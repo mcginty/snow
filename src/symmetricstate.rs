@@ -20,30 +20,29 @@ pub trait SymmetricStateType {
     fn split(&mut self, child1: &mut CipherStateType, child2: &mut CipherStateType);
 }
 
-pub struct SymmetricState<C:CipherType + Default, H:HashType> {
-    cipherstate : CipherState<C>,
+pub struct SymmetricState<'a> {
+    cipherstate : &'a mut CipherStateType,
+    hasher: &'a mut HashType,
     h : [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
     ck: [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
-    hasher: H,
     has_key: bool,
     has_preshared_key: bool,
 }
 
-impl<C:CipherType + Default, H:HashType + Default> Default for SymmetricState<C, H> {
-
-    fn default() -> SymmetricState<C, H> {
+impl<'a> SymmetricState<'a> {
+    pub fn new(cipherstate : &'a mut CipherStateType, hasher: &'a mut HashType) -> SymmetricState<'a> {
         SymmetricState{
-            cipherstate: Default::default(),
+            cipherstate: cipherstate,
+            hasher: hasher,
             h: [0u8; MAXHASHLEN],
             ck : [0u8; MAXHASHLEN],
-            hasher: Default::default(),
             has_key: false,
             has_preshared_key: false,
         }
     }
 }
 
-impl<C:CipherType + Default, H:HashType + Default> SymmetricStateType for SymmetricState<C, H> {
+impl<'a> SymmetricStateType for SymmetricState<'a> {
 
     fn cipher_name(&self, out : &mut [u8]) -> usize {
         self.cipherstate.name(out)

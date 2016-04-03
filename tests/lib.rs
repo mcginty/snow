@@ -304,9 +304,11 @@ fn non_psk_test() {
         let mut eph_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut symmetricstate : SymmetricState<CipherAESGCM, HashSHA256> = Default::default();
+        let mut cipherstate : CipherState<CipherAESGCM> = Default::default();
         let mut cipherstate1 : CipherState<CipherAESGCM> = Default::default();
         let mut cipherstate2 : CipherState<CipherAESGCM> = Default::default();
+        let mut hasher : HashSHA256 = Default::default();
+        let mut symmetricstate = SymmetricState::new(&mut cipherstate, &mut hasher); 
 
         let mut h = HandshakeState::new(&mut rng, 
                             &mut symmetricstate,
@@ -346,9 +348,11 @@ fn non_psk_test() {
         let mut eph_pubkey = [0u8; 32];
         copy_memory(static_r.pubkey(), &mut static_pubkey);
 
-        let mut symmetricstate : SymmetricState<CipherChaChaPoly, HashSHA256> = Default::default();
+        let mut cipherstate  : CipherState<CipherChaChaPoly> = Default::default();
         let mut cipherstate1 : CipherState<CipherChaChaPoly> = Default::default();
         let mut cipherstate2 : CipherState<CipherChaChaPoly> = Default::default();
+        let mut hasher : HashSHA256 = Default::default();
+        let mut symmetricstate = SymmetricState::new(&mut cipherstate, &mut hasher);
 
         let mut h = HandshakeState::new(&mut rng, 
                             &mut symmetricstate,
@@ -375,7 +379,7 @@ fn non_psk_test() {
         //let mut h = HS::new(&mut rng, HandshakePattern::X, true, &[0u8;0], None, &static_i, &mut eph_i, Some(static_pubkey), None);
         let mut buffer = [0u8; 96];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
-        println!("{}", buffer.to_hex());
+        //println!("{}", buffer.to_hex());
         assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad203cd28d81cf65a2da637f557a05728b3ae4abdc3a42d1cda5f719d6cf41d7f2cf1b1c5af10e38a09a9bb7e3b1d589a99492cc50293eaa1f3f391b59bb6990d");
     } 
 /*
