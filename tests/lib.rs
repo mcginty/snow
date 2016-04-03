@@ -297,27 +297,22 @@ fn non_psk_test() {
 
     // Noise_N test
     {    
+        let mut handshaker : Handshaker<RandomInc, Dh25519, CipherAESGCM, HashSHA256> = Default::default();
+        static_r.generate(&mut handshaker.rng);
+        copy_memory(static_r.pubkey(), &mut handshaker.rs);
 
-        let mut rng : RandomInc = Default::default();
-        static_r.generate(&mut rng);
-        let mut static_pubkey = [0u8; 32];
-        let mut eph_pubkey = [0u8; 32];
-        copy_memory(static_r.pubkey(), &mut static_pubkey);
-
-        let mut cipherstate : CipherState<CipherAESGCM> = Default::default();
+        let mut symmetricstate = SymmetricState::new(&mut handshaker.cipherstate, &mut handshaker.hasher); 
         let mut cipherstate1 : CipherState<CipherAESGCM> = Default::default();
         let mut cipherstate2 : CipherState<CipherAESGCM> = Default::default();
-        let mut hasher : HashSHA256 = Default::default();
-        let mut symmetricstate = SymmetricState::new(&mut cipherstate, &mut hasher); 
 
-        let mut h = HandshakeState::new(&mut rng, 
+        let mut h = HandshakeState::new(&mut handshaker.rng, 
                             &mut symmetricstate,
                             &mut cipherstate1,
                             &mut cipherstate2,
-                            &static_i,
-                            &mut eph_i,
-                            &mut static_pubkey,
-                            &mut eph_pubkey,
+                            &handshaker.s,
+                            &mut handshaker.e,
+                            &mut handshaker.rs[..32],
+                            &mut handshaker.re,
                             false, false, true, false,
                             true,
                             HandshakePattern::N,
@@ -325,17 +320,9 @@ fn non_psk_test() {
                             None);
 
 
-        //type  HS<'a> = HandshakeState<'a, CipherAESGCM, HashSHA256>;
-        //let mut rng = RandomInc::new();
-        //static_r.generate(&mut rng);
-        //eph_i.clear();
-        //let mut static_pubkey = [0u8; 32];
-        //copy_memory(static_r.pubkey(), &mut static_pubkey);
-
-        //let mut h = HS::new(&mut rng, HandshakePattern::N, true, &[0u8;0], None, &static_i, &mut eph_i, Some(static_pubkey), None);
         let mut buffer = [0u8; 48];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 48);
-        //println!("{}", buffer.to_hex());
+        println!("{}", buffer.to_hex());
         assert!(buffer.to_hex() =="358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662548331a3d1e93b490263abc7a4633867f4"); 
 
     }

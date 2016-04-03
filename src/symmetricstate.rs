@@ -23,8 +23,8 @@ pub trait SymmetricStateType {
 pub struct SymmetricState<'a> {
     cipherstate : &'a mut CipherStateType,
     hasher: &'a mut HashType,
-    h : [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
-    ck: [u8; MAXHASHLEN], /* Change once Rust has trait-associated consts */
+    h : [u8; MAXHASHLEN],
+    ck: [u8; MAXHASHLEN],
     has_key: bool,
     has_preshared_key: bool,
 }
