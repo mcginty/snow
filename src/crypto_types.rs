@@ -25,13 +25,17 @@ pub trait CipherType {
 
 pub trait HashType {
     fn name(&self, out: &mut [u8]) -> usize;
-    fn block_len(&self) -> usize; /* see TODO at top */
-    fn hash_len(&self) -> usize; /* see TODO at top */
+    fn block_len(&self) -> usize;
+    fn hash_len(&self) -> usize;
 
+    /* These functions operate on internal state:
+     * call reset(), then input() repeatedly, then get result() */
     fn reset(&mut self);
     fn input(&mut self, data: &[u8]);
     fn result(&mut self, out: &mut [u8]);
 
+    /* The hmac and hkdf functions modify internal state
+     * but ignore previous state, they're one-shot, static-like functions */
     fn hmac(&mut self, key: &[u8], data: &[u8], out: &mut [u8]) {
         assert!(key.len() <= self.block_len());
         let block_len = self.block_len();

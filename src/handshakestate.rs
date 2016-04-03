@@ -245,12 +245,13 @@ impl<'a> HandshakeState<'a> {
         }
         self.message_index += 1;
 
+        let dh_len = self.dh_len();
         let mut ptr = message;
         for token in &tokens {
             match *token {
                 Token::E => {
-                    copy_memory(&ptr[..self.dh_len()], self.re);
-                    ptr = &ptr[self.dh_len()..];
+                    copy_memory(&ptr[..dh_len], self.re);
+                    ptr = &ptr[dh_len..];
                     self.symmetricstate.mix_hash(self.re);
                     if self.symmetricstate.has_preshared_key() {
                         self.symmetricstate.mix_key(self.re);
@@ -259,12 +260,12 @@ impl<'a> HandshakeState<'a> {
                 },
                 Token::S => {
                     let data = if self.symmetricstate.has_key() {
-                        let temp = &ptr[..self.dh_len() + TAGLEN];
-                        ptr = &ptr[self.dh_len() + TAGLEN..];
+                        let temp = &ptr[..dh_len + TAGLEN];
+                        ptr = &ptr[dh_len + TAGLEN..];
                         temp
                     } else {
-                        let temp = &ptr[..self.dh_len()];
-                        ptr = &ptr[self.dh_len()..];
+                        let temp = &ptr[..dh_len];
+                        ptr = &ptr[dh_len..];
                         temp
                     };
                     if !self.symmetricstate.decrypt_and_hash(data, self.rs) {
