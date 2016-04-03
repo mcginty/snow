@@ -70,10 +70,10 @@ impl<'a> HandshakeState<'a> {
         name_len += s.name(&mut handshake_name[name_len..]);
         handshake_name[name_len] = '_' as u8;
         name_len += 1;
-        name_len += symmetricstate.hash_name(&mut handshake_name[name_len..]);
+        name_len += symmetricstate.cipher_name(&mut handshake_name[name_len..]);
         handshake_name[name_len] = '_' as u8;
         name_len += 1;
-        name_len += symmetricstate.cipher_name(&mut handshake_name[name_len..]);
+        name_len += symmetricstate.hash_name(&mut handshake_name[name_len..]);
 
         symmetricstate.initialize(&handshake_name[..name_len]); 
         symmetricstate.mix_hash(prologue);
@@ -85,16 +85,16 @@ impl<'a> HandshakeState<'a> {
         if initiator {
             for token in &premsg_pattern_i {
                 match *token {
-                    Token::S => symmetricstate.mix_hash(s.pubkey()),
-                    Token::E => symmetricstate.mix_hash(e.pubkey()),
+                    Token::S => {assert!(has_s); symmetricstate.mix_hash(s.pubkey());},
+                    Token::E => {assert!(has_e); symmetricstate.mix_hash(e.pubkey());},
                     Token::Empty => break,
                     _ => unreachable!()
                 }
             }
             for token in &premsg_pattern_r {
                 match *token {
-                    Token::S => symmetricstate.mix_hash(rs),
-                    Token::E => symmetricstate.mix_hash(re),
+                    Token::S => {assert!(has_rs); symmetricstate.mix_hash(rs);},
+                    Token::E => {assert!(has_re); symmetricstate.mix_hash(re);},
                     Token::Empty => break,
                     _ => unreachable!()
                 }
@@ -102,16 +102,16 @@ impl<'a> HandshakeState<'a> {
         } else {
             for token in &premsg_pattern_i {
                 match *token {
-                    Token::S => symmetricstate.mix_hash(rs),
-                    Token::E => symmetricstate.mix_hash(re),
+                    Token::S => {assert!(has_rs); symmetricstate.mix_hash(rs);},
+                    Token::E => {assert!(has_re); symmetricstate.mix_hash(re);},
                     Token::Empty => break,
                     _ => unreachable!()
                 }
             }
             for token in &premsg_pattern_r {
                 match *token {
-                    Token::S => symmetricstate.mix_hash(s.pubkey()),
-                    Token::E => symmetricstate.mix_hash(e.pubkey()),
+                    Token::S => {assert!(has_s); symmetricstate.mix_hash(s.pubkey());},
+                    Token::E => {assert!(has_e); symmetricstate.mix_hash(e.pubkey());},
                     Token::Empty => break,
                     _ => unreachable!()
                 }
@@ -123,9 +123,14 @@ impl<'a> HandshakeState<'a> {
             symmetricstate: symmetricstate, 
             cipherstate1: cipherstate1,
             cipherstate2: cipherstate2,
-            s: s, e: e, rs: rs, re: re, 
-            has_s: has_s, has_e: has_e,
-            has_rs: has_rs, has_re: has_re,
+            s: s, 
+            e: e, 
+            rs: rs, 
+            re: re, 
+            has_s: has_s, 
+            has_e: has_e,
+            has_rs: has_rs, 
+            has_re: has_re,
             my_turn_to_send: initiator,
             message_patterns: message_patterns, 
             message_index: 0, 

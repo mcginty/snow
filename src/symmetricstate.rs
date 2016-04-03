@@ -1,8 +1,10 @@
+extern crate rustc_serialize;
 
 use utils::*;
 use constants::*;
 use crypto_types::*;
 use cipherstate::*;
+use self::rustc_serialize::hex::{FromHex, ToHex};
 
 pub trait SymmetricStateType {
     fn cipher_name(&self, out : &mut [u8]) -> usize;
@@ -61,7 +63,6 @@ impl<C:CipherType + Default, H:HashType + Default> SymmetricStateType for Symmet
             self.hasher.result(&mut self.h);
         }
         copy_memory(&self.h, &mut self.ck);
-        self.cipherstate.clear();
         self.has_key = false;
         self.has_preshared_key = false;
     }
@@ -103,7 +104,7 @@ impl<C:CipherType + Default, H:HashType + Default> SymmetricStateType for Symmet
     fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
         let hash_len = self.hasher.hash_len();
         let output_len:usize;
-        if !self.cipherstate.is_empty() {
+        if self.has_key {
             self.cipherstate.encrypt_ad(&self.h[..hash_len], plaintext, out);
             output_len = plaintext.len() + TAGLEN;
         }
@@ -117,7 +118,7 @@ impl<C:CipherType + Default, H:HashType + Default> SymmetricStateType for Symmet
 
     fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> bool {
         let hash_len = self.hasher.hash_len();
-        if !self.cipherstate.is_empty() {
+        if self.has_key {
             if !self.cipherstate.decrypt_ad(&self.h[..hash_len], data, out) { 
                 return false; 
             }
@@ -130,7 +131,6 @@ impl<C:CipherType + Default, H:HashType + Default> SymmetricStateType for Symmet
     }
 
     fn split(&mut self, child1: &mut CipherStateType, child2: &mut CipherStateType) {
-        assert!(!self.cipherstate.is_empty());
         let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
         self.hasher.hkdf(&self.ck[..hash_len], &[0u8; 0], 

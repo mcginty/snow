@@ -54,13 +54,13 @@ pub trait HashType {
     }
 
     fn hkdf(&mut self, chaining_key: &[u8], input_key_material: &[u8], out1: &mut [u8], out2: & mut[u8]) {
-        let hash_len = self.block_len();
+        let hash_len = self.hash_len();
         let mut temp_key = [0u8; MAXHASHLEN];
         let mut in2 = [0u8; MAXHASHLEN+1];
         self.hmac(chaining_key, input_key_material, &mut temp_key);
         self.hmac(&temp_key, &[1u8], out1);
         copy_memory(&out1[0..hash_len], &mut in2);
-        in2[self.hash_len()] = 2;
+        in2[hash_len] = 2;
         self.hmac(&temp_key, &in2[..hash_len+1], out2);
     }
 }
