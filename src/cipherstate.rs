@@ -12,14 +12,15 @@ pub trait CipherStateType {
     fn decrypt(&mut self, ciphertext: &[u8], out: &mut[u8]) -> bool;
 }
 
-pub struct CipherState<C: CipherType> {
+#[derive(Default)]
+pub struct CipherState<C: CipherType + Default> {
     cipher : C,
     n : u64,
-    empty : bool,
+    has_key : bool,
     overflow: bool
 }
 
-impl<C: CipherType> CipherStateType for CipherState<C> {
+impl<C: CipherType + Default> CipherStateType for CipherState<C> {
 
     fn name(&self, out: &mut [u8]) -> usize {
         self.cipher.name(out)
@@ -27,23 +28,23 @@ impl<C: CipherType> CipherStateType for CipherState<C> {
 
     fn clear(&mut self) {
         self.n = 0;
-        self.empty = true;
+        self.has_key = false;
         self.overflow = false;
     }
 
     fn is_empty(&self) -> bool {
-        self.empty
+        !self.has_key
     }
 
     fn set(&mut self, key: &[u8], n: u64) {
         self.cipher.set(key);
         self.n = n;
-        self.empty = false;
+        self.has_key = true;
         self.overflow = false;
     }
 
     fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
-        assert!(!self.empty && !self.overflow);
+        assert!(self.has_key && !self.overflow);
         self.cipher.encrypt(self.n, authtext, plaintext, out);
         self.n += 1;
         if self.n == 0 {
@@ -52,7 +53,7 @@ impl<C: CipherType> CipherStateType for CipherState<C> {
     }
 
     fn decrypt_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
-        assert!(!self.empty && !self.overflow);
+        assert!(self.has_key && !self.overflow);
         let result = self.cipher.decrypt(self.n, authtext, ciphertext, out);
         self.n += 1;
         if self.n == 0 {
@@ -62,22 +63,11 @@ impl<C: CipherType> CipherStateType for CipherState<C> {
     }
 
     fn encrypt(&mut self, plaintext: &[u8], out: &mut[u8]) {
-        assert!(!self.empty && !self.overflow);
-        self.cipher.encrypt(self.n, &[0u8;0], plaintext, out);
-        self.n += 1;
-        if self.n == 0 {
-            self.overflow = true;
-        }
+        self.encrypt_ad(&[0u8;0], plaintext, out)
     }
 
     fn decrypt(&mut self, ciphertext: &[u8], out: &mut[u8]) -> bool {
-        assert!(!self.empty && !self.overflow);
-        let result = self.cipher.decrypt(self.n, &[0u8;0], ciphertext, out);
-        self.n += 1;
-        if self.n == 0 {
-            self.overflow = true;
-        }
-        result
+        self.decrypt_ad(&[0u8;0], ciphertext, out)
     }
 }
 

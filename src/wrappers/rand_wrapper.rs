@@ -7,8 +7,8 @@ pub struct RandomOs {
     rng : OsRng
 }
 
-impl RandomOs {
-    pub fn new() -> RandomOs {
+impl Default for RandomOs {
+    fn default() -> RandomOs {
         RandomOs {rng: OsRng::new().unwrap()}
     }
 }
