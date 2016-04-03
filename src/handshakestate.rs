@@ -53,6 +53,27 @@ impl<'a> HandshakeState<'a> {
         let mut premsg_pattern_r = [Token::Empty; 2];
         let mut message_patterns = [[Token::Empty; 10]; 10];
 
+        // Check that trait objects are pointing to consistent types
+        // (same cipher, same DH) by looking at names
+        {
+            let mut test_name1 = [0u8; 32];
+            let mut test_name2 = [0u8; 32];
+
+            test_name1 = [0u8; 32];
+            test_name2 = [0u8; 32];
+            assert!(symmetricstate.cipher_name(&mut test_name1) < 32);
+            cipherstate1.name(&mut test_name2);
+            assert!(test_name1 == test_name2);
+            cipherstate2.name(&mut test_name2);
+            assert!(test_name1 == test_name2);
+
+            test_name1 = [0u8; 32];
+            test_name2 = [0u8; 32];
+            assert!(s.name(&mut test_name1) < 32);
+            e.name(&mut test_name2);
+            assert!(test_name1 == test_name2);
+        }
+
         if let Some(_) = optional_preshared_key {
             copy_memory("NoisePSK_".as_bytes(), &mut handshake_name);
             name_len = 9;
