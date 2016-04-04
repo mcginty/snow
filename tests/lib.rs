@@ -297,27 +297,20 @@ fn non_psk_test() {
 
     // Noise_N test
     {    
-        let mut handshaker : Handshaker<RandomInc, Dh25519, CipherAESGCM, HashSHA256> = Default::default();
-        static_r.generate(&mut handshaker.rng);
-        copy_memory(static_r.pubkey(), &mut handshaker.rs);
+        let mut owner : HandshakeCryptoOwner<RandomInc, Dh25519, CipherAESGCM, HashSHA256> = Default::default();
+        static_r.generate(&mut owner.rng);
+        owner.set_rs(static_r.pubkey());
 
-        let mut symmetricstate = SymmetricState::new(&mut handshaker.cipherstate, &mut handshaker.hasher); 
         let mut cipherstate1 : CipherState<CipherAESGCM> = Default::default();
         let mut cipherstate2 : CipherState<CipherAESGCM> = Default::default();
 
-        let mut h = HandshakeState::new(&mut handshaker.rng, 
-                            &mut symmetricstate,
-                            &mut cipherstate1,
-                            &mut cipherstate2,
-                            &handshaker.s,
-                            &mut handshaker.e,
-                            &mut handshaker.rs[..32],
-                            &mut handshaker.re,
-                            false, false, true, false,
-                            true,
-                            HandshakePattern::N,
-                            &[0u8; 0],
-                            None);
+        let mut h = HandshakeState::new_from_owner(&mut owner,
+                                                   true,
+                                                   HandshakePattern::N,
+                                                   &[0u8; 0],
+                                                   None,
+                                                   &mut cipherstate1,
+                                                   &mut cipherstate2);
 
 
         let mut buffer = [0u8; 48];
@@ -339,12 +332,10 @@ fn non_psk_test() {
         let mut cipherstate1 : CipherState<CipherChaChaPoly> = Default::default();
         let mut cipherstate2 : CipherState<CipherChaChaPoly> = Default::default();
         let mut hasher : HashSHA256 = Default::default();
-        let mut symmetricstate = SymmetricState::new(&mut cipherstate, &mut hasher);
 
         let mut h = HandshakeState::new(&mut rng, 
-                            &mut symmetricstate,
-                            &mut cipherstate1,
-                            &mut cipherstate2,
+                            &mut cipherstate,
+                            &mut hasher,
                             &static_i,
                             &mut eph_i,
                             &mut static_pubkey,
@@ -353,7 +344,9 @@ fn non_psk_test() {
                             true,
                             HandshakePattern::X,
                             &[0u8; 0],
-                            None);
+                            None,
+                            &mut cipherstate1,
+                            &mut cipherstate2);
 
         //type  HS<'a> = HandshakeState<'a, CipherChaChaPoly, HashSHA256>;
         //let mut rng = RandomInc::new();

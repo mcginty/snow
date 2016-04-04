@@ -5,6 +5,7 @@ use crypto_types::*;
 use cipherstate::*;
 use symmetricstate::*;
 use patterns::*;
+use handshakecryptoowner::*;
 
 pub const MAXMSGLEN : usize = 65535;
 
@@ -13,7 +14,7 @@ pub enum NoiseError {DecryptError}
 
 pub struct HandshakeState<'a> {
     rng : &'a mut RandomType,                    /* for generating ephemerals */
-    symmetricstate : &'a mut SymmetricStateType, /* for handshaking */
+    symmetricstate : SymmetricState<'a>,         /* for handshaking */
     cipherstate1: &'a mut CipherStateType,       /* for I->R transport msgs */
     cipherstate2: &'a mut CipherStateType,       /* for I<-R transport msgs */ 
     s: &'a DhType,
@@ -31,10 +32,34 @@ pub struct HandshakeState<'a> {
 
 impl<'a> HandshakeState<'a> {
 
+    pub fn new_from_owner<R: RandomType + Default, 
+                          D: DhType + Default, 
+                          C: CipherType + Default, 
+                          H: HashType + Default> 
+                         (owner: &'a mut HandshakeCryptoOwner<R, D, C, H>,
+                          initiator: bool,
+                          handshake_pattern: HandshakePattern,
+                          prologue: &[u8],
+                          optional_preshared_key: Option<&[u8]>,
+                          cipherstate1: &'a mut CipherStateType,
+                          cipherstate2: &'a mut CipherStateType) -> HandshakeState<'a> {
+
+        let dhlen = owner.s.pub_len();
+        HandshakeState::<'a>::new(
+            &mut owner.rng,
+            &mut owner.cipherstate,
+            &mut owner.hasher,
+            &mut owner.s, &mut owner.e, 
+            &mut owner.rs[..dhlen], 
+            &mut owner.re[..dhlen],
+            owner.has_s, owner.has_e, owner.has_rs, owner.has_re,
+            initiator, handshake_pattern, prologue, optional_preshared_key,
+            cipherstate1, cipherstate2)
+    }
+
     pub fn new(rng: &'a mut RandomType,
-               symmetricstate: &'a mut SymmetricStateType,
-               cipherstate1: &'a mut CipherStateType,
-               cipherstate2: &'a mut CipherStateType,
+               cipherstate: &'a mut CipherStateType,
+               hasher: &'a mut HashType,
                s : &'a DhType, 
                e : &'a mut DhType, 
                rs: &'a mut [u8],
@@ -46,7 +71,9 @@ impl<'a> HandshakeState<'a> {
                initiator: bool,
                handshake_pattern: HandshakePattern,
                prologue: &[u8],
-               optional_preshared_key: Option<&[u8]>) -> HandshakeState<'a> {
+               optional_preshared_key: Option<&[u8]>,
+               cipherstate1: &'a mut CipherStateType,
+               cipherstate2: &'a mut CipherStateType) -> HandshakeState<'a> {
         let mut handshake_name = [0u8; 128];
         let mut name_len: usize;
         let mut premsg_pattern_i = [Token::Empty; 2];
@@ -61,7 +88,7 @@ impl<'a> HandshakeState<'a> {
 
             test_name1 = [0u8; 32];
             test_name2 = [0u8; 32];
-            assert!(symmetricstate.cipher_name(&mut test_name1) < 32);
+            assert!(cipherstate.name(&mut test_name1) < 32);
             cipherstate1.name(&mut test_name2);
             assert!(test_name1 == test_name2);
             cipherstate2.name(&mut test_name2);
@@ -72,6 +99,13 @@ impl<'a> HandshakeState<'a> {
             assert!(s.name(&mut test_name1) < 32);
             e.name(&mut test_name2);
             assert!(test_name1 == test_name2);
+        }
+
+        // Check that public keys are the right length 
+        {
+            assert!(s.pub_len() == e.pub_len());
+            assert!(s.pub_len() <= rs.len());
+            assert!(s.pub_len() <= re.len());
         }
 
         if let Some(_) = optional_preshared_key {
@@ -91,11 +125,12 @@ impl<'a> HandshakeState<'a> {
         name_len += s.name(&mut handshake_name[name_len..]);
         handshake_name[name_len] = '_' as u8;
         name_len += 1;
-        name_len += symmetricstate.cipher_name(&mut handshake_name[name_len..]);
+        name_len += cipherstate.name(&mut handshake_name[name_len..]);
         handshake_name[name_len] = '_' as u8;
         name_len += 1;
-        name_len += symmetricstate.hash_name(&mut handshake_name[name_len..]);
+        name_len += hasher.name(&mut handshake_name[name_len..]);
 
+        let mut symmetricstate = SymmetricState::new(cipherstate, hasher);
         symmetricstate.initialize(&handshake_name[..name_len]); 
         symmetricstate.mix_hash(prologue);
 
@@ -141,7 +176,7 @@ impl<'a> HandshakeState<'a> {
 
         HandshakeState{
             rng: rng,  
-            symmetricstate: symmetricstate, 
+            symmetricstate: symmetricstate,
             cipherstate1: cipherstate1,
             cipherstate2: cipherstate2,
             s: s, 
