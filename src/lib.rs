@@ -14,6 +14,5 @@ pub use wrappers::crypto_wrapper::*;
 pub use wrappers::rand_wrapper::*;
 pub use handshakestate::{HandshakeState};
 pub use cipherstate::{CipherState};
-pub use symmetricstate::{SymmetricState};
 pub use patterns::{HandshakePattern};
 pub use handshakecryptoowner::*;

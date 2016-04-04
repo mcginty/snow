@@ -86,8 +86,6 @@ impl<'a> HandshakeState<'a> {
             let mut test_name1 = [0u8; 32];
             let mut test_name2 = [0u8; 32];
 
-            test_name1 = [0u8; 32];
-            test_name2 = [0u8; 32];
             assert!(cipherstate.name(&mut test_name1) < 32);
             cipherstate1.name(&mut test_name2);
             assert!(test_name1 == test_name2);

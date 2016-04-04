@@ -4,9 +4,9 @@ extern crate rustc_serialize;
 use screech::*;
 use self::rustc_serialize::hex::{FromHex, ToHex};
 
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::fs::File;
+//use std::io::prelude::*;
+//use std::io::BufReader;
+//use std::fs::File;
 
 
 /*
@@ -161,7 +161,7 @@ impl RandomType for RandomInc {
         }
     }
 }
-
+/*
 struct RandomSequence {
     next_bytes: [u8; 1024],
     next_index: usize
@@ -202,6 +202,7 @@ impl RandomType for RandomZeros {
         }
     }
 }
+*/
 
 pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
     for count in 0..data.len() {out[count] = data[count];}

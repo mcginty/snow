@@ -4,7 +4,6 @@ use utils::*;
 use constants::*;
 use crypto_types::*;
 use cipherstate::*;
-use self::rustc_serialize::hex::{FromHex, ToHex};
 
 pub trait SymmetricStateType {
     fn cipher_name(&self, out : &mut [u8]) -> usize;
