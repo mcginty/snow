@@ -2,7 +2,7 @@
 # Screech
 
 Implementation of the [Noise Protocol
-Framework](https://github.com/trevp/noise) in Rust.
+Framework](http://noiseprotocol.org) in Rust.
 
 Uses [rust-crypto](https://github.com/DaGenix/rust-crypto) but has pluggable
 support for other crypto libraries.
