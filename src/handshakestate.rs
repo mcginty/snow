@@ -7,8 +7,6 @@ use symmetricstate::*;
 use patterns::*;
 use handshakecryptoowner::*;
 
-pub const MAXMSGLEN : usize = 65535;
-
 #[derive(Debug)]
 pub enum NoiseError {DecryptError}
 
