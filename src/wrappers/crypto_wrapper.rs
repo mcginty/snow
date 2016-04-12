@@ -7,6 +7,7 @@ use self::crypto::mac::Mac;
 use self::crypto::symmetriccipher::SynchronousStreamCipher;
 use self::crypto::sha2::{Sha256, Sha512};
 use self::crypto::blake2b::Blake2b;
+use self::crypto::blake2s::Blake2s;
 use self::crypto::aes::KeySize;
 use self::crypto::aes_gcm::AesGcm;
 use self::crypto::chacha20::ChaCha20;
@@ -48,6 +49,10 @@ pub struct HashSHA512 {
 
 pub struct HashBLAKE2b {
     hasher : Blake2b
+}
+
+pub struct HashBLAKE2s {
+    hasher : Blake2s
 }
 
 impl DhType for Dh25519 {
@@ -279,6 +284,39 @@ impl HashType for HashBLAKE2b {
     }
 }
 
+impl Default for HashBLAKE2s {
+    fn default() -> HashBLAKE2s {
+        HashBLAKE2s{hasher:Blake2s::new(32)}
+    }
+}
+
+impl HashType for HashBLAKE2s {
+
+    fn name(&self, out : &mut [u8]) -> usize { 
+        copy_memory("BLAKE2s".as_bytes(), out)
+    }
+
+    fn block_len(&self) -> usize {
+        return 64;
+    }
+
+    fn hash_len(&self) -> usize {
+        return 32;
+    }
+
+    fn reset(&mut self) {
+        self.hasher = Blake2s::new(32);
+    }   
+
+    fn input(&mut self, data: &[u8]) {
+        crypto::digest::Digest::input(&mut self.hasher, data);
+    }
+
+    fn result(&mut self, out: &mut [u8]) {
+        crypto::digest::Digest::result(&mut self.hasher, out);
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -334,6 +372,16 @@ mod tests {
                                         4c212f14685ac4b74b12bb6fdbffa2d1\
                                         7d87c5392aab792dc252d5de4533cc95\
                                         18d38aa8dbf1925ab92386edd4009923"); 
+        }
+
+        // BLAKE2s test - draft-saarinen-blake2-06
+        {
+            let mut output = [0u8; 32];
+            let mut hasher:HashBLAKE2s = Default::default();
+            hasher.input("abc".as_bytes());
+            hasher.result(&mut output);
+            assert!(output.to_hex() == "508c5e8c327c14e2e1a72ba34eeb452f\
+	    				37458b209ed63a294d999b4c86675982"); 
         }
 
         // Curve25519 test - draft-curves-10
