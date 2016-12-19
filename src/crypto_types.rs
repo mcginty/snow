@@ -6,7 +6,7 @@ pub trait RandomType {
 }
 
 pub trait DhType {
-    fn name(&self, out: &mut [u8]) -> usize;
+    fn name(&self) -> &'static str;
     fn pub_len(&self) -> usize;
 
     fn set(&mut self, privkey: &[u8], pubkey: &[u8]);
@@ -16,7 +16,7 @@ pub trait DhType {
 }
 
 pub trait CipherType {
-    fn name(&self, out: &mut [u8]) -> usize;
+    fn name(&self) -> &'static str;
 
     fn set(&mut self, key: &[u8]);
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]);
@@ -24,7 +24,7 @@ pub trait CipherType {
 }
 
 pub trait HashType {
-    fn name(&self, out: &mut [u8]) -> usize;
+    fn name(&self) -> &'static str;
     fn block_len(&self) -> usize;
     fn hash_len(&self) -> usize;
 

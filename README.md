@@ -1,5 +1,10 @@
 
-# Screech
+# Chocolate Jesus
+
+No rustier noise than Tom waits, after all.
+
+A working title for a fork of Screech, the library by @trevp that implements
+the Noise protocol.
 
 Implementation of the [Noise Protocol
 Framework](http://noiseprotocol.org) in Rust.

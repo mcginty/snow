@@ -4,9 +4,9 @@ use utils::*;
 use crypto_types::*;
 use cipherstate::*;
 
-pub struct HandshakeCryptoOwner<R: RandomType + Default, 
-                          D: DhType + Default, 
-                          C: CipherType + Default, 
+pub struct HandshakeCryptoOwner<R: RandomType + Default,
+                          D: DhType + Default,
+                          C: CipherType + Default,
                           H: HashType + Default> {
     pub rng: R,
     pub cipherstate: CipherState<C>,

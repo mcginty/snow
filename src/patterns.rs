@@ -1,6 +1,4 @@
 
-use utils::*;
-
 #[derive(Copy, Clone)]
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}
 
@@ -16,30 +14,30 @@ fn copy_tokens(input: &[Token], out: &mut [Token]) {
 
 pub fn resolve_handshake_pattern(
                             handshake_pattern: HandshakePattern,
-                            name: &mut [u8], 
+                            name: &mut String,
                             premsg_pattern_i: &mut [Token],
                             premsg_pattern_r: &mut [Token], 
-                            msg_patterns: &mut [[Token; 10]; 10]) -> usize {
+                            msg_patterns: &mut [[Token; 10]; 10]) {
     match handshake_pattern {
         N => { 
             copy_tokens(&[], premsg_pattern_i);
             copy_tokens(&[S], premsg_pattern_r);
             copy_tokens(&[E, Dhes], &mut msg_patterns[0]);
-            copy_memory("N".as_bytes(), name)
+            name.push_str("N");
         },
 
         K => { 
             copy_tokens(&[S], premsg_pattern_i);
             copy_tokens(&[S], premsg_pattern_r);
             copy_tokens(&[E, Dhes, Dhss], &mut msg_patterns[0]);
-            copy_memory("K".as_bytes(), name)
+            name.push_str("K");
         },
 
         X => { 
             copy_tokens(&[], premsg_pattern_i);
             copy_tokens(&[S], premsg_pattern_r);
             copy_tokens(&[E, Dhes, S, Dhss], &mut msg_patterns[0]);
-            copy_memory("X".as_bytes(), name)
+            name.push_str("X");
         },
 
         NN => {
@@ -47,7 +45,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[], premsg_pattern_r);
             copy_tokens(&[E], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
-            copy_memory("NN".as_bytes(), name)
+            name.push_str("NN");
         },
 
         NK => {
@@ -55,7 +53,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[S], premsg_pattern_r);
             copy_tokens(&[E, Dhes], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
-            copy_memory("NK".as_bytes(), name)
+            name.push_str("NK");
         },
 
         NX => {
@@ -63,7 +61,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[], premsg_pattern_r);
             copy_tokens(&[E], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee, S, Dhse], &mut msg_patterns[1]);
-            copy_memory("NX".as_bytes(), name)
+            name.push_str("NX");
         },
 
         XN => {
@@ -72,7 +70,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[E], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
             copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
-            copy_memory("XN".as_bytes(), name)
+            name.push_str("XN");
         },
 
         XK => {
@@ -81,7 +79,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[E, Dhes], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
             copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
-            copy_memory("XK".as_bytes(), name)
+            name.push_str("XK");
         },
 
         XX => {
@@ -90,7 +88,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[E], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee, S, Dhse], &mut msg_patterns[1]);
             copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
-            copy_memory("XX".as_bytes(), name)
+            name.push_str("XX");
         },
 
         XR => {
@@ -100,7 +98,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
             copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
             copy_tokens(&[S, Dhse], &mut msg_patterns[3]);
-            copy_memory("XR".as_bytes(), name)
+            name.push_str("XR");
         },
 
         KN => {
@@ -108,7 +106,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[], premsg_pattern_r);
             copy_tokens(&[E], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
-            copy_memory("KN".as_bytes(), name)
+            name.push_str("KN");
         }
 
         KK => {
@@ -116,7 +114,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[S], premsg_pattern_r);
             copy_tokens(&[E, Dhes, Dhss], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
-            copy_memory("KK".as_bytes(), name)
+            name.push_str("KK");
         }
 
         KX => {
@@ -124,7 +122,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[], premsg_pattern_r);
             copy_tokens(&[E], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee, Dhes, S, Dhse], &mut msg_patterns[1]);
-            copy_memory("KX".as_bytes(), name)
+            name.push_str("KX");
         }
 
         IN => {
@@ -132,7 +130,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[], premsg_pattern_r);
             copy_tokens(&[E, S], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
-            copy_memory("IN".as_bytes(), name)
+            name.push_str("IN");
         }
 
         IK => {
@@ -140,7 +138,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[S], premsg_pattern_r);
             copy_tokens(&[E, Dhes, S, Dhss], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
-            copy_memory("IK".as_bytes(), name)
+            name.push_str("IK");
         }
 
         IX => {
@@ -148,7 +146,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[], premsg_pattern_r);
             copy_tokens(&[E, S], &mut msg_patterns[0]);
             copy_tokens(&[E, Dhee, Dhes, S, Dhse], &mut msg_patterns[1]);
-            copy_memory("IX".as_bytes(), name)
+            name.push_str("IX");
         }
 
         XXfallback => {
@@ -156,7 +154,7 @@ pub fn resolve_handshake_pattern(
             copy_tokens(&[E], premsg_pattern_r);
             copy_tokens(&[E, Dhee, S, Dhse], &mut msg_patterns[0]);
             copy_tokens(&[S, Dhse], &mut msg_patterns[1]);
-            copy_memory("XXfallback".as_bytes(), name)
+            name.push_str("XXfallback");
         }
     }
 }

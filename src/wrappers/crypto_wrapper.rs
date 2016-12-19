@@ -57,8 +57,9 @@ pub struct HashBLAKE2s {
 
 impl DhType for Dh25519 {
 
-    fn name(&self, out : &mut [u8]) -> usize { 
-        copy_memory("25519".as_bytes(), out)
+    fn name(&self) -> &'static str {
+        static NAME: &'static str = "25519";
+        NAME
     }
 
     fn pub_len(&self) -> usize {
@@ -92,8 +93,9 @@ impl DhType for Dh25519 {
 
 impl CipherType for CipherAESGCM {
 
-    fn name(&self, out : &mut [u8]) -> usize { 
-        copy_memory("AESGCM".as_bytes(), out)
+    fn name(&self) -> &'static str {
+        static NAME: &'static str = "AESGCM";
+        NAME
     }
 
     fn set(&mut self, key: &[u8]) {
@@ -123,8 +125,9 @@ impl CipherType for CipherAESGCM {
 
 impl CipherType for CipherChaChaPoly {
 
-    fn name(&self, out : &mut [u8]) -> usize { 
-        copy_memory("ChaChaPoly".as_bytes(), out)
+    fn name(&self) -> &'static str {
+        static NAME: &'static str = "ChaChaPoly";
+        NAME
     }
 
     fn set(&mut self, key: &[u8]) {
@@ -182,7 +185,6 @@ impl CipherType for CipherChaChaPoly {
         cipher.process(&ciphertext[..text_len], &mut out[..text_len]);
         true
     } 
-
 }
 
 impl Default for HashSHA256 {
@@ -201,8 +203,9 @@ impl HashType for HashSHA256 {
         return 32;
     }
 
-    fn name(&self, out : &mut [u8]) -> usize { 
-        copy_memory("SHA256".as_bytes(), out)
+    fn name(&self) -> &'static str {
+        static NAME: &'static str = "SHA256";
+        NAME
     }
 
     fn reset(&mut self) {
@@ -226,8 +229,9 @@ impl Default for HashSHA512 {
 
 impl HashType for HashSHA512 {
 
-    fn name(&self, out: &mut [u8]) -> usize { 
-        copy_memory("SHA512".as_bytes(), out)
+    fn name(&self) -> &'static str {
+        static NAME: &'static str = "SHA512";
+        NAME
     }
 
     fn block_len(&self) -> usize {
@@ -259,8 +263,9 @@ impl Default for HashBLAKE2b {
 
 impl HashType for HashBLAKE2b {
 
-    fn name(&self, out : &mut [u8]) -> usize { 
-        copy_memory("BLAKE2b".as_bytes(), out)
+    fn name(&self) -> &'static str {
+        static NAME: &'static str = "BLAKE2b";
+        NAME
     }
 
     fn block_len(&self) -> usize {
@@ -292,8 +297,9 @@ impl Default for HashBLAKE2s {
 
 impl HashType for HashBLAKE2s {
 
-    fn name(&self, out : &mut [u8]) -> usize { 
-        copy_memory("BLAKE2s".as_bytes(), out)
+    fn name(&self) -> &'static str {
+        static NAME: &'static str = "BLAKE2s";
+        NAME
     }
 
     fn block_len(&self) -> usize {

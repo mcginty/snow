@@ -2,7 +2,7 @@
 use crypto_types::*;
 
 pub trait CipherStateType {
-    fn name(&self, out: &mut [u8]) -> usize;
+    fn name(&self) -> &'static str;
     fn set(&mut self, key: &[u8], n: u64);
     fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]);
     fn decrypt_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool;
@@ -20,8 +20,8 @@ pub struct CipherState<C: CipherType + Default> {
 
 impl<C: CipherType + Default> CipherStateType for CipherState<C> {
 
-    fn name(&self, out: &mut [u8]) -> usize {
-        self.cipher.name(out)
+    fn name(&self) -> &'static str {
+        self.cipher.name()
     }
 
     fn set(&mut self, key: &[u8], n: u64) {

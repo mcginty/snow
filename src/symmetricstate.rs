@@ -6,9 +6,9 @@ use crypto_types::*;
 use cipherstate::*;
 
 pub trait SymmetricStateType {
-    fn cipher_name(&self, out : &mut [u8]) -> usize;
-    fn hash_name(&self, out : &mut [u8]) -> usize;
-    fn initialize(&mut self, handshake_name: &[u8]);
+    fn cipher_name(&self) -> &'static str;
+    fn hash_name(&self) -> &'static str;
+    fn initialize(&mut self, handshake_name: &str);
     fn mix_key(&mut self, data: &[u8]);
     fn mix_hash(&mut self, data: &[u8]);
     fn mix_preshared_key(&mut self, psk: &[u8]);
@@ -19,18 +19,19 @@ pub trait SymmetricStateType {
     fn split(&mut self, child1: &mut CipherStateType, child2: &mut CipherStateType);
 }
 
-pub struct SymmetricState<'a> {
-    cipherstate : &'a mut CipherStateType,
-    hasher: &'a mut HashType,
+pub struct SymmetricState {
+    cipherstate : Box<CipherStateType>,
+    hasher: Box<HashType>,
     h : [u8; MAXHASHLEN],
     ck: [u8; MAXHASHLEN],
     has_key: bool,
     has_preshared_key: bool,
 }
 
-impl<'a> SymmetricState<'a> {
-    pub fn new(cipherstate : &'a mut CipherStateType, hasher: &'a mut HashType) -> SymmetricState<'a> {
-        SymmetricState{
+impl SymmetricState {
+    pub fn new(cipherstate: Box<CipherStateType>, hasher: Box<HashType>) -> SymmetricState
+    {
+        SymmetricState {
             cipherstate: cipherstate,
             hasher: hasher,
             h: [0u8; MAXHASHLEN],
@@ -41,23 +42,23 @@ impl<'a> SymmetricState<'a> {
     }
 }
 
-impl<'a> SymmetricStateType for SymmetricState<'a> {
+impl SymmetricStateType for SymmetricState {
 
-    fn cipher_name(&self, out : &mut [u8]) -> usize {
-        self.cipherstate.name(out)
+    fn cipher_name(&self) -> &'static str {
+        self.cipherstate.name()
     }
 
-    fn hash_name(&self, out : &mut [u8]) -> usize {
-        self.hasher.name(out)
+    fn hash_name(&self) -> &'static str {
+        self.hasher.name()
     }
 
-    fn initialize(&mut self, handshake_name: &[u8]) {
+    fn initialize(&mut self, handshake_name: &str) {
         if handshake_name.len() <= self.hasher.hash_len() {
             self.h = [0u8; MAXHASHLEN];
-            copy_memory(handshake_name, &mut self.h);
+            self.h[..handshake_name.len()].copy_from_slice(handshake_name.as_bytes());
         } else {
             self.hasher.reset();
-            self.hasher.input(handshake_name); 
+            self.hasher.input(handshake_name.as_bytes());
             self.hasher.result(&mut self.h);
         }
         copy_memory(&self.h, &mut self.ck);
@@ -92,7 +93,7 @@ impl<'a> SymmetricStateType for SymmetricState<'a> {
     }
 
     fn has_key(&self) -> bool {
-       self.has_key
+        self.has_key
     }
 
     fn has_preshared_key(&self) -> bool {
@@ -106,10 +107,10 @@ impl<'a> SymmetricStateType for SymmetricState<'a> {
             self.cipherstate.encrypt_ad(&self.h[..hash_len], plaintext, out);
             output_len = plaintext.len() + TAGLEN;
         }
-        else {
-            copy_memory(plaintext, out);
-            output_len = plaintext.len();
-        }
+            else {
+                copy_memory(plaintext, out);
+                output_len = plaintext.len();
+            }
         self.mix_hash(&out[..output_len]);
         output_len
     }
@@ -117,13 +118,13 @@ impl<'a> SymmetricStateType for SymmetricState<'a> {
     fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> bool {
         let hash_len = self.hasher.hash_len();
         if self.has_key {
-            if !self.cipherstate.decrypt_ad(&self.h[..hash_len], data, out) { 
-                return false; 
+            if !self.cipherstate.decrypt_ad(&self.h[..hash_len], data, out) {
+                return false;
             }
         }
-        else {
-            copy_memory(data, out);
-        }
+            else {
+                copy_memory(data, out);
+            }
         self.mix_hash(data);
         true
     }
@@ -131,11 +132,12 @@ impl<'a> SymmetricStateType for SymmetricState<'a> {
     fn split(&mut self, child1: &mut CipherStateType, child2: &mut CipherStateType) {
         let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(&self.ck[..hash_len], &[0u8; 0], 
-                         &mut hkdf_output.0, 
+        self.hasher.hkdf(&self.ck[..hash_len], &[0u8; 0],
+                         &mut hkdf_output.0,
                          &mut hkdf_output.1);
         child1.set(&hkdf_output.0[..CIPHERKEYLEN], 0);
         child2.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
     }
+
 
 }

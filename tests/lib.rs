@@ -50,13 +50,13 @@ fn test1() {
         let mut cipherstate1 : CipherState<CipherAESGCM> = Default::default();
         let mut cipherstate2 : CipherState<CipherAESGCM> = Default::default();
 
-        let mut h = HandshakeState::new_from_owner(&mut owner,
+        let mut h = HandshakeState::new_from_owner(owner,
                                                    true,
                                                    HandshakePattern::N,
                                                    &[0u8; 0],
                                                    None,
-                                                   &mut cipherstate1,
-                                                   &mut cipherstate2);
+                                                   Box::new(cipherstate1),
+                                                   Box::new(cipherstate2)).unwrap();
 
 
         let mut buffer = [0u8; 48];
@@ -81,13 +81,13 @@ fn test1() {
         let mut cipherstate1 : CipherState<CipherChaChaPoly> = Default::default();
         let mut cipherstate2 : CipherState<CipherChaChaPoly> = Default::default();
 
-        let mut h = HandshakeState::new_from_owner(&mut owner,
+        let mut h = HandshakeState::new_from_owner(owner,
                             true,
                             HandshakePattern::X,
                             &[0u8; 0],
                             None,
-                            &mut cipherstate1,
-                            &mut cipherstate2);
+                            Box::new(cipherstate1),
+                            Box::new(cipherstate2)).unwrap();
 
         let mut buffer = [0u8; 96];
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
@@ -108,21 +108,21 @@ fn test1() {
         let mut cipherstate1_r : CipherState<CipherAESGCM> = Default::default();
         let mut cipherstate2_r : CipherState<CipherAESGCM> = Default::default();
 
-        let mut h_i = HandshakeState::new_from_owner(&mut owner_i,
+        let mut h_i = HandshakeState::new_from_owner(owner_i,
                             true,
                             HandshakePattern::NN,
                             &[0u8; 0],
                             None,
-                            &mut cipherstate1_i,
-                            &mut cipherstate2_i);
+                            Box::new(cipherstate1_i),
+                            Box::new(cipherstate2_i)).unwrap();
 
-        let mut h_r = HandshakeState::new_from_owner(&mut owner_r,
+        let mut h_r = HandshakeState::new_from_owner(owner_r,
                             false,
                             HandshakePattern::NN,
                             &[0u8; 0],
                             None,
-                            &mut cipherstate1_r,
-                            &mut cipherstate2_r);
+                            Box::new(cipherstate1_r),
+                            Box::new(cipherstate2_r)).unwrap();
 
         let mut buffer_msg = [0u8; 64];
         let mut buffer_out = [0u8; 10];
@@ -158,21 +158,21 @@ fn test1() {
         let mut cipherstate1_r : CipherState<CipherAESGCM> = Default::default();
         let mut cipherstate2_r : CipherState<CipherAESGCM> = Default::default();
 
-        let mut h_i = HandshakeState::new_from_owner(&mut owner_i,
+        let mut h_i = HandshakeState::new_from_owner(owner_i,
                             true,
                             HandshakePattern::XX,
                             &[0u8; 0],
                             None,
-                            &mut cipherstate1_i,
-                            &mut cipherstate2_i);
+                            Box::new(cipherstate1_i),
+                            Box::new(cipherstate2_i)).unwrap();
 
-        let mut h_r = HandshakeState::new_from_owner(&mut owner_r,
+        let mut h_r = HandshakeState::new_from_owner(owner_r,
                             false,
                             HandshakePattern::XX,
                             &[0u8; 0],
                             None,
-                            &mut cipherstate1_r,
-                            &mut cipherstate2_r);
+                            Box::new(cipherstate1_r),
+                            Box::new(cipherstate2_r)).unwrap();
        
         let mut buffer_msg = [0u8; 200];
         let mut buffer_out = [0u8; 200];
@@ -211,21 +211,21 @@ fn test1() {
         let mut cipherstate1_r : CipherState<CipherAESGCM> = Default::default();
         let mut cipherstate2_r : CipherState<CipherAESGCM> = Default::default();
 
-        let mut h_i = HandshakeState::new_from_owner(&mut owner_i,
+        let mut h_i = HandshakeState::new_from_owner(owner_i,
                             true,
                             HandshakePattern::IK,
                             "ABC".as_bytes(),
                             None,
-                            &mut cipherstate1_i,
-                            &mut cipherstate2_i);
+                            Box::new(cipherstate1_i),
+                            Box::new(cipherstate2_i)).unwrap();
 
-        let mut h_r = HandshakeState::new_from_owner(&mut owner_r,
+        let mut h_r = HandshakeState::new_from_owner(owner_r,
                             false,
                             HandshakePattern::IK,
                             "ABC".as_bytes(),
                             None,
-                            &mut cipherstate1_r,
-                            &mut cipherstate2_r);
+                            Box::new(cipherstate1_r),
+                            Box::new(cipherstate2_r)).unwrap();
 
 
         let mut buffer_msg = [0u8; 200];
