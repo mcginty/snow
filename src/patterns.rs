@@ -1,9 +1,36 @@
+use std::str::FromStr;
 
 #[derive(Copy, Clone)]
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, XR, KN, KK, KX, IN, IK, IX, XXfallback}
+impl FromStr for HandshakePattern {
+    type Err = &'static str;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use self::HandshakePattern::*;
+        match s {
+            "N" => Ok(N),
+            "X" => Ok(X),
+            "K" => Ok(K),
+            "NN" => Ok(NN),
+            "NK" => Ok(NK),
+            "NX" => Ok(NX),
+            "XN" => Ok(XN),
+            "XK" => Ok(XK),
+            "XX" => Ok(XX),
+            "XR" => Ok(XR),
+            "KN" => Ok(KN),
+            "KK" => Ok(KK),
+            "KX" => Ok(KX),
+            "IN" => Ok(IN),
+            "IK" => Ok(IK),
+            "IX" => Ok(IX),
+            "XXfallback" => Ok(XXfallback),
+            _    => Err("handshake not recognized")
+        }
+    }
+}
 
 use self::Token::*;
 use self::HandshakePattern::*;

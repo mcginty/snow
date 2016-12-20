@@ -3,6 +3,7 @@ use constants::*;
 use utils::*;
 use crypto_types::*;
 use cipherstate::*;
+use constants::*;
 
 pub struct HandshakeCryptoOwner<R: RandomType + Default,
                           D: DhType + Default,

@@ -37,6 +37,27 @@ pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
 }
 
 #[test]
+fn test_protocol_name() {
+
+    let protocol_spec: NoiseParams = "Noise_NK_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
+
+    assert_eq!(protocol_spec.base, BaseChoice::Noise);
+    assert_eq!(protocol_spec.handshake, HandshakePattern::NK);
+    assert_eq!(protocol_spec.cipher, CipherChoice::ChaChaPoly);
+    assert_eq!(protocol_spec.hash, HashChoice::Blake2s);
+
+    let protocol_spec: Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_BLAKE2X".parse();
+    if let Ok(_) = protocol_spec {
+        panic!("invalid protocol was parsed inaccurately");
+    }
+
+    let protocol_spec: Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly".parse();
+    if let Ok(_) = protocol_spec {
+        panic!("invalid protocol was parsed inaccurately");
+    }
+}
+
+#[test]
 fn test1() {
 
     // Noise_N test

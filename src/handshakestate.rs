@@ -10,7 +10,7 @@ use std::ops::DerefMut;
 
 #[derive(Debug)]
 pub enum NoiseError {
-    InitError(String),
+    InitError(&'static str),
     DecryptError
 }
 
@@ -85,18 +85,18 @@ impl HandshakeState {
         let mut message_patterns = [[Token::Empty; 10]; 10];
 
         if cipherstate1.name() != cipherstate2.name() {
-            return Err(InitError("cipherstates don't match".into()));
+            return Err(InitError("cipherstates don't match"));
         }
 
         if s.name() != e.name() {
-            return Err(InitError("cipherstates don't match".into()));
+            return Err(InitError("cipherstates don't match"));
         }
 
         if s.pub_len() != e.pub_len()
         || s.pub_len() >  rs.len()
         || s.pub_len() >  re.len()
         {
-            return Err(InitError("key lengths aren't right".into()));
+            return Err(InitError("key lengths aren't right"));
         }
 
         handshake_name.push_str(match optional_preshared_key {
