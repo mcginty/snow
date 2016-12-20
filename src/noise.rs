@@ -164,8 +164,7 @@ mod tests {
             .preshared_key(&[1,1,1,1,1,1,1])
             .prologue(&[2,2,2,2,2,2,2,2])
             .local_private_key(&[0u8; 32])
-            .build_initiator()
-            .unwrap();
+            .build_initiator().unwrap();
     }
 
     #[test]
@@ -182,8 +181,8 @@ mod tests {
         let noise = NoiseBuilder::new("Noise_NK_25519_ChaChaPoly_SHA256".parse().unwrap())
             .preshared_key(&[1,1,1,1,1,1,1])
             .prologue(&[2,2,2,2,2,2,2,2])
-            .local_private_key(&[0u8; 32]) // missing remote key
-            .build_initiator();
+            .local_private_key(&[0u8; 32])
+            .build_initiator(); // missing remote key, should result in Err
 
         if let Ok(_) = noise {
             panic!("builder should have failed on build");
