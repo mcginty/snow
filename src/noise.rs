@@ -7,14 +7,14 @@ use constants::*;
 use patterns::*;
 use cipherstate::*;
 
-trait CryptoResolver {
+pub trait CryptoResolver {
     fn resolve_rng(&self) -> Option<Box<RandomType>>;
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<DhType>>;
     fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<HashType>>;
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<CipherStateType>>;
 }
 
-struct DefaultResolver;
+pub struct DefaultResolver;
 impl CryptoResolver for DefaultResolver {
     fn resolve_rng(&self) -> Option<Box<RandomType>> {
         Some(Box::new(RandomOs::default()))
@@ -45,7 +45,7 @@ impl CryptoResolver for DefaultResolver {
     }
 }
 
-struct NoiseBuilder {
+pub struct NoiseBuilder {
     params: NoiseParams,           // Deserialized protocol spec
     resolver: Box<CryptoResolver>, // The mapper from protocol choices to crypto implementations
     pub s:  Vec<u8>,

@@ -31,6 +31,37 @@ impl RandomType for RandomInc {
     }
 }
 
+struct TestResolver {
+    next_byte: u8,
+    parent: DefaultResolver,
+}
+
+impl TestResolver {
+    pub fn new(next_byte: u8) -> Self {
+        TestResolver{ next_byte: next_byte, parent: DefaultResolver }
+    }
+}
+
+impl CryptoResolver for TestResolver {
+    fn resolve_rng(&self) -> Option<Box<RandomType>> {
+        let mut rng = RandomInc::default();
+        rng.next_byte = self.next_byte;
+        Some(Box::new(rng))
+    }
+
+    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<DhType>> {
+        self.parent.resolve_dh(choice)
+    }
+
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<HashType>> {
+        self.parent.resolve_hash(choice)
+    }
+
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<CipherStateType>> {
+        self.parent.resolve_cipher(choice)
+    }
+}
+
 pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
     for count in 0..data.len() {out[count] = data[count];}
     data.len()
@@ -114,7 +145,29 @@ fn test1() {
         assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
         //println!("{}", buffer.to_hex());
         assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad203cd28d81cf65a2da637f557a05728b3ae4abdc3a42d1cda5f719d6cf41d7f2cf1b1c5af10e38a09a9bb7e3b1d589a99492cc50293eaa1f3f391b59bb6990d");
-    } 
+    }
+
+    // Noise_NN w/ builder test
+    {
+        let resolver_i = TestResolver::new(0);
+        let resolver_r = TestResolver::new(1);
+        let mut h_i = NoiseBuilder::new_with_resolver("Noise_NN_25519_AESGCM_SHA512".parse().unwrap(),
+                                                      Box::new(resolver_i))
+            .build_initiator().unwrap();
+        let mut h_r = NoiseBuilder::new_with_resolver("Noise_NN_25519_AESGCM_SHA512".parse().unwrap(),
+                                                      Box::new(resolver_r))
+            .build_responder().unwrap();
+
+        let mut buffer_msg = [0u8; 64];
+        let mut buffer_out = [0u8; 10];
+        assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
+        assert!(h_r.read_message(&buffer_msg[..35], &mut buffer_out).unwrap().0 == 3);
+        assert!(buffer_out[..3].to_hex() == "616263");
+        assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 52);
+        assert!(h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap().0 == 4);
+        assert!(buffer_out[..4].to_hex() == "64656667");
+        assert!(buffer_msg[..52].to_hex() == "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7c5e4dc9545d41b3280f4586a5481829e1e24ec5a0");
+    }
 
     // Noise_NN test
     {

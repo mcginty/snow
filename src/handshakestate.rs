@@ -272,7 +272,8 @@ impl HandshakeState {
         for token in &tokens {
             match *token {
                 Token::E => {
-                    copy_memory(&ptr[..dh_len], &mut self.re[..]);
+                    self.re.clear();
+                    self.re.extend_from_slice(&ptr[..dh_len]);
                     ptr = &ptr[dh_len..];
                     self.symmetricstate.mix_hash(&self.re);
                     if self.symmetricstate.has_preshared_key() {
