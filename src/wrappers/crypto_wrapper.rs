@@ -66,9 +66,10 @@ impl DhType for Dh25519 {
         return 32;
     }
 
-    fn set(&mut self, privkey: &[u8], pubkey: &[u8]) {
+    fn set(&mut self, privkey: &[u8]) {
         copy_memory(privkey, &mut self.privkey); /* RUSTSUCKS: Why can't I convert slice -> array? */
-        copy_memory(pubkey, &mut self.pubkey);
+        let pubkey = curve25519_base(&self.privkey);
+        copy_memory(&pubkey, &mut self.pubkey);
     }
 
     fn generate(&mut self, rng: &mut RandomType) {
@@ -76,7 +77,7 @@ impl DhType for Dh25519 {
         self.privkey[0] &= 248;
         self.privkey[31] &= 127;
         self.privkey[31] |= 64;
-        let pubkey = curve25519_base(&self.privkey); 
+        let pubkey = curve25519_base(&self.privkey);
         copy_memory(&pubkey, &mut self.pubkey);
     }
 

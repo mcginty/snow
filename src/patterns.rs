@@ -5,6 +5,26 @@ pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, XR, KN, KK, KX, IN, IK, IX, XXfallback}
+
+impl HandshakePattern {
+
+    // XXX double check
+    pub fn needs_local_key(p: HandshakePattern) -> bool {
+        match p {
+            N | NN | NK | NX => false,
+            _ => true
+        }
+    }
+
+    // XXX double check
+    pub fn needs_known_remote_key(p: HandshakePattern) -> bool {
+        match p {
+            N | X | K | NN | XN | KN | IN => false,
+            _ => true
+        }
+    }
+}
+
 impl FromStr for HandshakePattern {
     type Err = &'static str;
     fn from_str(s: &str) -> Result<Self, Self::Err> {

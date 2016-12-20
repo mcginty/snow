@@ -116,18 +116,3 @@ impl FromStr for NoiseParams {
                             split.next().ok_or(TOO_FEW)?.parse()?))
     }
 }
-
-//let params = NoiseParams::new(BaseChoice::Noise,
-//    HandshakePattern::NK,
-//    DHChoice::Curve25519,
-//    CipherChoice::ChaChaPoly,
-//    HashChoice::Blake2s);
-//
-//// or...
-//
-//NoiseBuilder::new("Noise_NK_25519_ChaChaPoly_BLAKE2s")
-//.psk(psk)
-//.prologue(prologue)
-//.local_private_key(privkey)
-//.remote_public_key(pubkey)
-//.initialize();

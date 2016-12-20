@@ -79,5 +79,5 @@ impl<R: RandomType + Default,
         copy_memory(re, &mut self.re);
         self.has_re = true;
     }
- }
+}
 

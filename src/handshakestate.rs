@@ -11,6 +11,7 @@ use std::ops::DerefMut;
 #[derive(Debug)]
 pub enum NoiseError {
     InitError(&'static str),
+    PrereqError(String),
     DecryptError
 }
 
@@ -41,7 +42,7 @@ impl HandshakeState {
      initiator: bool,
      handshake_pattern: HandshakePattern,
      prologue: &[u8],
-     optional_preshared_key: Option<&[u8]>,
+     optional_preshared_key: Option<Vec<u8>>,
      cipherstate1: Box<CipherStateType>,
      cipherstate2: Box<CipherStateType>) -> Result<HandshakeState, NoiseError> {
 
@@ -74,7 +75,7 @@ impl HandshakeState {
             initiator: bool,
             handshake_pattern: HandshakePattern,
             prologue: &[u8],
-            optional_preshared_key: Option<&[u8]>,
+            optional_preshared_key: Option<Vec<u8>>,
             cipherstate1: Box<CipherStateType>,
             cipherstate2: Box<CipherStateType>) -> Result<HandshakeState, NoiseError> {
         use self::NoiseError::*;
@@ -92,11 +93,11 @@ impl HandshakeState {
             return Err(InitError("cipherstates don't match"));
         }
 
-        if s.pub_len() != e.pub_len()
-        || s.pub_len() >  rs.len()
-        || s.pub_len() >  re.len()
+        if (has_s && has_e  && s.pub_len() != e.pub_len())
+        || (has_s && has_rs && s.pub_len() >  rs.len())
+        || (has_s && has_re && s.pub_len() >  re.len())
         {
-            return Err(InitError("key lengths aren't right"));
+            return Err(PrereqError(format!("key lengths aren't right. my pub: {}, their: {}", s.pub_len(), rs.len())));
         }
 
         handshake_name.push_str(match optional_preshared_key {
@@ -121,7 +122,7 @@ impl HandshakeState {
         symmetricstate.mix_hash(prologue);
 
         if let Some(preshared_key) = optional_preshared_key { 
-            symmetricstate.mix_preshared_key(preshared_key);
+            symmetricstate.mix_preshared_key(&preshared_key);
         }
 
         if initiator {
