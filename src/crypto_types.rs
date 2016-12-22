@@ -12,6 +12,7 @@ pub trait DhType {
     fn set(&mut self, privkey: &[u8]);
     fn generate(&mut self, rng: &mut RandomType); 
     fn pubkey(&self) -> &[u8];
+    fn privkey(&self) -> &[u8];
     fn dh(&self, pubkey: &[u8], out: &mut [u8]);
 }
 

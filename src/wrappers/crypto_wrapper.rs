@@ -85,6 +85,10 @@ impl DhType for Dh25519 {
         &self.pubkey
     }
 
+    fn privkey(&self) -> &[u8] {
+        &self.privkey
+    }
+
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) {
         let result = curve25519(&self.privkey, pubkey);
         copy_memory(&result, out);
