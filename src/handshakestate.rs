@@ -291,6 +291,8 @@ impl HandshakeState {
                         ptr = &ptr[dh_len..];
                         temp
                     };
+                    self.rs.clear();
+                    self.rs.resize(32, 0); // XXX
                     if !self.symmetricstate.decrypt_and_hash(data, &mut self.rs[..]) {
                         return Err(NoiseError::DecryptError);
                     }

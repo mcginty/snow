@@ -19,7 +19,7 @@ impl HandshakePattern {
     // XXX double check
     pub fn needs_known_remote_key(p: HandshakePattern) -> bool {
         match p {
-            N | X | K | NN | XN | KN | IN => false,
+            N | X | K | NN | XN | XX | KN | KX | IN | IX | XXfallback => false,
             _ => true
         }
     }

@@ -122,9 +122,9 @@ impl SymmetricStateType for SymmetricState {
                 return false;
             }
         }
-            else {
-                copy_memory(data, out);
-            }
+        else {
+            copy_memory(data, out);
+        }
         self.mix_hash(data);
         true
     }
