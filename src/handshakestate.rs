@@ -1,3 +1,4 @@
+extern crate rustc_serialize;
 
 use constants::*;
 use utils::*;
@@ -7,6 +8,7 @@ use handshakecryptoowner::*;
 use symmetricstate::*;
 use patterns::*;
 use std::ops::DerefMut;
+use self::rustc_serialize::hex::{FromHex, ToHex};
 
 #[derive(Debug)]
 pub enum NoiseError {
@@ -185,6 +187,11 @@ impl HandshakeState {
     }
 
     fn dh(&mut self, local_s: bool, remote_s: bool) {
+        println!("local_s {}, remote_s {}", local_s, remote_s);
+        println!("self.rs: {:?}", self.rs);
+        println!("self.s: {:?}", self.s.privkey());
+        println!("self.s.pubkey: {:?}", self.s.pubkey());
+        println!("dhlen: {}", self.dh_len());
         assert!(!local_s || self.has_s);
         assert!(local_s || self.has_e);
         assert!(!remote_s || self.has_rs);
@@ -192,18 +199,13 @@ impl HandshakeState {
 
         let dh_len = self.dh_len();
         let mut dh_out = [0u8; MAXDHLEN];
-        if local_s && remote_s {
-            self.s.dh(&self.rs, &mut dh_out);
+        match (local_s, remote_s) {
+            (true,  true)  => self.s.dh(&self.rs, &mut dh_out),
+            (true,  false) => self.s.dh(&self.re, &mut dh_out),
+            (false, true)  => self.e.dh(&self.rs, &mut dh_out),
+            (false, false) => self.e.dh(&self.re, &mut dh_out),
         }
-        if local_s && !remote_s {
-            self.s.dh(&self.re, &mut dh_out);
-        }
-        if !local_s && remote_s {
-            self.e.dh(&self.rs, &mut dh_out);
-        }
-        if !local_s && !remote_s {
-            self.e.dh(&self.re, &mut dh_out);
-        }
+        println!("dh mixing output {}", &dh_out[..dh_len].to_hex());
         self.symmetricstate.mix_key(&dh_out[..dh_len]);
     }
 
@@ -226,22 +228,25 @@ impl HandshakeState {
                     let pubkey = self.e.pubkey();
                     copy_memory(pubkey, &mut message[byte_index..]);
                     byte_index += self.s.pub_len();
+                    println!("WRITE: processing E token, mixing {}", &pubkey.to_hex());
                     self.symmetricstate.mix_hash(&pubkey);
                     if self.symmetricstate.has_preshared_key() {
+                        println!("WRITE: also mixing {}", &pubkey.to_hex());
                         self.symmetricstate.mix_key(&pubkey);
                     }
                     self.has_e = true;
                 },
                 Token::S => {
+                    println!("WRITE: processing S token");
                     assert!(self.has_s);
                     byte_index += self.symmetricstate.encrypt_and_hash(
                                         &self.s.pubkey(), 
                                         &mut message[byte_index..]);
                 },
-                Token::Dhee => self.dh(false, false),
-                Token::Dhes => self.dh(false, true),
-                Token::Dhse => self.dh(true, false),
-                Token::Dhss => self.dh(true, true),
+                Token::Dhee => { println!("WRITE: Dhee"); self.dh(false, false) },
+                Token::Dhes => { println!("WRITE: Dhes"); self.dh(false, true) },
+                Token::Dhse => { println!("WRITE: Dhse"); self.dh(true, false) },
+                Token::Dhss => { println!("WRITE: Dhss"); self.dh(true, true) },
                 Token::Empty => break
             }
         }
@@ -272,6 +277,7 @@ impl HandshakeState {
         for token in &tokens {
             match *token {
                 Token::E => {
+                    println!("READ: processing E token");
                     self.re.clear();
                     self.re.extend_from_slice(&ptr[..dh_len]);
                     ptr = &ptr[dh_len..];
@@ -282,6 +288,7 @@ impl HandshakeState {
                     self.has_re = true;
                 },
                 Token::S => {
+                    println!("READ: processing S token");
                     let data = if self.symmetricstate.has_key() {
                         let temp = &ptr[..dh_len + TAGLEN];
                         ptr = &ptr[dh_len + TAGLEN..];
@@ -293,9 +300,11 @@ impl HandshakeState {
                     };
                     self.rs.clear();
                     self.rs.resize(32, 0); // XXX
+                    println!("trying to get the key");
                     if !self.symmetricstate.decrypt_and_hash(data, &mut self.rs[..]) {
                         return Err(NoiseError::DecryptError);
                     }
+                    println!("kcool");
                     self.has_rs = true;
                 },
                 Token::Dhee => self.dh(false, false),
@@ -306,6 +315,7 @@ impl HandshakeState {
             }
         }
         if !self.symmetricstate.decrypt_and_hash(ptr, payload) {
+            println!("just generally fucked this one up.");
             return Err(NoiseError::DecryptError);
         }
         self.my_turn_to_send = true;

@@ -6,6 +6,7 @@ use wrappers::crypto_wrapper::*;
 use constants::*;
 use patterns::*;
 use cipherstate::*;
+use std::ops::DerefMut;
 
 pub trait CryptoResolver {
     fn resolve_rng(&self) -> Option<Box<RandomType>>;
@@ -136,14 +137,17 @@ impl NoiseBuilder {
             .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
         let hash = self.resolver.resolve_hash(&self.params.hash)
             .ok_or(NoiseError::InitError("no suitable hash implementation"))?;
-        let s = self.resolver.resolve_dh(&self.params.dh)
+        let mut s = self.resolver.resolve_dh(&self.params.dh)
             .ok_or(NoiseError::InitError("no suitable DH implementation"))?;
-        let e = self.resolver.resolve_dh(&self.params.dh)
+        let mut e = self.resolver.resolve_dh(&self.params.dh)
             .ok_or(NoiseError::InitError("no suitable DH implementation"))?;
         let cipherstate1 = self.resolver.resolve_cipher(&self.params.cipher)
             .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
         let cipherstate2 = self.resolver.resolve_cipher(&self.params.cipher)
             .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
+
+        if (self.has_s) { s.deref_mut().set(&self.s[..]); }
+        if (self.has_e) { e.deref_mut().set(&self.s[..]); }
         HandshakeState::new(rng, cipher, hash, s, e,
                             self.rs, self.re,
                             self.has_s, self.has_e, self.has_rs, self.has_re,
