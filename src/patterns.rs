@@ -12,7 +12,7 @@ impl HandshakePattern {
     pub fn needs_local_static_key(p: HandshakePattern, initiator: bool) -> bool {
         if initiator {
             match p {
-                N | NN | NK | NX => false,
+                X | N | K | NN | NK | NX => false,
                 _ => true
             }
         } else {
