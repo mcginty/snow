@@ -89,10 +89,6 @@ impl NoiseBuilder {
         self
     }
 
-    pub fn needs_local_private_key(&self) -> bool {
-        HandshakePattern::needs_local_key(self.params.handshake)
-    }
-
     pub fn local_private_key(mut self, key: &[u8]) -> Self {
         self.s = key.to_vec();
         self.has_s = true;
@@ -102,10 +98,6 @@ impl NoiseBuilder {
     pub fn prologue(mut self, key: &[u8]) -> Self {
         self.plog = Some(key.to_vec());
         self
-    }
-
-    pub fn needs_remote_public_key(&self) -> bool {
-        HandshakePattern::needs_known_remote_key(self.params.handshake)
     }
 
     pub fn remote_public_key(mut self, pub_key: &[u8]) -> Self {
@@ -123,11 +115,11 @@ impl NoiseBuilder {
     }
 
     fn build(mut self, initiator: bool) -> Result<HandshakeState, NoiseError> {
-        if !self.has_s && self.needs_local_private_key() {
+        if !self.has_s && HandshakePattern::needs_local_static_key(self.params.handshake, initiator) {
             return Err(NoiseError::InitError("local key needed for chosen handshake pattern"));
         }
 
-        if !self.has_rs && self.needs_remote_public_key() {
+        if !self.has_rs && HandshakePattern::need_known_remote_pubkey(self.params.handshake, initiator) {
             return Err(NoiseError::InitError("remote key needed for chosen handshake pattern"));
         }
 

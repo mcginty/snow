@@ -9,18 +9,31 @@ pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, XR, KN, KK, KX, IN, 
 impl HandshakePattern {
 
     // XXX double check
-    pub fn needs_local_key(p: HandshakePattern) -> bool {
-        match p {
-            N | NN | NK | NX => false,
-            _ => true
+    pub fn needs_local_static_key(p: HandshakePattern, initiator: bool) -> bool {
+        if initiator {
+            match p {
+                N | NN | NK | NX => false,
+                _ => true
+            }
+        } else {
+            match p {
+                N | NN | XN | KN | IN => false,
+                _ => true
+            }
         }
     }
 
-    // XXX double check
-    pub fn needs_known_remote_key(p: HandshakePattern) -> bool {
-        match p {
-            N | X | K | NN | XN | XX | KN | KX | IN | IX | XXfallback => false,
-            _ => true
+    pub fn need_known_remote_pubkey(p: HandshakePattern, initiator: bool) -> bool {
+        if initiator {
+            match p {
+                NK | XK | KK | IK => true,
+                _ => false
+            }
+        } else {
+            match p {
+                K | KN | KK | KX => true,
+                _ => false,
+            }
         }
     }
 }
