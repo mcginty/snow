@@ -187,11 +187,6 @@ impl HandshakeState {
     }
 
     fn dh(&mut self, local_s: bool, remote_s: bool) {
-        println!("local_s {}, remote_s {}", local_s, remote_s);
-        println!("self.rs: {:?}", self.rs);
-        println!("self.s: {:?}", self.s.privkey());
-        println!("self.s.pubkey: {:?}", self.s.pubkey());
-        println!("dhlen: {}", self.dh_len());
         assert!(!local_s || self.has_s);
         assert!(local_s || self.has_e);
         assert!(!remote_s || self.has_rs);
@@ -205,7 +200,6 @@ impl HandshakeState {
             (false, true)  => self.e.dh(&self.rs, &mut dh_out),
             (false, false) => self.e.dh(&self.re, &mut dh_out),
         }
-        println!("dh mixing output {}", &dh_out[..dh_len].to_hex());
         self.symmetricstate.mix_key(&dh_out[..dh_len]);
     }
 
@@ -228,25 +222,22 @@ impl HandshakeState {
                     let pubkey = self.e.pubkey();
                     copy_memory(pubkey, &mut message[byte_index..]);
                     byte_index += self.s.pub_len();
-                    println!("WRITE: processing E token, mixing {}", &pubkey.to_hex());
                     self.symmetricstate.mix_hash(&pubkey);
                     if self.symmetricstate.has_preshared_key() {
-                        println!("WRITE: also mixing {}", &pubkey.to_hex());
                         self.symmetricstate.mix_key(&pubkey);
                     }
                     self.has_e = true;
                 },
                 Token::S => {
-                    println!("WRITE: processing S token");
                     assert!(self.has_s);
                     byte_index += self.symmetricstate.encrypt_and_hash(
                                         &self.s.pubkey(), 
                                         &mut message[byte_index..]);
                 },
-                Token::Dhee => { println!("WRITE: Dhee"); self.dh(false, false) },
-                Token::Dhes => { println!("WRITE: Dhes"); self.dh(false, true) },
-                Token::Dhse => { println!("WRITE: Dhse"); self.dh(true, false) },
-                Token::Dhss => { println!("WRITE: Dhss"); self.dh(true, true) },
+                Token::Dhee => self.dh(false, false),
+                Token::Dhes => self.dh(false, true),
+                Token::Dhse => self.dh(true, false),
+                Token::Dhss => self.dh(true, true),
                 Token::Empty => break
             }
         }

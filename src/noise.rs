@@ -146,8 +146,9 @@ impl NoiseBuilder {
         let cipherstate2 = self.resolver.resolve_cipher(&self.params.cipher)
             .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
 
-        if (self.has_s) { s.deref_mut().set(&self.s[..]); }
-        if (self.has_e) { e.deref_mut().set(&self.s[..]); }
+        if self.has_s { s.deref_mut().set(&self.s[..]); }
+        if self.has_e { e.deref_mut().set(&self.s[..]); }
+
         HandshakeState::new(rng, cipher, hash, s, e,
                             self.rs, self.re,
                             self.has_s, self.has_e, self.has_rs, self.has_re,

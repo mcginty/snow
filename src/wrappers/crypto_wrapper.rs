@@ -108,7 +108,6 @@ impl CipherType for CipherAESGCM {
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
-        println!("AES encrypting with key {}", &self.key.to_hex());
         let mut nonce_bytes = [0u8; 12];
         BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
         let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
@@ -141,7 +140,6 @@ impl CipherType for CipherChaChaPoly {
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
-        println!("ChaCha encrypting with key {}", &self.key.to_hex());
         let mut nonce_bytes = [0u8; 8];
         LittleEndian::write_u64(&mut nonce_bytes, nonce);
 
