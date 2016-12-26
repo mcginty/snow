@@ -26,12 +26,13 @@ pub struct HandshakeState {
     e: Box<DhType>,                       // local ephemeral
     rs: Vec<u8>,                  // remote static
     re: Vec<u8>,                  // remote ephemeral
+    handshake_pattern: HandshakePattern,
     has_s: bool,
     has_e: bool,
     has_rs: bool,
     has_re: bool,
-    my_turn_to_send : bool,
-    message_patterns : [[Token; 10]; 10],
+    can_send: bool,
+    message_patterns: [[Token; 10]; 10],
     message_index: usize,
 }
 
@@ -176,7 +177,8 @@ impl HandshakeState {
             has_e: has_e,
             has_rs: has_rs,
             has_re: has_re,
-            my_turn_to_send: initiator,
+            handshake_pattern: handshake_pattern,
+            can_send: initiator,
             message_patterns: message_patterns, 
             message_index: 0, 
         })
@@ -206,7 +208,7 @@ impl HandshakeState {
     pub fn write_message(&mut self, 
                          payload: &[u8], 
                          message: &mut [u8]) -> (usize, bool) { 
-        assert!(self.my_turn_to_send);
+        assert!(self.can_send);
         let tokens = self.message_patterns[self.message_index];
         let mut last = false;
         if let Token::Empty = self.message_patterns[self.message_index+1][0] {
@@ -241,7 +243,6 @@ impl HandshakeState {
                 Token::Empty => break
             }
         }
-        self.my_turn_to_send = false;
         byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]);
         assert!(byte_index <= MAXMSGLEN);
         if last {
@@ -253,7 +254,6 @@ impl HandshakeState {
     pub fn read_message(&mut self, 
                         message: &[u8], 
                         payload: &mut [u8]) -> Result<(usize, bool), NoiseError> { 
-        assert!(self.my_turn_to_send == false);
         assert!(message.len() <= MAXMSGLEN);
 
         let tokens = self.message_patterns[self.message_index];
@@ -268,7 +268,6 @@ impl HandshakeState {
         for token in &tokens {
             match *token {
                 Token::E => {
-                    println!("READ: processing E token");
                     self.re.clear();
                     self.re.extend_from_slice(&ptr[..dh_len]);
                     ptr = &ptr[dh_len..];
@@ -279,7 +278,6 @@ impl HandshakeState {
                     self.has_re = true;
                 },
                 Token::S => {
-                    println!("READ: processing S token");
                     let data = if self.symmetricstate.has_key() {
                         let temp = &ptr[..dh_len + TAGLEN];
                         ptr = &ptr[dh_len + TAGLEN..];
@@ -291,11 +289,9 @@ impl HandshakeState {
                     };
                     self.rs.clear();
                     self.rs.resize(32, 0); // XXX
-                    println!("trying to get the key");
                     if !self.symmetricstate.decrypt_and_hash(data, &mut self.rs[..]) {
                         return Err(NoiseError::DecryptError);
                     }
-                    println!("kcool");
                     self.has_rs = true;
                 },
                 Token::Dhee => self.dh(false, false),
@@ -306,10 +302,9 @@ impl HandshakeState {
             }
         }
         if !self.symmetricstate.decrypt_and_hash(ptr, payload) {
-            println!("just generally fucked this one up.");
             return Err(NoiseError::DecryptError);
         }
-        self.my_turn_to_send = true;
+        self.can_send = !HandshakePattern::is_oneway(self.handshake_pattern);
         if last {
             self.symmetricstate.split(self.cipherstate1.deref_mut(), self.cipherstate2.deref_mut());
         }

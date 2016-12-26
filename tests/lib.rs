@@ -150,6 +150,9 @@ fn test_noise_X_legacy() {
     assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
     //println!("{}", buffer.to_hex());
     assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad203cd28d81cf65a2da637f557a05728b3ae4abdc3a42d1cda5f719d6cf41d7f2cf1b1c5af10e38a09a9bb7e3b1d589a99492cc50293eaa1f3f391b59bb6990d");
+    h.write_message(&[0u8;30], &mut buffer);
+    h.write_message(&[0u8;30], &mut buffer);
+    h.write_message(&[0u8;30], &mut buffer);
 }
 
 #[test]

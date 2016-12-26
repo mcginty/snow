@@ -8,6 +8,13 @@ pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, XR, KN, KK, KX, IN, 
 
 impl HandshakePattern {
 
+    pub fn is_oneway(p: HandshakePattern) -> bool {
+        match p {
+            N | X | K => true,
+            _ => false
+        }
+    }
+
     // XXX double check
     pub fn needs_local_static_key(p: HandshakePattern, initiator: bool) -> bool {
         if initiator {
