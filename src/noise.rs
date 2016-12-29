@@ -63,10 +63,10 @@ pub struct NoiseBuilder {
 
 impl NoiseBuilder {
     pub fn new(params: NoiseParams) -> Self {
-        Self::new_with_resolver(params, Box::new(DefaultResolver{}))
+        Self::with_resolver(params, Box::new(DefaultResolver{}))
     }
 
-    pub fn new_with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self
+    pub fn with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self
     {
         NoiseBuilder {
             params: params,

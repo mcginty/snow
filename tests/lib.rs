@@ -171,7 +171,7 @@ fn test_noise_X_with_builder() {
 
     resolver.next_byte(64);
 
-    let mut h = NoiseBuilder::new_with_resolver("Noise_X_25519_ChaChaPoly_SHA256".parse().unwrap(),
+    let mut h = NoiseBuilder::with_resolver("Noise_X_25519_ChaChaPoly_SHA256".parse().unwrap(),
                                                   Box::new(resolver))
         .local_private_key(static_i.privkey())
         .remote_public_key(static_r.pubkey())
@@ -187,10 +187,10 @@ fn test_noise_X_with_builder() {
 fn test_noise_NN_with_builder() {
     let resolver_i = TestResolver::new(0);
     let resolver_r = TestResolver::new(1);
-    let mut h_i = NoiseBuilder::new_with_resolver("Noise_NN_25519_AESGCM_SHA512".parse().unwrap(),
+    let mut h_i = NoiseBuilder::with_resolver("Noise_NN_25519_AESGCM_SHA512".parse().unwrap(),
                                                   Box::new(resolver_i))
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::new_with_resolver("Noise_NN_25519_AESGCM_SHA512".parse().unwrap(),
+    let mut h_r = NoiseBuilder::with_resolver("Noise_NN_25519_AESGCM_SHA512".parse().unwrap(),
                                                   Box::new(resolver_r))
         .build_responder().unwrap();
 
@@ -315,11 +315,11 @@ fn test_noise_XX_with_builder() {
     let resolver_i = TestResolver::new(32);
     let resolver_r = TestResolver::new(33);
 
-    let mut h_i = NoiseBuilder::new_with_resolver("Noise_XX_25519_AESGCM_SHA256".parse().unwrap(),
+    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_AESGCM_SHA256".parse().unwrap(),
                                                   Box::new(resolver_i))
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::new_with_resolver("Noise_XX_25519_AESGCM_SHA256".parse().unwrap(),
+    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_AESGCM_SHA256".parse().unwrap(),
                                                   Box::new(resolver_r))
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
@@ -358,14 +358,14 @@ fn test_noise_IK_with_builder() {
     let resolver_i = TestResolver::new(32);
     let resolver_r = TestResolver::new(33);
 
-    let mut h_i = NoiseBuilder::new_with_resolver("Noise_IK_25519_AESGCM_SHA256".parse().unwrap(),
+    let mut h_i = NoiseBuilder::with_resolver("Noise_IK_25519_AESGCM_SHA256".parse().unwrap(),
                                                   Box::new(resolver_i))
         .local_private_key(static_i.privkey())
         .remote_public_key(static_r.pubkey())
         .prologue("ABC".as_bytes())
         .build_initiator().unwrap();
 
-    let mut h_r = NoiseBuilder::new_with_resolver("Noise_IK_25519_AESGCM_SHA256".parse().unwrap(),
+    let mut h_r = NoiseBuilder::with_resolver("Noise_IK_25519_AESGCM_SHA256".parse().unwrap(),
                                                   Box::new(resolver_r))
         .local_private_key(static_r.privkey())
         .prologue("ABC".as_bytes())
