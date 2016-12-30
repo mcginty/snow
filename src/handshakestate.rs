@@ -214,7 +214,9 @@ impl HandshakeState {
     pub fn write_message(&mut self, 
                          payload: &[u8], 
                          message: &mut [u8]) -> Result<(usize, bool), NoiseError> {
-        assert!(self.can_send);
+        if !self.can_send {
+            return Err(NoiseError::StateError("not ready to write messages yet."));
+        }
         let tokens = self.message_patterns[self.message_index];
         let mut last = false;
         if let Token::Empty = self.message_patterns[self.message_index+1][0] {
@@ -237,7 +239,9 @@ impl HandshakeState {
                     self.has_e = true;
                 },
                 Token::S => {
-                    assert!(self.has_s);
+                    if !self.has_s {
+                        return Err(NoiseError::StateError("self.has_s is false"));
+                    }
                     byte_index += self.symmetricstate.encrypt_and_hash(
                                         &self.s.pubkey(), 
                                         &mut message[byte_index..]);
@@ -250,7 +254,9 @@ impl HandshakeState {
             }
         }
         byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]);
-        assert!(byte_index <= MAXMSGLEN);
+        if byte_index > MAXMSGLEN {
+            return Err(NoiseError::InputError("with tokens, message size exceeds maximum"));
+        }
         if last {
             self.symmetricstate.split(self.cipherstate1.deref_mut(), self.cipherstate2.deref_mut());
         }
