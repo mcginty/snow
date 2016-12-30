@@ -14,6 +14,8 @@ use self::rustc_serialize::hex::{FromHex, ToHex};
 pub enum NoiseError {
     InitError(&'static str),
     PrereqError(String),
+    InputError(&'static str),
+    StateError(&'static str),
     DecryptError
 }
 
@@ -188,11 +190,14 @@ impl HandshakeState {
         self.s.pub_len()
     }
 
-    fn dh(&mut self, local_s: bool, remote_s: bool) {
-        assert!(!local_s || self.has_s);
-        assert!(local_s || self.has_e);
-        assert!(!remote_s || self.has_rs);
-        assert!(remote_s || self.has_re);
+    fn dh(&mut self, local_s: bool, remote_s: bool) -> Result<(), NoiseError> {
+        if !((!local_s  || self.has_s)  &&
+             ( local_s  || self.has_e)  &&
+             (!remote_s || self.has_rs) &&
+             ( remote_s || self.has_re))
+        {
+            return Err(NoiseError::StateError("missing key material"))
+        }
 
         let dh_len = self.dh_len();
         let mut dh_out = [0u8; MAXDHLEN];
@@ -203,11 +208,12 @@ impl HandshakeState {
             (false, false) => self.e.dh(&self.re, &mut dh_out),
         }
         self.symmetricstate.mix_key(&dh_out[..dh_len]);
+        Ok(())
     }
 
     pub fn write_message(&mut self, 
                          payload: &[u8], 
-                         message: &mut [u8]) -> (usize, bool) { 
+                         message: &mut [u8]) -> Result<(usize, bool), NoiseError> {
         assert!(self.can_send);
         let tokens = self.message_patterns[self.message_index];
         let mut last = false;
@@ -236,10 +242,10 @@ impl HandshakeState {
                                         &self.s.pubkey(), 
                                         &mut message[byte_index..]);
                 },
-                Token::Dhee => self.dh(false, false),
-                Token::Dhes => self.dh(false, true),
-                Token::Dhse => self.dh(true, false),
-                Token::Dhss => self.dh(true, true),
+                Token::Dhee => self.dh(false, false)?,
+                Token::Dhes => self.dh(false, true)?,
+                Token::Dhse => self.dh(true,  false)?,
+                Token::Dhss => self.dh(true,  true)?,
                 Token::Empty => break
             }
         }
@@ -248,13 +254,15 @@ impl HandshakeState {
         if last {
             self.symmetricstate.split(self.cipherstate1.deref_mut(), self.cipherstate2.deref_mut());
         }
-        (byte_index, last)
+        Ok((byte_index, last))
     }
 
     pub fn read_message(&mut self, 
                         message: &[u8], 
-                        payload: &mut [u8]) -> Result<(usize, bool), NoiseError> { 
-        assert!(message.len() <= MAXMSGLEN);
+                        payload: &mut [u8]) -> Result<(usize, bool), NoiseError> {
+        if message.len() > MAXMSGLEN {
+            return Err(NoiseError::InputError("msg greater than max message length"));
+        }
 
         let tokens = self.message_patterns[self.message_index];
         let mut last = false;
@@ -294,10 +302,10 @@ impl HandshakeState {
                     }
                     self.has_rs = true;
                 },
-                Token::Dhee => self.dh(false, false),
-                Token::Dhes => self.dh(true, false),
-                Token::Dhse => self.dh(false, true),
-                Token::Dhss => self.dh(true, true),
+                Token::Dhee => self.dh(false, false)?,
+                Token::Dhes => self.dh(true,  false)?,
+                Token::Dhse => self.dh(false, true)?,
+                Token::Dhss => self.dh(true,  true)?,
                 Token::Empty => break
             }
         }

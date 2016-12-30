@@ -113,7 +113,7 @@ fn test_noise_N_legacy() {
 
 
         let mut buffer = [0u8; 48];
-        assert!(h.write_message(&[0u8;0], &mut buffer).0 == 48);
+        assert!(h.write_message(&[0u8;0], &mut buffer).unwrap().0 == 48);
         //println!("{}", buffer.to_hex());
         assert!(buffer.to_hex() =="358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662548331a3d1e93b490263abc7a4633867f4"); 
 
@@ -147,7 +147,7 @@ fn test_noise_X_legacy() {
                         Box::new(cipherstate2)).unwrap();
 
     let mut buffer = [0u8; 96];
-    assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
+    assert!(h.write_message(&[0u8;0], &mut buffer).unwrap().0 == 96);
     //println!("{}", buffer.to_hex());
     assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad203cd28d81cf65a2da637f557a05728b3ae4abdc3a42d1cda5f719d6cf41d7f2cf1b1c5af10e38a09a9bb7e3b1d589a99492cc50293eaa1f3f391b59bb6990d");
     h.write_message(&[0u8;30], &mut buffer);
@@ -178,7 +178,7 @@ fn test_noise_X_with_builder() {
         .build_initiator().unwrap();
 
     let mut buffer = [0u8; 96];
-    assert!(h.write_message(&[0u8;0], &mut buffer).0 == 96);
+    assert!(h.write_message(&[0u8;0], &mut buffer).unwrap().0 == 96);
     println!("{}", buffer.to_hex());
     assert!(buffer.to_hex() == "79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad203cd28d81cf65a2da637f557a05728b3ae4abdc3a42d1cda5f719d6cf41d7f2cf1b1c5af10e38a09a9bb7e3b1d589a99492cc50293eaa1f3f391b59bb6990d");
 }
@@ -196,10 +196,10 @@ fn test_noise_NN_with_builder() {
 
     let mut buffer_msg = [0u8; 64];
     let mut buffer_out = [0u8; 10];
-    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
+    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap().0 == 35);
     assert!(h_r.read_message(&buffer_msg[..35], &mut buffer_out).unwrap().0 == 3);
     assert!(buffer_out[..3].to_hex() == "616263");
-    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 52);
+    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap().0 == 52);
     assert!(h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap().0 == 4);
     assert!(buffer_out[..4].to_hex() == "64656667");
     assert!(buffer_msg[..52].to_hex() == "07a37cbc142093c8b755dc1b10e86cb426374ad16aa853ed0bdfc0b2b86d1c7c5e4dc9545d41b3280f4586a5481829e1e24ec5a0");
@@ -235,11 +235,11 @@ fn test_noise_NN_legacy() {
 
     let mut buffer_msg = [0u8; 64];
     let mut buffer_out = [0u8; 10];
-    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
+    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap().0 == 35);
     assert!(h_r.read_message(&buffer_msg[..35], &mut buffer_out).unwrap().0 == 3);
     assert!(buffer_out[..3].to_hex() == "616263");
 
-    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 52);
+    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap().0 == 52);
     assert!(h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap().0 == 4);
     assert!(buffer_out[..4].to_hex() == "64656667");
 
@@ -285,15 +285,15 @@ fn test_noise_XX_legacy() {
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
-    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
+    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap().0 == 35);
     assert!(h_r.read_message(&buffer_msg[..35], &mut buffer_out).unwrap().0 == 3);
     assert!(buffer_out[..3].to_hex() == "616263");
 
-    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 100);
+    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap().0 == 100);
     assert!(h_i.read_message(&buffer_msg[..100], &mut buffer_out).unwrap().0 == 4);
     assert!(buffer_out[..4].to_hex() == "64656667");
 
-    assert!(h_i.write_message(&[0u8;0], &mut buffer_msg).0 == 64);
+    assert!(h_i.write_message(&[0u8;0], &mut buffer_msg).unwrap().0 == 64);
     assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
 
     assert!(buffer_msg[..64].to_hex() == "8127f4b35cdbdf0935fcf1ec99016d1dcbc350055b8af360be196905dfb50a2c1c38a7ca9cb0cfe8f4576f36c47a4933eee32288f590ac4305d4b53187577be7");
@@ -326,17 +326,17 @@ fn test_noise_XX_with_builder() {
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
-    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 35);
+    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap().0 == 35);
     println!("msg1: {:?}", &buffer_msg[..35]);
     assert!(h_r.read_message(&buffer_msg[..35], &mut buffer_out).unwrap().0 == 3);
     assert!(buffer_out[..3].to_hex() == "616263");
 
-    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 100);
+    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap().0 == 100);
     println!("msg2: {:?}", &buffer_msg[..100]);
     assert!(h_i.read_message(&buffer_msg[..100], &mut buffer_out).unwrap().0 == 4);
     assert!(buffer_out[..4].to_hex() == "64656667");
 
-    assert!(h_i.write_message(&[0u8;0], &mut buffer_msg).0 == 64);
+    assert!(h_i.write_message(&[0u8;0], &mut buffer_msg).unwrap().0 == 64);
     assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
 
     assert!(buffer_msg[..64].to_hex() == "8127f4b35cdbdf0935fcf1ec99016d1dcbc350055b8af360be196905dfb50a2c1c38a7ca9cb0cfe8f4576f36c47a4933eee32288f590ac4305d4b53187577be7");
@@ -373,11 +373,11 @@ fn test_noise_IK_with_builder() {
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
-    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 99);
+    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap().0 == 99);
     assert!(h_r.read_message(&buffer_msg[..99], &mut buffer_out).unwrap().0 == 3);
     assert!(buffer_out[..3].to_hex() == "616263");
 
-    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 52);
+    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap().0 == 52);
     assert!(h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap().0 == 4);
     assert!(buffer_out[..4].to_hex() == "64656667");
 
@@ -424,11 +424,11 @@ fn test_noise_IK_legacy() {
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
-    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).0 == 99);
+    assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap().0 == 99);
     assert!(h_r.read_message(&buffer_msg[..99], &mut buffer_out).unwrap().0 == 3);
     assert!(buffer_out[..3].to_hex() == "616263");
 
-    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).0 == 52);
+    assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap().0 == 52);
     assert!(h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap().0 == 4);
     assert!(buffer_out[..4].to_hex() == "64656667");
 
