@@ -181,7 +181,6 @@ impl HandshakeState {
     }
 
     fn dh(&mut self, local_s: bool, remote_s: bool) -> Result<(), NoiseError> {
-        println!("dh(local_s: {}, remote_s: {})", local_s, remote_s);
         if !((!local_s  || self.has_s)  &&
              ( local_s  || self.has_e)  &&
              (!remote_s || self.has_rs) &&
@@ -205,8 +204,6 @@ impl HandshakeState {
     pub fn write_message(&mut self, 
                          payload: &[u8], 
                          message: &mut [u8]) -> Result<(usize, bool), NoiseError> {
-        println!("write_message ({} token sets left)", self.message_patterns.len());
-        println!("({:?})", self.message_patterns);
         if !self.can_send {
             return Err(NoiseError::StateError("not ready to write messages yet."));
         }
@@ -220,8 +217,6 @@ impl HandshakeState {
 
         let mut byte_index = 0;
         if let Some(tokens) = next_tokens {
-            println!("write_message is using available msg_pattern");
-            println!("tokens to go through: {:?}", tokens);
             for token in &tokens {
                 match *token {
                     Token::E => {
@@ -237,7 +232,6 @@ impl HandshakeState {
                         self.has_e = true;
                     },
                     Token::S => {
-                        println!("write_message Token::S");
                         if !self.has_s {
                             return Err(NoiseError::StateError("self.has_s is false"));
                         }
@@ -266,7 +260,6 @@ impl HandshakeState {
     pub fn read_message(&mut self, 
                         message: &[u8], 
                         payload: &mut [u8]) -> Result<(usize, bool), NoiseError> {
-        println!("read_message");
         if message.len() > MAXMSGLEN {
             return Err(NoiseError::InputError("msg greater than max message length"));
         }
@@ -281,11 +274,9 @@ impl HandshakeState {
         let dh_len = self.dh_len();
         let mut ptr = message;
         if let Some(tokens) = next_tokens {
-            println!("read_message is using available msg_pattern");
             for token in &tokens {
                 match *token {
                     Token::E => {
-                        println!("read_message Token::E");
                         self.re.clear();
                         self.re.extend_from_slice(&ptr[..dh_len]);
                         ptr = &ptr[dh_len..];
@@ -296,7 +287,6 @@ impl HandshakeState {
                         self.has_re = true;
                     },
                     Token::S => {
-                        println!("read_message Token::S");
                         let data = if self.symmetricstate.has_key() {
                             let temp = &ptr[..dh_len + TAGLEN];
                             ptr = &ptr[dh_len + TAGLEN..];
