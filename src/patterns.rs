@@ -1,7 +1,8 @@
 use std::str::FromStr;
+use std::fmt;
 
-#[derive(Copy, Clone)]
-pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss, Empty}
+#[derive(Copy, Clone, Debug)]
+pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss}
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, XR, KN, KK, KX, IN, IK, IX, XXfallback}
@@ -72,6 +73,40 @@ impl FromStr for HandshakePattern {
     }
 }
 
+// NOTE: this can probably be made much shorter with the derived
+// Debug trait, but I'm keeping this explicit now.
+impl fmt::Display for HandshakePattern {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::HandshakePattern::*;
+        write!(f, "{}", match *self {
+            N => "N",
+            X => "X",
+            K => "K",
+            NN => "NN",
+            NK => "NK",
+            NX => "NX",
+            XN => "XN",
+            XK => "XK",
+            XX => "XX",
+            XR => "XR",
+            KN => "KN",
+            KK => "KK",
+            KX => "KX",
+            IN => "IN",
+            IK => "IK",
+            IX => "IX",
+            XXfallback => "XXfallback",
+        })
+    }
+}
+
+pub struct HandshakeTokens {
+    pub name: String,
+    pub premsg_pattern_i: Vec<Token>,
+    pub premsg_pattern_r: Vec<Token>,
+    pub msg_patterns: Vec<Vec<Token>>,
+}
+
 use self::Token::*;
 use self::HandshakePattern::*;
 
@@ -79,149 +114,101 @@ fn copy_tokens(input: &[Token], out: &mut [Token]) {
     for count in 0..input.len() {out[count] = input[count];}
 }
 
-pub fn resolve_handshake_pattern(
-                            handshake_pattern: HandshakePattern,
-                            name: &mut String,
-                            premsg_pattern_i: &mut [Token],
-                            premsg_pattern_r: &mut [Token], 
-                            msg_patterns: &mut [[Token; 10]; 10]) {
-    match handshake_pattern {
-        N => { 
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[S], premsg_pattern_r);
-            copy_tokens(&[E, Dhes], &mut msg_patterns[0]);
-            name.push_str("N");
-        },
+pub fn resolve_handshake_pattern(handshake_pattern: HandshakePattern) -> HandshakeTokens {
+    let mut name = String::with_capacity(10);
 
-        K => { 
-            copy_tokens(&[S], premsg_pattern_i);
-            copy_tokens(&[S], premsg_pattern_r);
-            copy_tokens(&[E, Dhes, Dhss], &mut msg_patterns[0]);
-            name.push_str("K");
-        },
+    let (premsg_pattern_i, premsg_pattern_r, msg_patterns) = match handshake_pattern {
+        N  => (
+            vec![],
+            vec![S],
+            vec![vec![E, Dhes]]
+        ),
+        K  => (
+            vec![S],
+            vec![S],
+            vec![vec![E, Dhes, Dhss]]
+        ),
+        X  => (
+            vec![],
+            vec![S],
+            vec![vec![E, Dhes, S, Dhss]]
+        ),
+        NN => (
+            vec![],
+            vec![],
+            vec![vec![E], vec![E, Dhee]]
+        ),
+        NK => (
+            vec![],
+            vec![S],
+            vec![vec![E, Dhes], vec![E, Dhee]]
+        ),
+        NX => (
+            vec![],
+            vec![],
+            vec![vec![E], vec![E, Dhee, S, Dhse]]
+        ),
+        XN => (
+            vec![],
+            vec![],
+            vec![vec![E], vec![E, Dhee], vec![S, Dhse]]
+        ),
+        XK => (
+            vec![],
+            vec![S],
+            vec![vec![E, Dhes], vec![E, Dhee], vec![S, Dhse]]
+        ),
+        XX => (
+            vec![],
+            vec![],
+            vec![vec![E], vec![E, Dhee, S, Dhse], vec![S, Dhse]],
+        ),
+        XR => (
+            vec![],
+            vec![],
+            vec![vec![E], vec![E, Dhee], vec![S, Dhse], vec![S, Dhse]],
+        ),
+        KN => (
+            vec![S],
+            vec![],
+            vec![vec![E], vec![E, Dhee, Dhes]],
+        ),
+        KK => (
+            vec![S],
+            vec![S],
+            vec![vec![E, Dhes, Dhss], vec![E, Dhee, Dhes]],
+        ),
+        KX => (
+            vec![S],
+            vec![],
+            vec![vec![E], vec![E, Dhee, Dhes, S, Dhse]],
+        ),
+        IN => (
+            vec![],
+            vec![],
+            vec![vec![E, S], vec![E, Dhee, Dhes]],
+        ),
+        IK => (
+            vec![],
+            vec![S],
+            vec![vec![E, Dhes, S, Dhss], vec![E, Dhee, Dhes]],
+        ),
+        IX => (
+            vec![],
+            vec![],
+            vec![vec![E, S], vec![E, Dhee, Dhes, S, Dhse]],
+        ),
+        XXfallback => (
+            vec![],
+            vec![E],
+            vec![vec![E, Dhee, S, Dhse], vec![S, Dhse]],
+        )
+    };
 
-        X => { 
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[S], premsg_pattern_r);
-            copy_tokens(&[E, Dhes, S, Dhss], &mut msg_patterns[0]);
-            name.push_str("X");
-        },
-
-        NN => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[], premsg_pattern_r);
-            copy_tokens(&[E], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
-            name.push_str("NN");
-        },
-
-        NK => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[S], premsg_pattern_r);
-            copy_tokens(&[E, Dhes], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
-            name.push_str("NK");
-        },
-
-        NX => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[], premsg_pattern_r);
-            copy_tokens(&[E], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee, S, Dhse], &mut msg_patterns[1]);
-            name.push_str("NX");
-        },
-
-        XN => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[], premsg_pattern_r);
-            copy_tokens(&[E], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
-            copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
-            name.push_str("XN");
-        },
-
-        XK => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[S], premsg_pattern_r);
-            copy_tokens(&[E, Dhes], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
-            copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
-            name.push_str("XK");
-        },
-
-        XX => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[], premsg_pattern_r);
-            copy_tokens(&[E], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee, S, Dhse], &mut msg_patterns[1]);
-            copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
-            name.push_str("XX");
-        },
-
-        XR => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[], premsg_pattern_r);
-            copy_tokens(&[E], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee], &mut msg_patterns[1]);
-            copy_tokens(&[S, Dhse], &mut msg_patterns[2]);
-            copy_tokens(&[S, Dhse], &mut msg_patterns[3]);
-            name.push_str("XR");
-        },
-
-        KN => {
-            copy_tokens(&[S], premsg_pattern_i);
-            copy_tokens(&[], premsg_pattern_r);
-            copy_tokens(&[E], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
-            name.push_str("KN");
-        }
-
-        KK => {
-            copy_tokens(&[S], premsg_pattern_i);
-            copy_tokens(&[S], premsg_pattern_r);
-            copy_tokens(&[E, Dhes, Dhss], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
-            name.push_str("KK");
-        }
-
-        KX => {
-            copy_tokens(&[S], premsg_pattern_i);
-            copy_tokens(&[], premsg_pattern_r);
-            copy_tokens(&[E], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee, Dhes, S, Dhse], &mut msg_patterns[1]);
-            name.push_str("KX");
-        }
-
-        IN => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[], premsg_pattern_r);
-            copy_tokens(&[E, S], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
-            name.push_str("IN");
-        }
-
-        IK => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[S], premsg_pattern_r);
-            copy_tokens(&[E, Dhes, S, Dhss], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee, Dhes], &mut msg_patterns[1]);
-            name.push_str("IK");
-        }
-
-        IX => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[], premsg_pattern_r);
-            copy_tokens(&[E, S], &mut msg_patterns[0]);
-            copy_tokens(&[E, Dhee, Dhes, S, Dhse], &mut msg_patterns[1]);
-            name.push_str("IX");
-        }
-
-        XXfallback => {
-            copy_tokens(&[], premsg_pattern_i);
-            copy_tokens(&[E], premsg_pattern_r);
-            copy_tokens(&[E, Dhee, S, Dhse], &mut msg_patterns[0]);
-            copy_tokens(&[S, Dhse], &mut msg_patterns[1]);
-            name.push_str("XXfallback");
-        }
+    HandshakeTokens {
+        name: handshake_pattern.to_string(),
+        premsg_pattern_i: premsg_pattern_i,
+        premsg_pattern_r: premsg_pattern_r,
+        msg_patterns: msg_patterns,
     }
 }

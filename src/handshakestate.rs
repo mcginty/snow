@@ -34,8 +34,7 @@ pub struct HandshakeState {
     has_rs: bool,
     has_re: bool,
     can_send: bool,
-    message_patterns: [[Token; 10]; 10],
-    message_index: usize,
+    message_patterns: Vec<Vec<Token>>, // 2D Token array
 }
 
 impl HandshakeState {
@@ -86,9 +85,6 @@ impl HandshakeState {
         use self::NoiseError::*;
 
         let mut handshake_name = String::with_capacity(128);
-        let mut premsg_pattern_i = [Token::Empty; 2];
-        let mut premsg_pattern_r = [Token::Empty; 2];
-        let mut message_patterns = [[Token::Empty; 10]; 10];
 
         if cipherstate1.name() != cipherstate2.name() {
             return Err(InitError("cipherstates don't match"));
@@ -109,11 +105,8 @@ impl HandshakeState {
             Some(_) => "NoisePSK_",
             None    => "Noise_"
         });
-        resolve_handshake_pattern(handshake_pattern,
-                                  &mut handshake_name,
-                                  &mut premsg_pattern_i,
-                                  &mut premsg_pattern_r,
-                                  &mut message_patterns);
+        let tokens = resolve_handshake_pattern(handshake_pattern);
+        handshake_name.push_str(&tokens.name);
         handshake_name.push('_');
         handshake_name.push_str(s.name());
         handshake_name.push('_');
@@ -131,40 +124,38 @@ impl HandshakeState {
         }
 
         if initiator {
-            for token in &premsg_pattern_i {
-                match *token {
+            for token in tokens.premsg_pattern_i {
+                match token {
                     Token::S => {assert!(has_s); symmetricstate.mix_hash(s.pubkey());},
                     Token::E => {assert!(has_e); symmetricstate.mix_hash(e.pubkey());},
-                    Token::Empty => break,
                     _ => unreachable!()
                 }
             }
-            for token in &premsg_pattern_r {
-                match *token {
+            for token in tokens.premsg_pattern_r {
+                match token {
                     Token::S => {assert!(has_rs); symmetricstate.mix_hash(&rs);},
                     Token::E => {assert!(has_re); symmetricstate.mix_hash(&re);},
-                    Token::Empty => break,
                     _ => unreachable!()
                 }
             }
         } else {
-            for token in &premsg_pattern_i {
-                match *token {
+            for token in tokens.premsg_pattern_i {
+                match token {
                     Token::S => {assert!(has_rs); symmetricstate.mix_hash(&rs);},
                     Token::E => {assert!(has_re); symmetricstate.mix_hash(&re);},
-                    Token::Empty => break,
                     _ => unreachable!()
                 }
             }
-            for token in &premsg_pattern_r {
-                match *token {
+            for token in tokens.premsg_pattern_r {
+                match token {
                     Token::S => {assert!(has_s); symmetricstate.mix_hash(s.pubkey());},
                     Token::E => {assert!(has_e); symmetricstate.mix_hash(e.pubkey());},
-                    Token::Empty => break,
                     _ => unreachable!()
                 }
             }
         }
+
+        println!("{}: {:?}", handshake_name, tokens.msg_patterns);
 
         Ok(HandshakeState {
             rng: rng,  
@@ -181,8 +172,7 @@ impl HandshakeState {
             has_re: has_re,
             handshake_pattern: handshake_pattern,
             can_send: initiator,
-            message_patterns: message_patterns, 
-            message_index: 0, 
+            message_patterns: tokens.msg_patterns,
         })
     }
 
@@ -191,6 +181,7 @@ impl HandshakeState {
     }
 
     fn dh(&mut self, local_s: bool, remote_s: bool) -> Result<(), NoiseError> {
+        println!("dh(local_s: {}, remote_s: {})", local_s, remote_s);
         if !((!local_s  || self.has_s)  &&
              ( local_s  || self.has_e)  &&
              (!remote_s || self.has_rs) &&
@@ -214,45 +205,54 @@ impl HandshakeState {
     pub fn write_message(&mut self, 
                          payload: &[u8], 
                          message: &mut [u8]) -> Result<(usize, bool), NoiseError> {
+        println!("write_message ({} token sets left)", self.message_patterns.len());
+        println!("({:?})", self.message_patterns);
         if !self.can_send {
             return Err(NoiseError::StateError("not ready to write messages yet."));
         }
-        let tokens = self.message_patterns[self.message_index];
-        let mut last = false;
-        if let Token::Empty = self.message_patterns[self.message_index+1][0] {
-            last = true;
-        }
-        self.message_index += 1;
+
+        let next_tokens = if self.message_patterns.len() > 0 {
+            Some(self.message_patterns.remove(0))
+        } else {
+            None
+        };
+        let last = next_tokens.is_some() && self.message_patterns.is_empty();
 
         let mut byte_index = 0;
-        for token in &tokens {
-            match *token {
-                Token::E => {
-                    self.e.generate(self.rng.deref_mut());
-                    let pubkey = self.e.pubkey();
-                    copy_memory(pubkey, &mut message[byte_index..]);
-                    byte_index += self.s.pub_len();
-                    self.symmetricstate.mix_hash(&pubkey);
-                    if self.symmetricstate.has_preshared_key() {
-                        self.symmetricstate.mix_key(&pubkey);
-                    }
-                    self.has_e = true;
-                },
-                Token::S => {
-                    if !self.has_s {
-                        return Err(NoiseError::StateError("self.has_s is false"));
-                    }
-                    byte_index += self.symmetricstate.encrypt_and_hash(
-                                        &self.s.pubkey(), 
-                                        &mut message[byte_index..]);
-                },
-                Token::Dhee => self.dh(false, false)?,
-                Token::Dhes => self.dh(false, true)?,
-                Token::Dhse => self.dh(true,  false)?,
-                Token::Dhss => self.dh(true,  true)?,
-                Token::Empty => break
+        if let Some(tokens) = next_tokens {
+            println!("write_message is using available msg_pattern");
+            println!("tokens to go through: {:?}", tokens);
+            for token in &tokens {
+                match *token {
+                    Token::E => {
+                        println!("write_message Token::E");
+                        self.e.generate(self.rng.deref_mut());
+                        let pubkey = self.e.pubkey();
+                        copy_memory(pubkey, &mut message[byte_index..]);
+                        byte_index += self.s.pub_len();
+                        self.symmetricstate.mix_hash(&pubkey);
+                        if self.symmetricstate.has_preshared_key() {
+                            self.symmetricstate.mix_key(&pubkey);
+                        }
+                        self.has_e = true;
+                    },
+                    Token::S => {
+                        println!("write_message Token::S");
+                        if !self.has_s {
+                            return Err(NoiseError::StateError("self.has_s is false"));
+                        }
+                        byte_index += self.symmetricstate.encrypt_and_hash(
+                            &self.s.pubkey(),
+                            &mut message[byte_index..]);
+                    },
+                    Token::Dhee => self.dh(false, false)?,
+                    Token::Dhes => self.dh(false, true)?,
+                    Token::Dhse => self.dh(true,  false)?,
+                    Token::Dhss => self.dh(true,  true)?,
+                }
             }
         }
+
         byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]);
         if byte_index > MAXMSGLEN {
             return Err(NoiseError::InputError("with tokens, message size exceeds maximum"));
@@ -266,53 +266,58 @@ impl HandshakeState {
     pub fn read_message(&mut self, 
                         message: &[u8], 
                         payload: &mut [u8]) -> Result<(usize, bool), NoiseError> {
+        println!("read_message");
         if message.len() > MAXMSGLEN {
             return Err(NoiseError::InputError("msg greater than max message length"));
         }
 
-        let tokens = self.message_patterns[self.message_index];
-        let mut last = false;
-        if let Token::Empty = self.message_patterns[self.message_index+1][0] {
-            last = true;
-        }
-        self.message_index += 1;
+        let next_tokens = if self.message_patterns.len() > 0 {
+            Some(self.message_patterns.remove(0))
+        } else {
+            None
+        };
+        let last = next_tokens.is_some() && self.message_patterns.is_empty();
 
         let dh_len = self.dh_len();
         let mut ptr = message;
-        for token in &tokens {
-            match *token {
-                Token::E => {
-                    self.re.clear();
-                    self.re.extend_from_slice(&ptr[..dh_len]);
-                    ptr = &ptr[dh_len..];
-                    self.symmetricstate.mix_hash(&self.re);
-                    if self.symmetricstate.has_preshared_key() {
-                        self.symmetricstate.mix_key(&self.re);
-                    }
-                    self.has_re = true;
-                },
-                Token::S => {
-                    let data = if self.symmetricstate.has_key() {
-                        let temp = &ptr[..dh_len + TAGLEN];
-                        ptr = &ptr[dh_len + TAGLEN..];
-                        temp
-                    } else {
-                        let temp = &ptr[..dh_len];
+        if let Some(tokens) = next_tokens {
+            println!("read_message is using available msg_pattern");
+            for token in &tokens {
+                match *token {
+                    Token::E => {
+                        println!("read_message Token::E");
+                        self.re.clear();
+                        self.re.extend_from_slice(&ptr[..dh_len]);
                         ptr = &ptr[dh_len..];
-                        temp
-                    };
-                    self.rs.clear();
-                    self.rs.resize(32, 0); // XXX
-                    if !self.symmetricstate.decrypt_and_hash(data, &mut self.rs[..]) {
-                        return Err(NoiseError::DecryptError);
-                    }
-                    self.has_rs = true;
-                },
-                Token::Dhee => self.dh(false, false)?,
-                Token::Dhes => self.dh(true,  false)?,
-                Token::Dhse => self.dh(false, true)?,
-                Token::Dhss => self.dh(true,  true)?,
-                Token::Empty => break
+                        self.symmetricstate.mix_hash(&self.re);
+                        if self.symmetricstate.has_preshared_key() {
+                            self.symmetricstate.mix_key(&self.re);
+                        }
+                        self.has_re = true;
+                    },
+                    Token::S => {
+                        println!("read_message Token::S");
+                        let data = if self.symmetricstate.has_key() {
+                            let temp = &ptr[..dh_len + TAGLEN];
+                            ptr = &ptr[dh_len + TAGLEN..];
+                            temp
+                        } else {
+                            let temp = &ptr[..dh_len];
+                            ptr = &ptr[dh_len..];
+                            temp
+                        };
+                        self.rs.clear();
+                        self.rs.resize(32, 0); // XXX
+                        if !self.symmetricstate.decrypt_and_hash(data, &mut self.rs[..]) {
+                            return Err(NoiseError::DecryptError);
+                        }
+                        self.has_rs = true;
+                    },
+                    Token::Dhee => self.dh(false, false)?,
+                    Token::Dhes => self.dh(true, false)?,
+                    Token::Dhse => self.dh(false, true)?,
+                    Token::Dhss => self.dh(true, true)?,
+                }
             }
         }
         if !self.symmetricstate.decrypt_and_hash(ptr, payload) {
