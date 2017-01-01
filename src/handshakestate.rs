@@ -19,15 +19,16 @@ pub enum NoiseError {
     DecryptError
 }
 
+// TODO move has_* bools to just using Option<*>, but verify behavior is the same.
 pub struct HandshakeState {
     rng : Box<RandomType>,                // for generating ephemerals
-    symmetricstate : SymmetricState, // for handshaking
+    symmetricstate : SymmetricState,      // for handshaking
     cipherstate1: Box<CipherStateType>,   // for I -> R transport msgs
     cipherstate2: Box<CipherStateType>,   // for I <- R transport msgs
     s: Box<DhType>,                       // local static
     e: Box<DhType>,                       // local ephemeral
-    rs: Vec<u8>,                  // remote static
-    re: Vec<u8>,                  // remote ephemeral
+    rs: Vec<u8>,                          // remote static
+    re: Vec<u8>,                          // remote ephemeral
     handshake_pattern: HandshakePattern,
     has_s: bool,
     has_e: bool,
