@@ -341,3 +341,51 @@ fn bench_read_message_chachapoly(b: &mut Bencher) {
         i += 1;
     });
 }
+
+#[bench]
+fn bench_new_builder_from_string_with_key(b: &mut Bencher) {
+    let mut static_i:Dh25519 = Default::default();
+    let privkey = static_i.privkey();
+    b.iter(move || {
+        NoiseBuilder::new("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap())
+                .local_private_key(privkey)
+                .build_initiator().unwrap();
+    });
+}
+
+#[bench]
+fn bench_new_builder_from_string_skeleton(b: &mut Bencher) {
+    b.iter(move || {
+        NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
+            .build_initiator().unwrap();
+    });
+}
+
+#[bench]
+fn bench_new_builder_from_params_skeleton(b: &mut Bencher) {
+    b.iter(move || {
+        let init = NoiseParams::new(BaseChoice::Noise,
+                                    HandshakePattern::NN,
+                                    DHChoice::Curve25519,
+                                    CipherChoice::ChaChaPoly,
+                                    HashChoice::SHA256);
+        NoiseBuilder::new(init)
+            .build_initiator().unwrap();
+    });
+}
+
+#[bench]
+fn bench_new_builder_from_params_with_key(b: &mut Bencher) {
+    let mut static_i:Dh25519 = Default::default();
+    let privkey = static_i.privkey();
+    b.iter(move || {
+        let init = NoiseParams::new(BaseChoice::Noise,
+                                    HandshakePattern::NN,
+                                    DHChoice::Curve25519,
+                                    CipherChoice::ChaChaPoly,
+                                    HashChoice::SHA256);
+        NoiseBuilder::new(init)
+            .local_private_key(privkey)
+            .build_initiator().unwrap();
+    });
+}
