@@ -155,8 +155,6 @@ impl HandshakeState {
             }
         }
 
-        println!("{}: {:?}", handshake_name, tokens.msg_patterns);
-
         Ok(HandshakeState {
             rng: rng,  
             symmetricstate: symmetricstate,
@@ -220,7 +218,6 @@ impl HandshakeState {
             for token in &tokens {
                 match *token {
                     Token::E => {
-                        println!("write_message Token::E");
                         self.e.generate(self.rng.deref_mut());
                         let pubkey = self.e.pubkey();
                         copy_memory(pubkey, &mut message[byte_index..]);
