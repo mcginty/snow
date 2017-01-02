@@ -1,13 +1,12 @@
 extern crate crypto;
 extern crate byteorder;
 extern crate rustc_serialize;
+extern crate blake2_rfc;
 
 use self::crypto::digest::Digest;
 use self::crypto::mac::Mac;
 use self::crypto::symmetriccipher::SynchronousStreamCipher;
 use self::crypto::sha2::{Sha256, Sha512};
-use self::crypto::blake2b::Blake2b;
-use self::crypto::blake2s::Blake2s;
 use self::crypto::aes::KeySize;
 use self::crypto::aes_gcm::AesGcm;
 use self::crypto::chacha20::ChaCha20;
@@ -15,6 +14,8 @@ use self::crypto::poly1305::Poly1305;
 use self::crypto::aead::{AeadEncryptor, AeadDecryptor};
 use self::crypto::curve25519::{curve25519, curve25519_base};
 use self::crypto::util::fixed_time_eq;
+use self::blake2_rfc::blake2b::Blake2b;
+use self::blake2_rfc::blake2s::Blake2s;
 
 use self::byteorder::{ByteOrder, BigEndian, LittleEndian};
 use self::rustc_serialize::hex::{FromHex, ToHex};
@@ -25,34 +26,34 @@ use utils::*;
 
 #[derive(Default)]
 pub struct Dh25519 {
-    privkey : [u8; 32],
-    pubkey  : [u8; 32],
+    privkey: [u8; 32],
+    pubkey:  [u8; 32],
 }
 
 #[derive(Default)]
 pub struct CipherAESGCM {
-    key : [u8; 32],
+    key: [u8; 32],
 }
 
 #[derive(Default)]
 pub struct CipherChaChaPoly {
-    key : [u8; 32],
+    key: [u8; 32],
 }
 
 pub struct HashSHA256 {
-    hasher : Sha256
+    hasher: Sha256
 }
 
 pub struct HashSHA512 {
-    hasher : Sha512
+    hasher: Sha512
 }
 
 pub struct HashBLAKE2b {
-    hasher : Blake2b
+    hasher: Blake2b
 }
 
 pub struct HashBLAKE2s {
-    hasher : Blake2s
+    hasher: Blake2s
 }
 
 impl DhType for Dh25519 {
@@ -74,7 +75,7 @@ impl DhType for Dh25519 {
 
     fn generate(&mut self, rng: &mut RandomType) {
         rng.fill_bytes(&mut self.privkey);
-        self.privkey[0] &= 248;
+        self.privkey[0]  &= 248;
         self.privkey[31] &= 127;
         self.privkey[31] |= 64;
         let pubkey = curve25519_base(&self.privkey);
@@ -262,15 +263,14 @@ impl HashType for HashSHA512 {
 
 impl Default for HashBLAKE2b {
     fn default() -> HashBLAKE2b {
-        HashBLAKE2b{hasher:Blake2b::new(64)}
+        HashBLAKE2b { hasher: Blake2b::new(64) }
     }
 }
 
 impl HashType for HashBLAKE2b {
 
     fn name(&self) -> &'static str {
-        static NAME: &'static str = "BLAKE2b";
-        NAME
+        "BLAKE2b"
     }
 
     fn block_len(&self) -> usize {
@@ -286,25 +286,25 @@ impl HashType for HashBLAKE2b {
     }   
 
     fn input(&mut self, data: &[u8]) {
-        crypto::digest::Digest::input(&mut self.hasher, data);
+        self.hasher.update(data);
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        crypto::digest::Digest::result(&mut self.hasher, out);
+        let hash = self.hasher.clone().finalize();
+        out[..64].copy_from_slice(hash.as_bytes());
     }
 }
 
 impl Default for HashBLAKE2s {
     fn default() -> HashBLAKE2s {
-        HashBLAKE2s{hasher:Blake2s::new(32)}
+        HashBLAKE2s { hasher: Blake2s::new(32) }
     }
 }
 
 impl HashType for HashBLAKE2s {
 
     fn name(&self) -> &'static str {
-        static NAME: &'static str = "BLAKE2s";
-        NAME
+        "BLAKE2s"
     }
 
     fn block_len(&self) -> usize {
@@ -317,14 +317,15 @@ impl HashType for HashBLAKE2s {
 
     fn reset(&mut self) {
         self.hasher = Blake2s::new(32);
-    }   
+    }
 
     fn input(&mut self, data: &[u8]) {
-        crypto::digest::Digest::input(&mut self.hasher, data);
+        self.hasher.update(data);
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        crypto::digest::Digest::result(&mut self.hasher, out);
+        let hash = self.hasher.clone().finalize();
+        out[..32].copy_from_slice(hash.as_bytes());
     }
 }
 
