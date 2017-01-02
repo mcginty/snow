@@ -46,11 +46,11 @@ impl CryptoResolver for DefaultResolver {
     }
 }
 
-pub struct NoiseBuilder {
+pub struct NoiseBuilder<'a> {
     params: NoiseParams,           // Deserialized protocol spec
     resolver: Box<CryptoResolver>, // The mapper from protocol choices to crypto implementations
-    pub s:  Vec<u8>,
-    pub e:  Vec<u8>,
+    pub s:  &'a [u8],
+    pub e:  &'a [u8],
     pub rs: Vec<u8>,
     pub re: Vec<u8>,
     pub psk: Option<Vec<u8>>,
@@ -61,7 +61,7 @@ pub struct NoiseBuilder {
     pub has_re: bool,
 }
 
-impl NoiseBuilder {
+impl<'a> NoiseBuilder<'a> {
     pub fn new(params: NoiseParams) -> Self {
         Self::with_resolver(params, Box::new(DefaultResolver{}))
     }
@@ -71,8 +71,8 @@ impl NoiseBuilder {
         NoiseBuilder {
             params: params,
             resolver: resolver,
-            s: Vec::with_capacity(MAXDHLEN),
-            e: Vec::with_capacity(MAXDHLEN),
+            s: &[0u8; 0],
+            e: &[0u8; 0],
             rs: Vec::with_capacity(MAXDHLEN),
             re: Vec::with_capacity(MAXDHLEN),
             plog: None,
@@ -89,8 +89,8 @@ impl NoiseBuilder {
         self
     }
 
-    pub fn local_private_key(mut self, key: &[u8]) -> Self {
-        self.s = key.to_vec();
+    pub fn local_private_key(mut self, key: &'a [u8]) -> Self {
+        self.s = key;
         self.has_s = true;
         self
     }
@@ -139,7 +139,7 @@ impl NoiseBuilder {
             .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
 
         if self.has_s { s.deref_mut().set(&self.s[..]); }
-        if self.has_e { e.deref_mut().set(&self.s[..]); }
+        if self.has_e { e.deref_mut().set(&self.e[..]); }
 
         HandshakeState::new(rng, cipher, hash, s, e,
                             self.rs, self.re,
