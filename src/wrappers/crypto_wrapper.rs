@@ -5,19 +5,15 @@ extern crate blake2_rfc;
 extern crate chacha20_poly1305_aead;
 
 use self::crypto::digest::Digest;
-use self::crypto::mac::Mac;
-use self::crypto::symmetriccipher::SynchronousStreamCipher;
 use self::crypto::sha2::{Sha256, Sha512};
 use self::crypto::aes::KeySize;
 use self::crypto::aes_gcm::AesGcm;
 use self::crypto::aead::{AeadEncryptor, AeadDecryptor};
 use self::crypto::curve25519::{curve25519, curve25519_base};
-use self::crypto::util::fixed_time_eq;
 use self::blake2_rfc::blake2b::Blake2b;
 use self::blake2_rfc::blake2s::Blake2s;
 
 use self::byteorder::{ByteOrder, BigEndian, LittleEndian};
-use self::rustc_serialize::hex::{FromHex, ToHex};
 
 use crypto_types::*;
 use constants::*;
@@ -146,7 +142,7 @@ impl CipherType for CipherChaChaPoly {
         let mut buf = Cursor::new(out);
         let tag = chacha20_poly1305_aead::encrypt(&self.key, &nonce_bytes, authtext, plaintext, &mut buf);
         let tag = tag.unwrap();
-        buf.write(&tag);
+        buf.write(&tag).unwrap();
     }
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> bool {

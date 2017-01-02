@@ -9,36 +9,36 @@ pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, XR, KN, KK, KX, IN, 
 
 impl HandshakePattern {
 
-    pub fn is_oneway(p: HandshakePattern) -> bool {
-        match p {
+    pub fn is_oneway(&self) -> bool {
+        match *self {
             N | X | K => true,
             _ => false
         }
     }
 
     // XXX double check
-    pub fn needs_local_static_key(p: HandshakePattern, initiator: bool) -> bool {
+    pub fn needs_local_static_key(&self, initiator: bool) -> bool {
         if initiator {
-            match p {
+            match *self {
                 X | N | K | NN | NK | NX => false,
                 _ => true
             }
         } else {
-            match p {
+            match *self {
                 N | NN | XN | KN | IN => false,
                 _ => true
             }
         }
     }
 
-    pub fn need_known_remote_pubkey(p: HandshakePattern, initiator: bool) -> bool {
+    pub fn need_known_remote_pubkey(&self, initiator: bool) -> bool {
         if initiator {
-            match p {
+            match *self {
                 NK | XK | KK | IK => true,
                 _ => false
             }
         } else {
-            match p {
+            match *self {
                 K | KN | KK | KX => true,
                 _ => false,
             }
@@ -110,13 +110,7 @@ pub struct HandshakeTokens {
 use self::Token::*;
 use self::HandshakePattern::*;
 
-fn copy_tokens(input: &[Token], out: &mut [Token]) {
-    for count in 0..input.len() {out[count] = input[count];}
-}
-
 pub fn resolve_handshake_pattern(handshake_pattern: HandshakePattern) -> HandshakeTokens {
-    let mut name = String::with_capacity(10);
-
     let (premsg_pattern_i, premsg_pattern_r, msg_patterns) = match handshake_pattern {
         N  => (
             vec![],

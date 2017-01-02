@@ -3,8 +3,6 @@ use crypto_types::*;
 use handshakestate::*;
 use wrappers::rand_wrapper::*;
 use wrappers::crypto_wrapper::*;
-use constants::*;
-use patterns::*;
 use cipherstate::*;
 use std::ops::DerefMut;
 
@@ -49,16 +47,12 @@ impl CryptoResolver for DefaultResolver {
 pub struct NoiseBuilder<'a> {
     params: NoiseParams,           // Deserialized protocol spec
     resolver: Box<CryptoResolver>, // The mapper from protocol choices to crypto implementations
-    pub s:  &'a [u8],
-    pub e:  &'a [u8],
-    pub rs: Vec<u8>,
-    pub re: Vec<u8>,
+    pub s:  Option<&'a [u8]>,
+    pub e:  Option<&'a [u8]>,
+    pub rs: Option<Vec<u8>>,
+    pub re: Option<Vec<u8>>,
     pub psk: Option<Vec<u8>>,
     pub plog: Option<Vec<u8>>,
-    pub has_s: bool,
-    pub has_e: bool,
-    pub has_rs: bool,
-    pub has_re: bool,
 }
 
 impl<'a> NoiseBuilder<'a> {
@@ -71,16 +65,12 @@ impl<'a> NoiseBuilder<'a> {
         NoiseBuilder {
             params: params,
             resolver: resolver,
-            s: &[0u8; 0],
-            e: &[0u8; 0],
-            rs: Vec::with_capacity(MAXDHLEN),
-            re: Vec::with_capacity(MAXDHLEN),
+            s: None,
+            e: None,
+            rs: None,
+            re: None,
             plog: None,
             psk: None,
-            has_s: false,
-            has_e: false,
-            has_rs: false,
-            has_re: false,
         }
     }
 
@@ -90,8 +80,7 @@ impl<'a> NoiseBuilder<'a> {
     }
 
     pub fn local_private_key(mut self, key: &'a [u8]) -> Self {
-        self.s = key;
-        self.has_s = true;
+        self.s = Some(key);
         self
     }
 
@@ -101,25 +90,24 @@ impl<'a> NoiseBuilder<'a> {
     }
 
     pub fn remote_public_key(mut self, pub_key: &[u8]) -> Self {
-        self.rs = pub_key.to_vec();
-        self.has_rs = true;
+        self.rs = Some(pub_key.to_vec());
         self
     }
 
-    pub fn build_initiator(mut self) -> Result<HandshakeState, NoiseError> {
+    pub fn build_initiator(self) -> Result<HandshakeState, NoiseError> {
         self.build(true)
     }
 
-    pub fn build_responder(mut self) -> Result<HandshakeState, NoiseError> {
+    pub fn build_responder(self) -> Result<HandshakeState, NoiseError> {
         self.build(false)
     }
 
-    fn build(mut self, initiator: bool) -> Result<HandshakeState, NoiseError> {
-        if !self.has_s && HandshakePattern::needs_local_static_key(self.params.handshake, initiator) {
+    fn build(self, initiator: bool) -> Result<HandshakeState, NoiseError> {
+        if !self.s.is_some() && self.params.handshake.needs_local_static_key(initiator) {
             return Err(NoiseError::InitError("local key needed for chosen handshake pattern"));
         }
 
-        if !self.has_rs && HandshakePattern::need_known_remote_pubkey(self.params.handshake, initiator) {
+        if !self.rs.is_some() && self.params.handshake.need_known_remote_pubkey(initiator) {
             return Err(NoiseError::InitError("remote key needed for chosen handshake pattern"));
         }
 
@@ -138,12 +126,22 @@ impl<'a> NoiseBuilder<'a> {
         let cipherstate2 = self.resolver.resolve_cipher(&self.params.cipher)
             .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
 
-        if self.has_s { s.deref_mut().set(&self.s[..]); }
-        if self.has_e { e.deref_mut().set(&self.e[..]); }
+        if let Some(s_key) = self.s {
+            s.deref_mut().set(s_key);
+        }
 
+        if let Some(e_key) = self.e {
+            e.deref_mut().set(e_key);
+        }
+
+        let has_s = self.s.is_some();
+        let has_e = self.e.is_some();
+        let has_rs = self.rs.is_some();
+        let has_re = self.re.is_some();
         HandshakeState::new(rng, cipher, hash, s, e,
-                            self.rs, self.re,
-                            self.has_s, self.has_e, self.has_rs, self.has_re,
+                            self.rs.unwrap_or_else(|| Vec::new()),
+                            self.re.unwrap_or_else(|| Vec::new()),
+                            has_s, has_e, has_rs, has_re,
                             initiator,
                             self.params.handshake,
                             &[0u8; 0],
@@ -153,8 +151,6 @@ impl<'a> NoiseBuilder<'a> {
 }
 
 mod tests {
-    use super::*;
-
     #[test]
     fn test_builder() {
         let noise = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())

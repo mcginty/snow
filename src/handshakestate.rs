@@ -8,7 +8,6 @@ use handshakecryptoowner::*;
 use symmetricstate::*;
 use patterns::*;
 use std::ops::DerefMut;
-use self::rustc_serialize::hex::{FromHex, ToHex};
 
 #[derive(Debug)]
 pub enum NoiseError {
@@ -311,7 +310,7 @@ impl HandshakeState {
         if !self.symmetricstate.decrypt_and_hash(ptr, payload) {
             return Err(NoiseError::DecryptError);
         }
-        self.can_send = !HandshakePattern::is_oneway(self.handshake_pattern);
+        self.can_send = !self.handshake_pattern.is_oneway();
         if last {
             self.symmetricstate.split(self.cipherstate1.deref_mut(), self.cipherstate2.deref_mut());
         }
