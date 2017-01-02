@@ -77,7 +77,7 @@ pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
 }
 
 #[bench]
-fn bench_write_message_chachapoly(b: &mut Bencher) {
+fn bench_write_message_punk(b: &mut Bencher) {
     let resolver_i = TestResolver::new(0);
     let resolver_r = TestResolver::new(1);
 
@@ -117,7 +117,7 @@ fn bench_write_message_chachapoly(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_write_message_aesgcm(b: &mut Bencher) {
+fn bench_write_message_nist(b: &mut Bencher) {
     let resolver_i = TestResolver::new(0);
     let resolver_r = TestResolver::new(1);
 
@@ -157,7 +157,7 @@ fn bench_write_message_aesgcm(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_read_and_write_message_chachapoly(b: &mut Bencher) {
+fn bench_read_and_write_message_punk(b: &mut Bencher) {
     let resolver_i = TestResolver::new(0);
     let resolver_r = TestResolver::new(1);
 
@@ -170,11 +170,11 @@ fn bench_read_and_write_message_chachapoly(b: &mut Bencher) {
     let resolver_i = TestResolver::new(32);
     let resolver_r = TestResolver::new(33);
 
-    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap(),
+    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap(),
                                               Box::new(resolver_i))
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap(),
+    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap(),
                                               Box::new(resolver_r))
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
@@ -200,7 +200,7 @@ fn bench_read_and_write_message_chachapoly(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_read_and_write_message_aesgcm(b: &mut Bencher) {
+fn bench_read_and_write_message_nist(b: &mut Bencher) {
     let resolver_i = TestResolver::new(0);
     let resolver_r = TestResolver::new(1);
 
@@ -244,7 +244,7 @@ fn bench_read_and_write_message_aesgcm(b: &mut Bencher) {
 
 // XXX this test is really shit and might crash on different machines
 #[bench]
-fn bench_read_message_aesgcm(b: &mut Bencher) {
+fn bench_read_message_nist(b: &mut Bencher) {
     let resolver_i = TestResolver::new(0);
     let resolver_r = TestResolver::new(1);
 
@@ -294,7 +294,7 @@ fn bench_read_message_aesgcm(b: &mut Bencher) {
 
 // XXX this test is really shit and might crash on different machines
 #[bench]
-fn bench_read_message_chachapoly(b: &mut Bencher) {
+fn bench_read_message_punk(b: &mut Bencher) {
     let resolver_i = TestResolver::new(0);
     let resolver_r = TestResolver::new(1);
 
@@ -307,11 +307,11 @@ fn bench_read_message_chachapoly(b: &mut Bencher) {
     let resolver_i = TestResolver::new(32);
     let resolver_r = TestResolver::new(33);
 
-    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap(),
+    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap(),
                                               Box::new(resolver_i))
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap(),
+    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap(),
                                               Box::new(resolver_r))
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
@@ -344,7 +344,7 @@ fn bench_read_message_chachapoly(b: &mut Bencher) {
 
 #[bench]
 fn bench_new_builder_from_string_with_key(b: &mut Bencher) {
-    let mut static_i:Dh25519 = Default::default();
+    let static_i:Dh25519 = Default::default();
     let privkey = static_i.privkey();
     b.iter(move || {
         NoiseBuilder::new("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap())
@@ -376,7 +376,7 @@ fn bench_new_builder_from_params_skeleton(b: &mut Bencher) {
 
 #[bench]
 fn bench_new_builder_from_params_with_key(b: &mut Bencher) {
-    let mut static_i:Dh25519 = Default::default();
+    let static_i:Dh25519 = Default::default();
     let privkey = static_i.privkey();
     b.iter(move || {
         let init = NoiseParams::new(BaseChoice::Noise,
