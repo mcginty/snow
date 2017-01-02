@@ -2,6 +2,7 @@ extern crate crypto;
 extern crate byteorder;
 extern crate rustc_serialize;
 extern crate blake2_rfc;
+extern crate chacha20_poly1305_aead;
 
 use self::crypto::digest::Digest;
 use self::crypto::mac::Mac;
@@ -9,8 +10,6 @@ use self::crypto::symmetriccipher::SynchronousStreamCipher;
 use self::crypto::sha2::{Sha256, Sha512};
 use self::crypto::aes::KeySize;
 use self::crypto::aes_gcm::AesGcm;
-use self::crypto::chacha20::ChaCha20;
-use self::crypto::poly1305::Poly1305;
 use self::crypto::aead::{AeadEncryptor, AeadDecryptor};
 use self::crypto::curve25519::{curve25519, curve25519_base};
 use self::crypto::util::fixed_time_eq;
@@ -23,6 +22,7 @@ use self::rustc_serialize::hex::{FromHex, ToHex};
 use crypto_types::*;
 use constants::*;
 use utils::*;
+use std::io::{Cursor, Write};
 
 #[derive(Default)]
 pub struct Dh25519 {
@@ -132,65 +132,37 @@ impl CipherType for CipherAESGCM {
 impl CipherType for CipherChaChaPoly {
 
     fn name(&self) -> &'static str {
-        static NAME: &'static str = "ChaChaPoly";
-        NAME
+        "ChaChaPoly"
     }
 
     fn set(&mut self, key: &[u8]) {
         copy_memory(key, &mut self.key);
     }
 
-    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) {
-        let mut nonce_bytes = [0u8; 8];
-        LittleEndian::write_u64(&mut nonce_bytes, nonce);
+    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) {
+        let mut nonce_bytes = [0u8; 12];
+        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
-        let mut cipher = ChaCha20::new(&self.key, &nonce_bytes);
-        let zeros = [0u8; 64];
-        let mut poly_key = [0u8; 64];
-        cipher.process(&zeros, &mut poly_key);
-        cipher.process(plaintext, &mut out[..plaintext.len()]);
-       
-        let mut poly = Poly1305::new(&poly_key[..32]);
-        poly.input(&authtext);
-        let mut padding = [0u8; 16];
-        poly.input(&padding[..(16 - (authtext.len() % 16)) % 16]);
-        poly.input(&out[..plaintext.len()]);
-        poly.input(&padding[..(16 - (plaintext.len() % 16)) % 16]);
-        LittleEndian::write_u64(&mut padding, authtext.len() as u64);
-        poly.input(&padding[..8]);
-        LittleEndian::write_u64(&mut padding, plaintext.len() as u64);
-        poly.input(&padding[..8]);
-        poly.raw_result(&mut out[plaintext.len()..]);
-    } 
+        let mut buf = Cursor::new(out);
+        let tag = chacha20_poly1305_aead::encrypt(&self.key, &nonce_bytes, authtext, plaintext, &mut buf);
+        let tag = tag.unwrap();
+        buf.write(&tag);
+    }
 
-    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> bool {
-        let mut nonce_bytes = [0u8; 8];
-        LittleEndian::write_u64(&mut nonce_bytes, nonce);
+    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> bool {
+        let mut nonce_bytes = [0u8; 12];
+        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
-        let mut cipher = ChaCha20::new(&self.key, &nonce_bytes);
-        let zeros = [0u8; 64];
-        let mut poly_key = [0u8; 64];
-        cipher.process(&zeros, &mut poly_key);
-
-        let mut poly = Poly1305::new(&poly_key[..32]);
-        let mut padding = [0u8; 15];
-        let text_len = ciphertext.len() - TAGLEN;
-        poly.input(&authtext);
-        poly.input(&padding[..(16 - (authtext.len() % 16)) % 16]);
-        poly.input(&ciphertext[..text_len]);
-        poly.input(&padding[..(16 - (text_len % 16)) % 16]);
-        LittleEndian::write_u64(&mut padding, authtext.len() as u64);
-        poly.input(&padding[..8]);
-        LittleEndian::write_u64(&mut padding, text_len as u64);
-        poly.input(&padding[..8]);
-        let mut tag = [0u8; 16];
-        poly.raw_result(&mut tag);
-        if !fixed_time_eq(&tag, &ciphertext[text_len..]) {
-            return false;
-        }
-        cipher.process(&ciphertext[..text_len], &mut out[..text_len]);
-        true
-    } 
+        let mut buf = Cursor::new(out);
+        let result = chacha20_poly1305_aead::decrypt(
+            &self.key,
+            &nonce_bytes,
+            authtext,
+            &ciphertext[..ciphertext.len()-TAGLEN],
+            &ciphertext[ciphertext.len()-TAGLEN..],
+            &mut buf);
+        result.is_ok()
+    }
 }
 
 impl Default for HashSHA256 {

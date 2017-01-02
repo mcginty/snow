@@ -2,9 +2,17 @@
 name = "screech"
 version = "0.1.0"
 authors = ["trevp"]
+
 [dependencies]
 rust-crypto = "*"
 byteorder = "*"
 rand = "0.3"
 rustc-serialize = "0.3"
-blake2-rfc = "0.2.17"
+
+[dependencies.blake2-rfc]
+version = "^0.2.17"
+features = ["simd_opt"]
+
+[dependencies.chacha20-poly1305-aead]
+version = "^0.1.2"
+features = ["simd_opt"]
