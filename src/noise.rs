@@ -150,7 +150,10 @@ impl<'a> NoiseBuilder<'a> {
     }
 }
 
+#[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn test_builder() {
         let noise = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
