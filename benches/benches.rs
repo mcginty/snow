@@ -90,11 +90,11 @@ fn bench_write_message_punk(b: &mut Bencher) {
     let resolver_i = TestResolver::new(32);
     let resolver_r = TestResolver::new(33);
 
-    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap(),
+    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap(),
                                               Box::new(resolver_i))
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap(),
+    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap(),
                                               Box::new(resolver_r))
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
