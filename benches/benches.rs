@@ -5,71 +5,10 @@ extern crate screech;
 extern crate rustc_serialize;
 
 use screech::*;
-use std::ops::DerefMut;
 use self::rustc_serialize::hex::ToHex;
 use test::Bencher;
 
 const MSG_SIZE: usize = 4096;
-
-struct RandomInc {
-    next_byte: u8
-}
-
-impl Default for RandomInc {
-
-    fn default() -> RandomInc {
-        RandomInc {next_byte: 0}
-    }
-}
-
-impl RandomType for RandomInc {
-
-    fn fill_bytes(&mut self, out: &mut [u8]) {
-        for count in 0..out.len() {
-            out[count] = self.next_byte;
-            if self.next_byte == 255 {
-                self.next_byte = 0;
-            } else {
-                self.next_byte += 1;
-            }
-        }
-    }
-}
-
-struct TestResolver {
-    next_byte: u8,
-    parent: DefaultResolver,
-}
-
-impl TestResolver {
-    pub fn new(next_byte: u8) -> Self {
-        TestResolver{ next_byte: next_byte, parent: DefaultResolver }
-    }
-
-    pub fn next_byte(&mut self, next_byte: u8) {
-        self.next_byte = next_byte;
-    }
-}
-
-impl CryptoResolver for TestResolver {
-    fn resolve_rng(&self) -> Option<Box<RandomType>> {
-        let mut rng = RandomInc::default();
-        rng.next_byte = self.next_byte;
-        Some(Box::new(rng))
-    }
-
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<DhType>> {
-        self.parent.resolve_dh(choice)
-    }
-
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<HashType>> {
-        self.parent.resolve_hash(choice)
-    }
-
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<CipherStateType>> {
-        self.parent.resolve_cipher(choice)
-    }
-}
 
 pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
     for count in 0..data.len() {out[count] = data[count];}
@@ -78,24 +17,18 @@ pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
 
 #[bench]
 fn bench_write_message_punk(b: &mut Bencher) {
-    let resolver_i = TestResolver::new(0);
-    let resolver_r = TestResolver::new(1);
-
     let mut static_i:Dh25519 = Default::default();
     let mut static_r:Dh25519 = Default::default();
 
-    static_i.generate(resolver_i.resolve_rng().unwrap().deref_mut());
-    static_r.generate(resolver_r.resolve_rng().unwrap().deref_mut());
+    let mut rand = RandomOs::default();
+    static_i.generate(&mut rand);
+    static_r.generate(&mut rand);
 
-    let resolver_i = TestResolver::new(32);
-    let resolver_r = TestResolver::new(33);
-
-    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap(),
-                                              Box::new(resolver_i))
+    let pattern = "Noise_XX_25519_ChaChaPoly_BLAKE2b";
+    let mut h_i = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap(),
-                                              Box::new(resolver_r))
+    let mut h_r = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
 
@@ -126,10 +59,10 @@ fn bench_write_message_nist(b: &mut Bencher) {
     static_r.generate(&mut rand);
 
     let pattern = "Noise_XX_25519_AESGCM_SHA256";
-    let mut h_i = NoiseBuilder::new("Noise_XX_25519_AESGCM_SHA256".parse().unwrap())
+    let mut h_i = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::new("Noise_XX_25519_AESGCM_SHA256".parse().unwrap())
+    let mut h_r = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
 
@@ -159,7 +92,7 @@ fn bench_read_and_write_message_punk(b: &mut Bencher) {
     static_i.generate(&mut rand);
     static_r.generate(&mut rand);
 
-    let mut pattern = "Noise_XX_25519_ChaChaPoly_BLAKE2b";
+    let pattern = "Noise_XX_25519_ChaChaPoly_BLAKE2b";
     let mut h_i = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
@@ -187,24 +120,18 @@ fn bench_read_and_write_message_punk(b: &mut Bencher) {
 
 #[bench]
 fn bench_read_and_write_message_nist(b: &mut Bencher) {
-    let resolver_i = TestResolver::new(0);
-    let resolver_r = TestResolver::new(1);
+    let mut static_i: Dh25519 = Default::default();
+    let mut static_r: Dh25519 = Default::default();
 
-    let mut static_i:Dh25519 = Default::default();
-    let mut static_r:Dh25519 = Default::default();
+    let mut rand = RandomOs::default();
+    static_i.generate(&mut rand);
+    static_r.generate(&mut rand);
 
-    static_i.generate(resolver_i.resolve_rng().unwrap().deref_mut());
-    static_r.generate(resolver_r.resolve_rng().unwrap().deref_mut());
-
-    let resolver_i = TestResolver::new(32);
-    let resolver_r = TestResolver::new(33);
-
-    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_AESGCM_SHA256".parse().unwrap(),
-                                              Box::new(resolver_i))
+    let pattern = "Noise_XX_25519_AESGCM_SHA256";
+    let mut h_i = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_AESGCM_SHA256".parse().unwrap(),
-                                              Box::new(resolver_r))
+    let mut h_r = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
 
@@ -231,24 +158,18 @@ fn bench_read_and_write_message_nist(b: &mut Bencher) {
 // XXX this test is really shit and might crash on different machines
 #[bench]
 fn bench_read_message_nist(b: &mut Bencher) {
-    let resolver_i = TestResolver::new(0);
-    let resolver_r = TestResolver::new(1);
+    let mut static_i: Dh25519 = Default::default();
+    let mut static_r: Dh25519 = Default::default();
 
-    let mut static_i:Dh25519 = Default::default();
-    let mut static_r:Dh25519 = Default::default();
+    let mut rand = RandomOs::default();
+    static_i.generate(&mut rand);
+    static_r.generate(&mut rand);
 
-    static_i.generate(resolver_i.resolve_rng().unwrap().deref_mut());
-    static_r.generate(resolver_r.resolve_rng().unwrap().deref_mut());
-
-    let resolver_i = TestResolver::new(32);
-    let resolver_r = TestResolver::new(33);
-
-    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_AESGCM_SHA256".parse().unwrap(),
-                                              Box::new(resolver_i))
+    let pattern = "Noise_XX_25519_AESGCM_SHA256";
+    let mut h_i = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_AESGCM_SHA256".parse().unwrap(),
-                                              Box::new(resolver_r))
+    let mut h_r = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
 
@@ -281,24 +202,18 @@ fn bench_read_message_nist(b: &mut Bencher) {
 // XXX this test is really shit and might crash on different machines
 #[bench]
 fn bench_read_message_punk(b: &mut Bencher) {
-    let resolver_i = TestResolver::new(0);
-    let resolver_r = TestResolver::new(1);
+    let mut static_i: Dh25519 = Default::default();
+    let mut static_r: Dh25519 = Default::default();
 
-    let mut static_i:Dh25519 = Default::default();
-    let mut static_r:Dh25519 = Default::default();
+    let mut rand = RandomOs::default();
+    static_i.generate(&mut rand);
+    static_r.generate(&mut rand);
 
-    static_i.generate(resolver_i.resolve_rng().unwrap().deref_mut());
-    static_r.generate(resolver_r.resolve_rng().unwrap().deref_mut());
-
-    let resolver_i = TestResolver::new(32);
-    let resolver_r = TestResolver::new(33);
-
-    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap(),
-                                              Box::new(resolver_i))
+    let pattern = "Noise_XX_25519_ChaChaPoly_BLAKE2b";
+    let mut h_i = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap(),
-                                              Box::new(resolver_r))
+    let mut h_r = NoiseBuilder::new(pattern.parse().unwrap())
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
 
