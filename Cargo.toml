@@ -1,9 +1,11 @@
 [package]
 name = "screech"
 version = "0.1.0"
-authors = ["trevp"]
+authors = ["trevp", "mcginty"]
 
 [dependencies]
+arrayvec = "^0.3"
+string-wrapper = "0.1.7"
 rust-crypto = "*"
 byteorder = "*"
 rand = "0.3"

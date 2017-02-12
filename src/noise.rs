@@ -4,6 +4,7 @@ use handshakestate::*;
 use wrappers::rand_wrapper::*;
 use wrappers::crypto_wrapper::*;
 use cipherstate::*;
+use session::*;
 use std::ops::DerefMut;
 
 pub trait CryptoResolver {
@@ -94,15 +95,15 @@ impl<'a> NoiseBuilder<'a> {
         self
     }
 
-    pub fn build_initiator(self) -> Result<HandshakeState, NoiseError> {
+    pub fn build_initiator(self) -> Result<NoiseSession<HandshakeState>, NoiseError> {
         self.build(true)
     }
 
-    pub fn build_responder(self) -> Result<HandshakeState, NoiseError> {
+    pub fn build_responder(self) -> Result<NoiseSession<HandshakeState>, NoiseError> {
         self.build(false)
     }
 
-    fn build(self, initiator: bool) -> Result<HandshakeState, NoiseError> {
+    fn build(self, initiator: bool) -> Result<NoiseSession<HandshakeState>, NoiseError> {
         if !self.s.is_some() && self.params.handshake.needs_local_static_key(initiator) {
             return Err(NoiseError::InitError("local key needed for chosen handshake pattern"));
         }
@@ -138,7 +139,7 @@ impl<'a> NoiseBuilder<'a> {
         let has_e = self.e.is_some();
         let has_rs = self.rs.is_some();
         let has_re = self.re.is_some();
-        HandshakeState::new(rng, cipher, hash, s, e,
+        let hs = HandshakeState::new(rng, cipher, hash, s, e,
                             self.rs.unwrap_or_else(|| Vec::new()),
                             self.re.unwrap_or_else(|| Vec::new()),
                             has_s, has_e, has_rs, has_re,
@@ -146,7 +147,8 @@ impl<'a> NoiseBuilder<'a> {
                             self.params.handshake,
                             &[0u8; 0],
                             None,
-                            cipherstate1, cipherstate2)
+                            CipherStates::new(cipherstate1, cipherstate2)?)?;
+        Ok(hs.into())
     }
 }
 

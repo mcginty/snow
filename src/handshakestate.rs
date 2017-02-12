@@ -1,4 +1,5 @@
 extern crate rustc_serialize;
+extern crate string_wrapper;
 
 use constants::*;
 use utils::*;
@@ -8,6 +9,8 @@ use handshakecryptoowner::*;
 use symmetricstate::*;
 use patterns::*;
 use std::ops::DerefMut;
+use self::string_wrapper::StringWrapper;
+
 
 #[derive(Debug)]
 pub enum NoiseError {
@@ -18,12 +21,23 @@ pub enum NoiseError {
     DecryptError
 }
 
+pub struct CipherStates(Box<CipherStateType>, Box<CipherStateType>);
+
+impl CipherStates {
+    pub fn new(sending: Box<CipherStateType>, receiving: Box<CipherStateType>) -> Result<Self, NoiseError> {
+        if sending.name() != receiving.name() {
+            return Err(NoiseError::InitError("cipherstates don't match"));
+        }
+
+        Ok(CipherStates(sending, receiving))
+    }
+}
+
 // TODO move has_* bools to just using Option<*>, but verify behavior is the same.
 pub struct HandshakeState {
     rng : Box<RandomType>,                // for generating ephemerals
     symmetricstate : SymmetricState,      // for handshaking
-    cipherstate1: Box<CipherStateType>,   // for I -> R transport msgs
-    cipherstate2: Box<CipherStateType>,   // for I <- R transport msgs
+    cipherstates: CipherStates,
     s: Box<DhType>,                       // local static
     e: Box<DhType>,                       // local ephemeral
     rs: Vec<u8>,                          // remote static
@@ -33,37 +47,11 @@ pub struct HandshakeState {
     has_e: bool,
     has_rs: bool,
     has_re: bool,
-    can_send: bool,
+    my_turn: bool,
     message_patterns: Vec<Vec<Token>>, // 2D Token array
 }
 
 impl HandshakeState {
-    pub fn new_from_owner<R: RandomType + Default + 'static,
-        D: DhType + Default + 'static,
-        C: CipherType + Default + 'static,
-        H: HashType + Default + 'static>
-    (owner: HandshakeCryptoOwner<R, D, C, H>,
-     initiator: bool,
-     handshake_pattern: HandshakePattern,
-     prologue: &[u8],
-     optional_preshared_key: Option<Vec<u8>>,
-     cipherstate1: Box<CipherStateType>,
-     cipherstate2: Box<CipherStateType>) -> Result<HandshakeState, NoiseError> {
-
-        let dhlen = owner.s.pub_len();
-        HandshakeState::new(
-            Box::new(owner.rng),
-            Box::new(owner.cipherstate),
-            Box::new(owner.hasher),
-            Box::new(owner.s), Box::new(owner.e),
-            owner.rs[..dhlen].to_owned(),
-            owner.re[..dhlen].to_owned(),
-            owner.has_s, owner.has_e, owner.has_rs, owner.has_re,
-            initiator, handshake_pattern, prologue, optional_preshared_key,
-            cipherstate1, cipherstate2)
-    }
-
-
     pub fn new(
             rng: Box<RandomType>,
             cipherstate: Box<CipherStateType>,
@@ -80,15 +68,9 @@ impl HandshakeState {
             handshake_pattern: HandshakePattern,
             prologue: &[u8],
             optional_preshared_key: Option<Vec<u8>>,
-            cipherstate1: Box<CipherStateType>,
-            cipherstate2: Box<CipherStateType>) -> Result<HandshakeState, NoiseError> {
+            cipherstates: CipherStates) -> Result<HandshakeState, NoiseError> {
         use self::NoiseError::*;
 
-        let mut handshake_name = String::with_capacity(128);
-
-        if cipherstate1.name() != cipherstate2.name() {
-            return Err(InitError("cipherstates don't match"));
-        }
 
         if s.name() != e.name() {
             return Err(InitError("cipherstates don't match"));
@@ -101,10 +83,11 @@ impl HandshakeState {
             return Err(PrereqError(format!("key lengths aren't right. my pub: {}, their: {}", s.pub_len(), rs.len())));
         }
 
-        handshake_name.push_str(match optional_preshared_key {
+        let prefix = match optional_preshared_key {
             Some(_) => "NoisePSK_",
             None    => "Noise_"
-        });
+        };
+        let mut handshake_name = StringWrapper::<[u8; 128]>::from_str(prefix);
         let tokens = resolve_handshake_pattern(handshake_pattern);
         handshake_name.push_str(&tokens.name);
         handshake_name.push('_');
@@ -158,9 +141,8 @@ impl HandshakeState {
         Ok(HandshakeState {
             rng: rng,  
             symmetricstate: symmetricstate,
-            cipherstate1: cipherstate1,
-            cipherstate2: cipherstate2,
-            s: s, 
+            cipherstates: cipherstates,
+            s: s,
             e: e, 
             rs: rs, 
             re: re,
@@ -169,7 +151,7 @@ impl HandshakeState {
             has_rs: has_rs,
             has_re: has_re,
             handshake_pattern: handshake_pattern,
-            can_send: initiator,
+            my_turn: initiator,
             message_patterns: tokens.msg_patterns,
         })
     }
@@ -184,25 +166,25 @@ impl HandshakeState {
              (!remote_s || self.has_rs) &&
              ( remote_s || self.has_re))
         {
-            return Err(NoiseError::StateError("missing key material"))
+            Err(NoiseError::StateError("missing key material"))
+        } else {
+            let dh_len = self.dh_len();
+            let mut dh_out = [0u8; MAXDHLEN];
+            match (local_s, remote_s) {
+                (true,  true ) => self.s.dh(&self.rs, &mut dh_out),
+                (true,  false) => self.s.dh(&self.re, &mut dh_out),
+                (false, true ) => self.e.dh(&self.rs, &mut dh_out),
+                (false, false) => self.e.dh(&self.re, &mut dh_out),
+            }
+            self.symmetricstate.mix_key(&dh_out[..dh_len]);
+            Ok(())
         }
-
-        let dh_len = self.dh_len();
-        let mut dh_out = [0u8; MAXDHLEN];
-        match (local_s, remote_s) {
-            (true,  true)  => self.s.dh(&self.rs, &mut dh_out),
-            (true,  false) => self.s.dh(&self.re, &mut dh_out),
-            (false, true)  => self.e.dh(&self.rs, &mut dh_out),
-            (false, false) => self.e.dh(&self.re, &mut dh_out),
-        }
-        self.symmetricstate.mix_key(&dh_out[..dh_len]);
-        Ok(())
     }
 
     pub fn write_message(&mut self, 
                          payload: &[u8], 
                          message: &mut [u8]) -> Result<(usize, bool), NoiseError> {
-        if !self.can_send {
+        if !self.my_turn {
             return Err(NoiseError::StateError("not ready to write messages yet."));
         }
 
@@ -237,19 +219,20 @@ impl HandshakeState {
                             &mut message[byte_index..]);
                     },
                     Token::Dhee => self.dh(false, false)?,
-                    Token::Dhes => self.dh(false, true)?,
+                    Token::Dhes => self.dh(false, true )?,
                     Token::Dhse => self.dh(true,  false)?,
-                    Token::Dhss => self.dh(true,  true)?,
+                    Token::Dhss => self.dh(true,  true )?,
                 }
             }
         }
 
+        self.my_turn = false;
         byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]);
         if byte_index > MAXMSGLEN {
             return Err(NoiseError::InputError("with tokens, message size exceeds maximum"));
         }
         if last {
-            self.symmetricstate.split(self.cipherstate1.deref_mut(), self.cipherstate2.deref_mut());
+            self.symmetricstate.split(self.cipherstates.0.deref_mut(), self.cipherstates.1.deref_mut());
         }
         Ok((byte_index, last))
     }
@@ -310,12 +293,16 @@ impl HandshakeState {
         if !self.symmetricstate.decrypt_and_hash(ptr, payload) {
             return Err(NoiseError::DecryptError);
         }
-        self.can_send = !self.handshake_pattern.is_oneway();
+        self.my_turn = true;
         if last {
-            self.symmetricstate.split(self.cipherstate1.deref_mut(), self.cipherstate2.deref_mut());
+            self.symmetricstate.split(self.cipherstates.0.deref_mut(), self.cipherstates.1.deref_mut());
         }
         let payload_len = if self.symmetricstate.has_key() { ptr.len() - TAGLEN } else { ptr.len() };
         Ok((payload_len, last))
+    }
+
+    pub fn finish(self) -> CipherStates {
+        self.cipherstates
     }
 
 }
