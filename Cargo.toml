@@ -5,11 +5,11 @@ authors = ["trevp", "mcginty"]
 
 [dependencies]
 arrayvec = "^0.3"
-string-wrapper = "0.1.7"
 rust-crypto = "*"
 byteorder = "*"
 rand = "0.3"
 rustc-serialize = "0.3"
+static_slice = "0.0.2"
 
 [dependencies.blake2-rfc]
 version = "^0.2.17"

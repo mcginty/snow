@@ -73,12 +73,10 @@ impl FromStr for HandshakePattern {
     }
 }
 
-// NOTE: this can probably be made much shorter with the derived
-// Debug trait, but I'm keeping this explicit now.
-impl fmt::Display for HandshakePattern {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl HandshakePattern {
+    fn as_str(&self) -> &'static str {
         use self::HandshakePattern::*;
-        write!(f, "{}", match *self {
+        match *self {
             N => "N",
             X => "X",
             K => "K",
@@ -96,113 +94,115 @@ impl fmt::Display for HandshakePattern {
             IK => "IK",
             IX => "IX",
             XXfallback => "XXfallback",
-        })
+        }
     }
 }
 
 pub struct HandshakeTokens {
-    pub name: String,
-    pub premsg_pattern_i: Vec<Token>,
-    pub premsg_pattern_r: Vec<Token>,
-    pub msg_patterns: Vec<Vec<Token>>,
+    pub name: &'static str,
+    pub premsg_pattern_i: &'static [Token],
+    pub premsg_pattern_r: &'static [Token],
+    pub msg_patterns: &'static [&'static [Token]],
 }
 
 use self::Token::*;
 use self::HandshakePattern::*;
 
+type Patterns = (&'static [Token], &'static [Token], &'static [&'static [Token]]);
+
 pub fn resolve_handshake_pattern(handshake_pattern: HandshakePattern) -> HandshakeTokens {
-    let (premsg_pattern_i, premsg_pattern_r, msg_patterns) = match handshake_pattern {
+    let patterns: Patterns = match handshake_pattern {
         N  => (
-            vec![],
-            vec![S],
-            vec![vec![E, Dhes]]
+            static_slice![Token: ],
+            static_slice![Token: S],
+            static_slice![&'static [Token]: &[E, Dhes]]
         ),
         K  => (
-            vec![S],
-            vec![S],
-            vec![vec![E, Dhes, Dhss]]
+            static_slice![Token: S],
+            static_slice![Token: S],
+            static_slice![&'static [Token]: &[E, Dhes, Dhss]]
         ),
         X  => (
-            vec![],
-            vec![S],
-            vec![vec![E, Dhes, S, Dhss]]
+            static_slice![Token: ],
+            static_slice![Token: S],
+            static_slice![&'static [Token]: &[E, Dhes, S, Dhss]]
         ),
         NN => (
-            vec![],
-            vec![],
-            vec![vec![E], vec![E, Dhee]]
+            static_slice![Token: ],
+            static_slice![Token: ],
+            static_slice![&'static [Token]: &[E], &[E, Dhee]]
         ),
         NK => (
-            vec![],
-            vec![S],
-            vec![vec![E, Dhes], vec![E, Dhee]]
+            static_slice![Token: ],
+            static_slice![Token: S],
+            static_slice![&'static [Token]: &[E, Dhes], &[E, Dhee]]
         ),
         NX => (
-            vec![],
-            vec![],
-            vec![vec![E], vec![E, Dhee, S, Dhse]]
+            static_slice![Token: ],
+            static_slice![Token: ],
+            static_slice![&'static [Token]: &[E], &[E, Dhee, S, Dhse]]
         ),
         XN => (
-            vec![],
-            vec![],
-            vec![vec![E], vec![E, Dhee], vec![S, Dhse]]
+            static_slice![Token: ],
+            static_slice![Token: ],
+            static_slice![&'static [Token]: &[E], &[E, Dhee], &[S, Dhse]]
         ),
         XK => (
-            vec![],
-            vec![S],
-            vec![vec![E, Dhes], vec![E, Dhee], vec![S, Dhse]]
+            static_slice![Token: ],
+            static_slice![Token: S],
+            static_slice![&'static [Token]: &[E, Dhes], &[E, Dhee], &[S, Dhse]]
         ),
         XX => (
-            vec![],
-            vec![],
-            vec![vec![E], vec![E, Dhee, S, Dhse], vec![S, Dhse]],
+            static_slice![Token: ],
+            static_slice![Token: ],
+            static_slice![&'static [Token]: &[E], &[E, Dhee, S, Dhse], &[S, Dhse]],
         ),
         XR => (
-            vec![],
-            vec![],
-            vec![vec![E], vec![E, Dhee], vec![S, Dhse], vec![S, Dhse]],
+            static_slice![Token: ],
+            static_slice![Token: ],
+            static_slice![&'static [Token]: &[E], &[E, Dhee], &[S, Dhse], &[S, Dhse]],
         ),
         KN => (
-            vec![S],
-            vec![],
-            vec![vec![E], vec![E, Dhee, Dhes]],
+            static_slice![Token: S],
+            static_slice![Token: ],
+            static_slice![&'static [Token]: &[E], &[E, Dhee, Dhes]],
         ),
         KK => (
-            vec![S],
-            vec![S],
-            vec![vec![E, Dhes, Dhss], vec![E, Dhee, Dhes]],
+            static_slice![Token: S],
+            static_slice![Token: S],
+            static_slice![&'static [Token]: &[E, Dhes, Dhss], &[E, Dhee, Dhes]],
         ),
         KX => (
-            vec![S],
-            vec![],
-            vec![vec![E], vec![E, Dhee, Dhes, S, Dhse]],
+            static_slice![Token: S],
+            static_slice![Token: ],
+            static_slice![&'static [Token]: &[E], &[E, Dhee, Dhes, S, Dhse]],
         ),
         IN => (
-            vec![],
-            vec![],
-            vec![vec![E, S], vec![E, Dhee, Dhes]],
+            static_slice![Token: ],
+            static_slice![Token: ],
+            static_slice![&'static [Token]: &[E, S], &[E, Dhee, Dhes]],
         ),
         IK => (
-            vec![],
-            vec![S],
-            vec![vec![E, Dhes, S, Dhss], vec![E, Dhee, Dhes]],
+            static_slice![Token: ],
+            static_slice![Token: S],
+            static_slice![&'static [Token]: &[E, Dhes, S, Dhss], &[E, Dhee, Dhes]],
         ),
         IX => (
-            vec![],
-            vec![],
-            vec![vec![E, S], vec![E, Dhee, Dhes, S, Dhse]],
+            static_slice![Token: ],
+            static_slice![Token: ],
+            static_slice![&'static [Token]: &[E, S], &[E, Dhee, Dhes, S, Dhse]],
         ),
         XXfallback => (
-            vec![],
-            vec![E],
-            vec![vec![E, Dhee, S, Dhse], vec![S, Dhse]],
+            static_slice![Token: ],
+            static_slice![Token: E],
+            static_slice![&'static [Token]: &[E, Dhee, S, Dhse], &[S, Dhse]],
         )
     };
 
     HandshakeTokens {
-        name: handshake_pattern.to_string(),
-        premsg_pattern_i: premsg_pattern_i,
-        premsg_pattern_r: premsg_pattern_r,
-        msg_patterns: msg_patterns,
+        name: handshake_pattern.as_str(),
+        premsg_pattern_i: patterns.0,
+        premsg_pattern_r: patterns.1,
+        msg_patterns: patterns.2,
     }
 }

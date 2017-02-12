@@ -1,4 +1,4 @@
-
+#[macro_use] extern crate static_slice;
 pub mod crypto_types;
 mod wrappers;
 mod constants;
