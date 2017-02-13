@@ -6,7 +6,6 @@ use constants::*;
 use utils::*;
 use crypto_types::*;
 use cipherstate::*;
-use handshakecryptoowner::*;
 use symmetricstate::*;
 use patterns::*;
 use std::ops::{Deref, DerefMut};

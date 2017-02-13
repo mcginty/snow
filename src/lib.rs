@@ -7,7 +7,6 @@ mod cipherstate;
 mod symmetricstate;
 mod handshakestate;
 mod patterns;
-mod handshakecryptoowner;
 mod protocol_name;
 mod noise;
 mod session;
@@ -18,7 +17,6 @@ pub use wrappers::rand_wrapper::*;
 pub use handshakestate::{HandshakeState};
 pub use cipherstate::{CipherState, CipherStateType};
 pub use patterns::{HandshakePattern};
-pub use handshakecryptoowner::*;
 pub use protocol_name::*;
 pub use noise::*;
 
