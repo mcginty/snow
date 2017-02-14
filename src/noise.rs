@@ -1,3 +1,4 @@
+use constants::*;
 use protocol_name::*;
 use crypto_types::*;
 use handshakestate::*;
@@ -5,7 +6,7 @@ use wrappers::rand_wrapper::*;
 use wrappers::crypto_wrapper::*;
 use cipherstate::*;
 use session::*;
-use std::ops::DerefMut;
+use utils::*;
 
 pub trait CryptoResolver {
     fn resolve_rng(&self) -> Option<Box<RandomType>>;
@@ -118,36 +119,60 @@ impl<'a> NoiseBuilder<'a> {
             .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
         let hash = self.resolver.resolve_hash(&self.params.hash)
             .ok_or(NoiseError::InitError("no suitable hash implementation"))?;
-        let mut s = self.resolver.resolve_dh(&self.params.dh)
+        let mut s_dh = self.resolver.resolve_dh(&self.params.dh)
             .ok_or(NoiseError::InitError("no suitable DH implementation"))?;
-        let mut e = self.resolver.resolve_dh(&self.params.dh)
+        let mut e_dh = self.resolver.resolve_dh(&self.params.dh)
             .ok_or(NoiseError::InitError("no suitable DH implementation"))?;
         let cipherstate1 = self.resolver.resolve_cipher(&self.params.cipher)
             .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
         let cipherstate2 = self.resolver.resolve_cipher(&self.params.cipher)
             .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
 
-        if let Some(s_key) = self.s {
-            s.deref_mut().set(s_key);
-        }
+        let s = match self.s {
+            Some(k) => {
+                (&mut *s_dh).set(k);
+                Toggle::on(s_dh)
+            },
+            None => {
+                Toggle::off(s_dh)
+            }
+        };
 
-        if let Some(e_key) = self.e {
-            e.deref_mut().set(e_key);
-        }
+        let e = match self.e {
+            Some(k) => {
+                (&mut *e_dh).set(k);
+                Toggle::on(e_dh)
+            },
+            None => {
+                Toggle::off(e_dh)
+            }
+        };
 
-        let has_s = self.s.is_some();
-        let has_e = self.e.is_some();
-        let has_rs = self.rs.is_some();
-        let has_re = self.re.is_some();
-        let hs = HandshakeState::new(rng, cipher, hash, s, e,
-                            self.rs.unwrap_or_else(|| Vec::new()),
-                            self.re.unwrap_or_else(|| Vec::new()),
-                            has_s, has_e, has_rs, has_re,
-                            initiator,
-                            self.params.handshake,
-                            &[0u8; 0],
-                            None,
-                            CipherStates::new(cipherstate1, cipherstate2)?)?;
+        let mut rs_buf = [0u8; MAXDHLEN];
+        let rs = match self.rs {
+            Some(v) => {
+                rs_buf[..v.len()].copy_from_slice(&v[..]);
+                Toggle::on(rs_buf)
+            },
+            None => Toggle::off(rs_buf),
+        };
+
+        let mut re_buf = [0u8; MAXDHLEN];
+        let re = match self.re {
+            Some(v) => {
+                re_buf[..v.len()].copy_from_slice(&v[..]);
+                Toggle::on(re_buf)
+            },
+            None => Toggle::off(re_buf),
+        };
+
+        let hs = HandshakeState::new(rng, cipher, hash,
+                                     s, e, rs, re,
+                                     initiator,
+                                     self.params.handshake,
+                                     &[0u8; 0],
+                                     None,
+                                     CipherStates::new(cipherstate1, cipherstate2)?)?;
         Ok(hs.into())
     }
 }
@@ -158,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_builder() {
-        let noise = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
+        let _noise = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
             .preshared_key(&[1,1,1,1,1,1,1])
             .prologue(&[2,2,2,2,2,2,2,2])
             .local_private_key(&[0u8; 32])

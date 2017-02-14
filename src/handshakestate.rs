@@ -9,6 +9,7 @@ use cipherstate::*;
 use symmetricstate::*;
 use patterns::*;
 use std::ops::{Deref, DerefMut};
+use self::NoiseError::*;
 
 
 #[derive(Debug)]
@@ -20,12 +21,12 @@ pub enum NoiseError {
     DecryptError
 }
 
-pub struct CipherStates(Box<CipherStateType>, Box<CipherStateType>);
+pub struct CipherStates(pub Box<CipherStateType>, pub Box<CipherStateType>);
 
 impl CipherStates {
     pub fn new(sending: Box<CipherStateType>, receiving: Box<CipherStateType>) -> Result<Self, NoiseError> {
         if sending.name() != receiving.name() {
-            return Err(NoiseError::InitError("cipherstates don't match"));
+            return Err(InitError("cipherstates don't match"));
         }
 
         Ok(CipherStates(sending, receiving))
@@ -67,15 +68,11 @@ pub struct HandshakeState {
     rng : Box<RandomType>,                // for generating ephemerals
     symmetricstate : SymmetricState,      // for handshaking
     cipherstates: CipherStates,
-    s: Box<DhType>,                       // local static
-    e: Box<DhType>,                       // local ephemeral
-    rs: Vec<u8>,                          // remote static
-    re: Vec<u8>,                          // remote ephemeral
+    s: Toggle<Box<DhType>>,               // local static
+    e: Toggle<Box<DhType>>,               // local ephemeral
+    rs: Toggle<[u8; MAXDHLEN]>,           // remote static
+    re: Toggle<[u8; MAXDHLEN]>,           // remote ephemeral
     handshake_pattern: HandshakePattern,
-    has_s: bool,
-    has_e: bool,
-    has_rs: bool,
-    has_re: bool,
     my_turn: bool,
     message_patterns: MessagePatterns, // 2D Token array
 }
@@ -85,29 +82,19 @@ impl HandshakeState {
             rng: Box<RandomType>,
             cipherstate: Box<CipherStateType>,
             hasher: Box<HashType>,
-            s : Box<DhType>,
-            e : Box<DhType>,
-            rs: Vec<u8>,
-            re: Vec<u8>,
-            has_s: bool,
-            has_e: bool,
-            has_rs: bool,
-            has_re: bool,
+            s : Toggle<Box<DhType>>,
+            e : Toggle<Box<DhType>>,
+            rs: Toggle<[u8; MAXDHLEN]>,
+            re: Toggle<[u8; MAXDHLEN]>,
             initiator: bool,
             handshake_pattern: HandshakePattern,
             prologue: &[u8],
             optional_preshared_key: Option<Vec<u8>>,
             cipherstates: CipherStates) -> Result<HandshakeState, NoiseError> {
-        use self::NoiseError::*;
 
-
-        if s.name() != e.name() {
-            return Err(InitError("cipherstates don't match"));
-        }
-
-        if (has_s && has_e  && s.pub_len() != e.pub_len())
-        || (has_s && has_rs && s.pub_len() >  rs.len())
-        || (has_s && has_re && s.pub_len() >  re.len())
+        if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
+        || (s.is_on() && rs.is_on() && s.pub_len() >  rs.len())
+        || (s.is_on() && re.is_on() && s.pub_len() >  re.len())
         {
             return Err(PrereqError(format!("key lengths aren't right. my pub: {}, their: {}", s.pub_len(), rs.len())));
         }
@@ -135,33 +122,34 @@ impl HandshakeState {
             symmetricstate.mix_preshared_key(&preshared_key);
         }
 
+        let dh_len = s.pub_len();
         if initiator {
             for token in tokens.premsg_pattern_i {
                 match *token {
-                    Token::S => {assert!(has_s); symmetricstate.mix_hash(s.pubkey());},
-                    Token::E => {assert!(has_e); symmetricstate.mix_hash(e.pubkey());},
+                    Token::S => {assert!(s.is_on()); symmetricstate.mix_hash(s.pubkey());},
+                    Token::E => {assert!(e.is_on()); symmetricstate.mix_hash(e.pubkey());},
                     _ => unreachable!()
                 }
             }
             for token in tokens.premsg_pattern_r {
                 match *token {
-                    Token::S => {assert!(has_rs); symmetricstate.mix_hash(&rs);},
-                    Token::E => {assert!(has_re); symmetricstate.mix_hash(&re);},
+                    Token::S => {assert!(rs.is_on()); symmetricstate.mix_hash(&rs[..dh_len]);},
+                    Token::E => {assert!(re.is_on()); symmetricstate.mix_hash(&re[..dh_len]);},
                     _ => unreachable!()
                 }
             }
         } else {
             for token in tokens.premsg_pattern_i {
                 match *token {
-                    Token::S => {assert!(has_rs); symmetricstate.mix_hash(&rs);},
-                    Token::E => {assert!(has_re); symmetricstate.mix_hash(&re);},
+                    Token::S => {assert!(rs.is_on()); symmetricstate.mix_hash(&rs[..dh_len]);},
+                    Token::E => {assert!(re.is_on()); symmetricstate.mix_hash(&re[..dh_len]);},
                     _ => unreachable!()
                 }
             }
             for token in tokens.premsg_pattern_r {
                 match *token {
-                    Token::S => {assert!(has_s); symmetricstate.mix_hash(s.pubkey());},
-                    Token::E => {assert!(has_e); symmetricstate.mix_hash(e.pubkey());},
+                    Token::S => {assert!(s.is_on()); symmetricstate.mix_hash(s.pubkey());},
+                    Token::E => {assert!(e.is_on()); symmetricstate.mix_hash(e.pubkey());},
                     _ => unreachable!()
                 }
             }
@@ -175,10 +163,6 @@ impl HandshakeState {
             e: e, 
             rs: rs, 
             re: re,
-            has_s: has_s,
-            has_e: has_e,
-            has_rs: has_rs,
-            has_re: has_re,
             handshake_pattern: handshake_pattern,
             my_turn: initiator,
             message_patterns: tokens.msg_patterns.into(),
@@ -190,24 +174,28 @@ impl HandshakeState {
     }
 
     fn dh(&mut self, local_s: bool, remote_s: bool) -> Result<(), NoiseError> {
-        if !((!local_s  || self.has_s)  &&
-             ( local_s  || self.has_e)  &&
-             (!remote_s || self.has_rs) &&
-             ( remote_s || self.has_re))
+        if !((!local_s  || self.s.is_on())  &&
+             ( local_s  || self.e.is_on())  &&
+             (!remote_s || self.rs.is_on()) &&
+             ( remote_s || self.re.is_on()))
         {
             Err(NoiseError::StateError("missing key material"))
         } else {
             let dh_len = self.dh_len();
             let mut dh_out = [0u8; MAXDHLEN];
             match (local_s, remote_s) {
-                (true,  true ) => self.s.dh(&self.rs, &mut dh_out),
-                (true,  false) => self.s.dh(&self.re, &mut dh_out),
-                (false, true ) => self.e.dh(&self.rs, &mut dh_out),
-                (false, false) => self.e.dh(&self.re, &mut dh_out),
+                (true,  true ) => self.s.dh(&*self.rs, &mut dh_out),
+                (true,  false) => self.s.dh(&*self.re, &mut dh_out),
+                (false, true ) => self.e.dh(&*self.rs, &mut dh_out),
+                (false, false) => self.e.dh(&*self.re, &mut dh_out),
             }
             self.symmetricstate.mix_key(&dh_out[..dh_len]);
             Ok(())
         }
+    }
+
+    pub fn is_write_encrypted(&self) -> bool {
+        false
     }
 
     pub fn write_message(&mut self, 
@@ -228,18 +216,20 @@ impl HandshakeState {
         for token in next_tokens.iter() {
             match *token {
                 Token::E => {
-                    self.e.generate(self.rng.deref_mut());
-                    let pubkey = self.e.pubkey();
-                    copy_memory(pubkey, &mut message[byte_index..]);
-                    byte_index += self.s.pub_len();
-                    self.symmetricstate.mix_hash(&pubkey);
-                    if self.symmetricstate.has_preshared_key() {
-                        self.symmetricstate.mix_key(&pubkey);
+                    self.e.generate(&mut *self.rng);
+                    {
+                        let pubkey = self.e.pubkey();
+                        copy_memory(pubkey, &mut message[byte_index..]);
+                        byte_index += self.s.pub_len();
+                        self.symmetricstate.mix_hash(&pubkey);
+                        if self.symmetricstate.has_preshared_key() {
+                            self.symmetricstate.mix_key(&pubkey);
+                        }
                     }
-                    self.has_e = true;
+                    self.e.enable();
                 },
                 Token::S => {
-                    if !self.has_s {
+                    if !self.s.is_on() {
                         return Err(NoiseError::StateError("self.has_s is false"));
                     }
                     byte_index += self.symmetricstate.encrypt_and_hash(
@@ -259,7 +249,7 @@ impl HandshakeState {
             return Err(NoiseError::InputError("with tokens, message size exceeds maximum"));
         }
         if last {
-            self.symmetricstate.split(self.cipherstates.0.deref_mut(), self.cipherstates.1.deref_mut());
+            self.symmetricstate.split(&mut *self.cipherstates.0, &mut *self.cipherstates.1);
         }
         Ok((byte_index, last))
     }
@@ -284,14 +274,13 @@ impl HandshakeState {
             for token in tokens.iter() {
                 match *token {
                     Token::E => {
-                        self.re.clear();
-                        self.re.extend_from_slice(&ptr[..dh_len]);
+                        self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
                         ptr = &ptr[dh_len..];
-                        self.symmetricstate.mix_hash(&self.re);
+                        self.symmetricstate.mix_hash(&self.re[..dh_len]);
                         if self.symmetricstate.has_preshared_key() {
-                            self.symmetricstate.mix_key(&self.re);
+                            self.symmetricstate.mix_key(&self.re[..dh_len]);
                         }
-                        self.has_re = true;
+                        self.re.enable();
                     },
                     Token::S => {
                         let data = if self.symmetricstate.has_key() {
@@ -303,12 +292,10 @@ impl HandshakeState {
                             ptr = &ptr[dh_len..];
                             temp
                         };
-                        self.rs.clear();
-                        self.rs.resize(32, 0); // XXX
-                        if !self.symmetricstate.decrypt_and_hash(data, &mut self.rs[..]) {
+                        if !self.symmetricstate.decrypt_and_hash(data, &mut self.rs[..dh_len]) {
                             return Err(NoiseError::DecryptError);
                         }
-                        self.has_rs = true;
+                        self.rs.enable();
                     },
                     Token::Dhee => self.dh(false, false)?,
                     Token::Dhes => self.dh(true, false)?,
@@ -322,7 +309,7 @@ impl HandshakeState {
         }
         self.my_turn = true;
         if last {
-            self.symmetricstate.split(self.cipherstates.0.deref_mut(), self.cipherstates.1.deref_mut());
+            self.symmetricstate.split(&mut *self.cipherstates.0, &mut *self.cipherstates.1);
         }
         let payload_len = if self.symmetricstate.has_key() { ptr.len() - TAGLEN } else { ptr.len() };
         Ok((payload_len, last))
@@ -332,6 +319,9 @@ impl HandshakeState {
         self.cipherstates
     }
 
+    pub fn is_finished(&self) -> bool {
+        self.message_patterns.is_empty()
+    }
 }
 
 

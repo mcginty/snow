@@ -1,5 +1,3 @@
-use cipherstate::CipherState;
-use crypto_types::CipherType;
 use handshakestate::{CipherStates, HandshakeState};
 use std::ops::{Deref, DerefMut};
 
@@ -26,8 +24,22 @@ impl From<HandshakeState> for NoiseSession<HandshakeState> {
 }
 
 impl NoiseSession<HandshakeState> {
-    pub fn complete_handshake(self) -> NoiseSession<CipherStates> {
+    pub fn is_handshake_finished(&self) -> bool {
+        self.state.is_finished()
+    }
+
+    pub fn transition(self) -> NoiseSession<CipherStates> {
         self.into()
+    }
+}
+
+impl NoiseSession<CipherStates> {
+    pub fn is_handshake_finished(&self) -> bool {
+        true
+    }
+
+    pub fn is_cipherstates(&self) -> bool {
+        true
     }
 }
 

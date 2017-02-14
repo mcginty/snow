@@ -1,5 +1,4 @@
 use std::str::FromStr;
-use std::fmt;
 
 #[derive(Copy, Clone, Debug)]
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss}
