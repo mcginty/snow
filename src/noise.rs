@@ -49,8 +49,8 @@ impl CryptoResolver for DefaultResolver {
 pub struct NoiseBuilder<'a> {
     params: NoiseParams,           // Deserialized protocol spec
     resolver: Box<CryptoResolver>, // The mapper from protocol choices to crypto implementations
-    pub s:  Option<&'a [u8]>,
-    pub e:  Option<&'a [u8]>,
+    pub s: Option<&'a [u8]>,
+    pub e: Option<&'a [u8]>,
     pub rs: Option<Vec<u8>>,
     pub re: Option<Vec<u8>>,
     pub psk: Option<Vec<u8>>,

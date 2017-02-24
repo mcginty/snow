@@ -187,6 +187,51 @@ fn test_noise_XX_with_builder() {
 
 }
 
+#[test]
+fn test_noise_IN_with_builder() {
+    let resolver_i = TestResolver::new(0);
+    let resolver_r = TestResolver::new(1);
+
+    let mut static_i:Dh25519 = Default::default();
+    let mut static_r:Dh25519 = Default::default();
+
+    static_i.generate(resolver_i.resolve_rng().unwrap().deref_mut());
+    static_r.generate(resolver_r.resolve_rng().unwrap().deref_mut());
+    println!("key_i: {:?}", static_i.privkey());
+    println!("key_r: {:?}", static_r.privkey());
+
+    let resolver_i = TestResolver::new(32);
+    let resolver_r = TestResolver::new(33);
+
+    let mut h_i = NoiseBuilder::with_resolver("Noise_IK_25519_AESGCM_SHA256".parse().unwrap(),
+                                              Box::new(resolver_i))
+        .local_private_key(static_i.privkey())
+        .remote_public_key(static_r.pubkey())
+        .build_initiator().unwrap();
+
+    let mut h_r = NoiseBuilder::with_resolver("Noise_IK_25519_AESGCM_SHA256".parse().unwrap(),
+                                              Box::new(resolver_r))
+        .local_private_key(static_r.privkey())
+        .build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 200];
+    println!("a");
+    h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap();
+    println!("a");
+    h_r.read_message(&buffer_msg[..99], &mut buffer_out).unwrap();
+    assert!(buffer_out[..3].to_hex() == "616263");
+
+    println!("a");
+    h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap();
+    println!("a");
+    h_i.read_message(&buffer_msg[..52], &mut buffer_out).unwrap();
+    println!("a");
+    assert!(buffer_out[..4].to_hex() == "64656667");
+
+    //println!("{}", buffer_msg[..52].to_hex());
+}
+
 //#[test]
 fn test_noise_IK_with_builder() {
     let resolver_i = TestResolver::new(0);
@@ -235,46 +280,31 @@ fn test_noise_session_transition_change() {
     let resolver_i = TestResolver::new(0);
     let resolver_r = TestResolver::new(1);
 
-    let mut static_i:Dh25519 = Default::default();
-    let mut static_r:Dh25519 = Default::default();
+    let mut static_i = Dh25519::default();
+    let mut static_r = Dh25519::default();
 
-    static_i.generate(resolver_i.resolve_rng().unwrap().deref_mut());
-    static_r.generate(resolver_r.resolve_rng().unwrap().deref_mut());
+    static_i.generate(&mut *resolver_i.resolve_rng().unwrap());
+    static_r.generate(&mut *resolver_r.resolve_rng().unwrap());
     println!("key_i: {:?}", static_i.privkey());
     println!("key_r: {:?}", static_r.privkey());
 
-    let resolver_i = TestResolver::new(32);
-    let resolver_r = TestResolver::new(33);
-
-    let mut h_i = NoiseBuilder::with_resolver("Noise_XX_25519_AESGCM_SHA256".parse().unwrap(),
-                                              Box::new(resolver_i))
+    let mut h_i = NoiseBuilder::new("Noise_XX_25519_AESGCM_SHA256".parse().unwrap())
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver("Noise_XX_25519_AESGCM_SHA256".parse().unwrap(),
-                                              Box::new(resolver_r))
+    let mut h_r = NoiseBuilder::new("Noise_XX_25519_AESGCM_SHA256".parse().unwrap())
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
     assert!(h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap().0 == 35);
-    println!("msg1: {:?}", &buffer_msg[..35]);
     assert!(h_r.read_message(&buffer_msg[..35], &mut buffer_out).unwrap().0 == 3);
-    assert!(buffer_out[..3].to_hex() == "616263");
-
-    assert!(!h_i.is_handshake_finished());
 
     assert!(h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap().0 == 100);
-    println!("msg2: {:?}", &buffer_msg[..100]);
     assert!(h_i.read_message(&buffer_msg[..100], &mut buffer_out).unwrap().0 == 4);
-    assert!(buffer_out[..4].to_hex() == "64656667");
-
-    assert!(!h_i.is_handshake_finished());
 
     assert!(h_i.write_message(&[0u8;0], &mut buffer_msg).unwrap().0 == 64);
     assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap().0 == 0);
-
-    assert!(buffer_msg[..64].to_hex() == "8127f4b35cdbdf0935fcf1ec99016d1dcbc350055b8af360be196905dfb50a2c1c38a7ca9cb0cfe8f4576f36c47a4933eee32288f590ac4305d4b53187577be7");
 
     assert!(h_i.is_handshake_finished());
     let final_ciphers = h_i.transition();
