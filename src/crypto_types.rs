@@ -8,6 +8,7 @@ pub trait RandomType {
 pub trait DhType {
     fn name(&self) -> &'static str;
     fn pub_len(&self) -> usize;
+    fn priv_len(&self) -> usize;
 
     fn set(&mut self, privkey: &[u8]);
     fn generate(&mut self, rng: &mut RandomType); 

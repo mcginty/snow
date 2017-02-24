@@ -25,7 +25,6 @@ impl CryptoResolver for DefaultResolver {
         match *choice {
             DHChoice::Curve25519 => Some(Box::new(Dh25519::default())),
             _                    => None,
-
         }
     }
 
@@ -94,6 +93,17 @@ impl<'a> NoiseBuilder<'a> {
     pub fn remote_public_key(mut self, pub_key: &[u8]) -> Self {
         self.rs = Some(pub_key.to_vec());
         self
+    }
+
+    pub fn generate_new_private_key(&self) -> Result<Vec<u8>, NoiseError> {
+        let mut rng = self.resolver.resolve_rng()
+            .ok_or(NoiseError::InitError("no suitable RNG"))?;
+        let mut dh = self.resolver.resolve_dh(&self.params.dh)
+            .ok_or(NoiseError::InitError("no suitable DH implementation"))?;
+        let mut private = vec![0u8; dh.priv_len()];
+        dh.generate(&mut *rng);
+        private[..dh.priv_len()].copy_from_slice(dh.privkey());
+        Ok(private)
     }
 
     pub fn build_initiator(self) -> Result<NoiseSession<HandshakeState>, NoiseError> {
@@ -188,6 +198,14 @@ mod tests {
             .prologue(&[2,2,2,2,2,2,2,2])
             .local_private_key(&[0u8; 32])
             .build_initiator().unwrap();
+    }
+
+    #[test]
+    fn test_builder_keygen() {
+        let builder = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap());
+        let key1 = builder.generate_new_private_key();
+        let key2 = builder.generate_new_private_key();
+        assert!(key1.unwrap() != key2.unwrap());
     }
 
     #[test]

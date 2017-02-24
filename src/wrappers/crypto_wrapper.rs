@@ -63,6 +63,10 @@ impl DhType for Dh25519 {
         return 32;
     }
 
+    fn priv_len(&self) -> usize {
+        return 32;
+    }
+
     fn set(&mut self, privkey: &[u8]) {
         copy_memory(privkey, &mut self.privkey); /* RUSTSUCKS: Why can't I convert slice -> array? */
         let pubkey = curve25519_base(&self.privkey);
