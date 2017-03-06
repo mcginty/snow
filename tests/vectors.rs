@@ -63,7 +63,67 @@ struct TestVectors {
 }
 
 fn build_session_pair(vector: &TestVector) -> Result<(NoiseSession<HandshakeState>, NoiseSession<HandshakeState>), NoiseError> {
+    let params: NoiseParams = vector.name.parse().unwrap();
+    let mut init_builder = NoiseBuilder::new(params.clone());
+    let mut resp_builder = NoiseBuilder::new(params);
 
+    match (params.base, &vector.init_psk, &vector.resp_psk) {
+        (BaseChoice::NoisePSK, &Some(ref init_psk), &Some(ref resp_psk)) => {
+            init_builder = init_builder.preshared_key(&*init_psk);
+            resp_builder = resp_builder.preshared_key(&*resp_psk);
+        },
+        (BaseChoice::NoisePSK, _, _) => {
+            panic!("NoisePSK case missing PSKs for init and/or resp");
+        },
+        _ => {}
+    }
+
+    if let Some(ref init_s) = vector.init_static {
+        init_builder = init_builder.local_private_key(&*init_s);
+    }
+    if let Some(ref resp_s) = vector.resp_static {
+        resp_builder = resp_builder.local_private_key(&*resp_s);
+    }
+    if let Some(ref init_remote_static) = vector.init_remote_static {
+        init_builder = init_builder.remote_public_key(&*init_remote_static);
+    }
+    if let Some(ref resp_remote_static) = vector.resp_remote_static {
+        resp_builder = resp_builder.remote_public_key(&*resp_remote_static);
+    }
+    if let Some(ref init_e) = vector.init_ephemeral {
+        init_builder = init_builder.fixed_ephemeral_key_for_testing_only(&*init_e);
+    }
+    if let Some(ref resp_e) = vector.resp_ephemeral {
+        resp_builder = resp_builder.fixed_ephemeral_key_for_testing_only(&*resp_e);
+    }
+
+    let mut init = init_builder.build_initiator()?;
+    let mut resp = resp_builder.build_responder()?;
+
+    Ok((init, resp))
+}
+
+fn confirm_message_vectors<'a>(mut init: &'a mut NoiseSession<HandshakeState>, mut resp: &'a mut NoiseSession<HandshakeState>, messages: &Vec<TestMessage>) -> Result<(), String> {
+    let (mut sendbuf, mut recvbuf) = ([0u8; 65535], [0u8; 65535]);
+    for (i, message) in messages.iter().enumerate() {
+        println!("  message {}", i);
+        let (send, recv) = if i % 2 == 0 {
+            (&mut init, &mut resp)
+        } else {
+            (&mut resp, &mut init)
+        };
+
+        let (len, _) = send.write_message(&*message.payload, &mut sendbuf).unwrap();
+        if &sendbuf[..len] != &(*message.ciphertext)[..] {
+            let mut s = String::new();
+            s.push_str(&format!("plaintext:  {}\n", &(*message.payload)[..].to_hex()));
+            s.push_str(&format!("expected:   {}\n", &(*message.ciphertext)[..].to_hex()));
+            s.push_str(&format!("ciphertext: {}", &sendbuf[..len].to_hex()));
+            return Err(s)
+        }
+        recv.read_message(&sendbuf[..len], &mut recvbuf).unwrap();
+    }
+    Ok(())
 }
 
 #[test]
@@ -71,6 +131,8 @@ fn test_vectors_noise_c_basic() {
     let vectors_json = include_str!("vectors/noise-c-basic.txt");
     let test_vectors: TestVectors = json::decode(vectors_json).unwrap();
 
+    let mut passes = 0;
+    let mut fails = 0;
     let mut ignored_448 = 0;
     let mut ignored_oneway = 0;
 
@@ -84,61 +146,22 @@ fn test_vectors_noise_c_basic() {
             ignored_oneway += 1;
             continue;
         }
-        println!("testing {}...", vector.name);
+        let (mut init, mut resp) = build_session_pair(&vector).unwrap();
 
-        let mut init_builder = NoiseBuilder::new(params.clone());
-        let mut resp_builder = NoiseBuilder::new(params.clone());
-
-        match (params.base, vector.init_psk, vector.resp_psk) {
-            (BaseChoice::NoisePSK, Some(init_psk), Some(resp_psk)) => {
-                init_builder = init_builder.preshared_key(&*init_psk);
-                resp_builder = resp_builder.preshared_key(&*resp_psk);
+        match confirm_message_vectors(&mut init, &mut resp, &vector.messages) {
+            Ok(_) => {
+                passes += 1;
             },
-            (BaseChoice::NoisePSK, _, _) => {
-                panic!("NoisePSK case missing PSKs for init and/or resp");
-            },
-            _ => {}
+            Err(s) => {
+                fails += 1;
+                println!("failure on {}", vector.name);
+                println!("{}", s);
+            }
         }
-
-        if let Some(ref init_s) = vector.init_static {
-            init_builder = init_builder.local_private_key(&*init_s);
-        }
-        if let Some(ref resp_s) = vector.resp_static {
-            resp_builder = resp_builder.local_private_key(&*resp_s);
-        }
-        if let Some(ref init_remote_static) = vector.init_remote_static {
-            init_builder = init_builder.remote_public_key(&*init_remote_static);
-        }
-        if let Some(ref resp_remote_static) = vector.resp_remote_static {
-            resp_builder = resp_builder.remote_public_key(&*resp_remote_static);
-        }
-        if let Some(ref init_e) = vector.init_ephemeral {
-            init_builder = init_builder.fixed_ephemeral_key_for_testing_only(&*init_e);
-        }
-        if let Some(ref resp_e) = vector.resp_ephemeral {
-            resp_builder = resp_builder.fixed_ephemeral_key_for_testing_only(&*resp_e);
-        }
-
-        let mut init = init_builder.build_initiator().unwrap();
-        let mut resp = resp_builder.build_responder().unwrap();
-
-        let (mut sendbuf, mut recvbuf) = ([0u8; 65535], [0u8; 65535]);
-        for (i, message) in vector.messages.iter().enumerate() {
-            println!("  message {}", i);
-            let (send, recv) = if i % 2 == 0 {
-                (&mut init, &mut resp)
-            } else {
-                (&mut resp, &mut init)
-            };
-
-            let (len, _) = send.write_message(&*message.payload, &mut sendbuf).unwrap();
-            println!("ciphertext: {}", &sendbuf[..len].to_hex());
-            assert!(&sendbuf[..len] == &(*message.ciphertext)[..]);
-            recv.read_message(&sendbuf[..len], &mut recvbuf).unwrap();
-        }
-        println!("  passed!");
     }
 
-    println!("\n* ignored {} unsupported Ed448-Goldilocks variants\n", ignored_448);
+    println!("\n{}/{} passed", passes, passes+fails);
+    println!("* ignored {} Ed448-Goldilocks variants", ignored_448);
+    println!("* ignored {} one-way patterns\n", ignored_oneway);
     panic!("done");
 }
