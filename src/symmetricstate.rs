@@ -106,11 +106,10 @@ impl SymmetricStateType for SymmetricState {
         if self.has_key {
             self.cipherstate.encrypt_ad(&self.h[..hash_len], plaintext, out);
             output_len = plaintext.len() + TAGLEN;
+        } else {
+            copy_memory(plaintext, out);
+            output_len = plaintext.len();
         }
-            else {
-                copy_memory(plaintext, out);
-                output_len = plaintext.len();
-            }
         self.mix_hash(&out[..output_len]);
         output_len
     }

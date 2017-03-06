@@ -2,7 +2,7 @@
 use std::str::FromStr;
 use patterns::*;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum BaseChoice {
     Noise,
     NoisePSK,
@@ -20,10 +20,10 @@ impl FromStr for BaseChoice {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum DHChoice {
     Curve25519,
-    Curve448,
+    Ed448,
 }
 
 impl FromStr for DHChoice {
@@ -32,13 +32,13 @@ impl FromStr for DHChoice {
         use self::DHChoice::*;
         match s {
             "25519" => Ok(Curve25519),
-            "448"   => Ok(Curve448),
+            "448"   => Ok(Ed448),
             _       => Err("DH type unsupported")
         }
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum CipherChoice {
     ChaChaPoly,
     AESGCM,
@@ -56,7 +56,7 @@ impl FromStr for CipherChoice {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum HashChoice {
     SHA256,
     SHA512,
@@ -78,7 +78,7 @@ impl FromStr for HashChoice {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub struct NoiseParams {
     pub base: BaseChoice,
     pub handshake: HandshakePattern,

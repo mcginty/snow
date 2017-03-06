@@ -70,6 +70,7 @@ pub struct HandshakeState {
     cipherstates: CipherStates,
     s: Toggle<Box<DhType>>,               // local static
     e: Toggle<Box<DhType>>,               // local ephemeral
+    fixed_ephemeral: bool,                // fixed ephemeral (FOR TEST VECTORS ONLY)
     rs: Toggle<[u8; MAXDHLEN]>,           // remote static
     re: Toggle<[u8; MAXDHLEN]>,           // remote ephemeral
     handshake_pattern: HandshakePattern,
@@ -84,6 +85,7 @@ impl HandshakeState {
             hasher: Box<HashType>,
             s : Toggle<Box<DhType>>,
             e : Toggle<Box<DhType>>,
+            fixed_ephemeral: bool,
             rs: Toggle<[u8; MAXDHLEN]>,
             re: Toggle<[u8; MAXDHLEN]>,
             initiator: bool,
@@ -118,7 +120,7 @@ impl HandshakeState {
         symmetricstate.initialize(&handshake_name[..]);
         symmetricstate.mix_hash(prologue);
 
-        if let Some(preshared_key) = optional_preshared_key { 
+        if let Some(preshared_key) = optional_preshared_key {
             symmetricstate.mix_preshared_key(&preshared_key);
         }
 
@@ -160,7 +162,8 @@ impl HandshakeState {
             symmetricstate: symmetricstate,
             cipherstates: cipherstates,
             s: s,
-            e: e, 
+            e: e,
+            fixed_ephemeral: fixed_ephemeral,
             rs: rs, 
             re: re,
             handshake_pattern: handshake_pattern,
@@ -195,7 +198,7 @@ impl HandshakeState {
     }
 
     pub fn is_write_encrypted(&self) -> bool {
-        false
+        self.symmetricstate.has_key()
     }
 
     pub fn write_message(&mut self, 
@@ -216,7 +219,9 @@ impl HandshakeState {
         for token in next_tokens.iter() {
             match *token {
                 Token::E => {
-                    self.e.generate(&mut *self.rng);
+                    if !self.fixed_ephemeral {
+                        self.e.generate(&mut *self.rng);
+                    }
                     {
                         let pubkey = self.e.pubkey();
                         copy_memory(pubkey, &mut message[byte_index..]);

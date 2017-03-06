@@ -14,9 +14,10 @@ mod session;
 pub use crypto_types::{RandomType, DhType, CipherType, HashType};
 pub use wrappers::crypto_wrapper::*;
 pub use wrappers::rand_wrapper::*;
-pub use handshakestate::{HandshakeState};
+pub use handshakestate::{HandshakeState, NoiseError};
 pub use cipherstate::{CipherState, CipherStateType};
 pub use patterns::{HandshakePattern};
 pub use protocol_name::*;
 pub use noise::*;
+pub use session::*;
 

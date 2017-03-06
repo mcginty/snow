@@ -50,6 +50,7 @@ pub struct NoiseBuilder<'a> {
     resolver: Box<CryptoResolver>, // The mapper from protocol choices to crypto implementations
     pub s: Option<&'a [u8]>,
     pub e: Option<&'a [u8]>,
+    pub e_fixed: Option<&'a [u8]>,
     pub rs: Option<Vec<u8>>,
     pub re: Option<Vec<u8>>,
     pub psk: Option<Vec<u8>>,
@@ -68,6 +69,7 @@ impl<'a> NoiseBuilder<'a> {
             resolver: resolver,
             s: None,
             e: None,
+            e_fixed: None,
             rs: None,
             re: None,
             plog: None,
@@ -85,6 +87,11 @@ impl<'a> NoiseBuilder<'a> {
         self
     }
 
+    pub fn fixed_ephemeral_key_for_testing_only(mut self, key: &'a [u8]) -> Self {
+        self.e_fixed = Some(key);
+        self
+    }
+
     pub fn prologue(mut self, key: &[u8]) -> Self {
         self.plog = Some(key.to_vec());
         self
@@ -95,7 +102,7 @@ impl<'a> NoiseBuilder<'a> {
         self
     }
 
-    pub fn generate_new_private_key(&self) -> Result<Vec<u8>, NoiseError> {
+    pub fn generate_private_key(&self) -> Result<Vec<u8>, NoiseError> {
         let mut rng = self.resolver.resolve_rng()
             .ok_or(NoiseError::InitError("no suitable RNG"))?;
         let mut dh = self.resolver.resolve_dh(&self.params.dh)
@@ -123,20 +130,13 @@ impl<'a> NoiseBuilder<'a> {
             return Err(NoiseError::InitError("remote key needed for chosen handshake pattern"));
         }
 
-        let rng = self.resolver.resolve_rng()
-            .ok_or(NoiseError::InitError("no suitable RNG"))?;
-        let cipher = self.resolver.resolve_cipher(&self.params.cipher)
-            .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
-        let hash = self.resolver.resolve_hash(&self.params.hash)
-            .ok_or(NoiseError::InitError("no suitable hash implementation"))?;
-        let mut s_dh = self.resolver.resolve_dh(&self.params.dh)
-            .ok_or(NoiseError::InitError("no suitable DH implementation"))?;
-        let mut e_dh = self.resolver.resolve_dh(&self.params.dh)
-            .ok_or(NoiseError::InitError("no suitable DH implementation"))?;
-        let cipherstate1 = self.resolver.resolve_cipher(&self.params.cipher)
-            .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
-        let cipherstate2 = self.resolver.resolve_cipher(&self.params.cipher)
-            .ok_or(NoiseError::InitError("no suitable cipher implementation"))?;
+        let rng = self.resolver.resolve_rng().ok_or(NoiseError::InitError("no suitable RNG"))?;
+        let cipher = self.resolver.resolve_cipher(&self.params.cipher).ok_or(NoiseError::InitError("no cipher implementation"))?;
+        let hash = self.resolver.resolve_hash(&self.params.hash).ok_or(NoiseError::InitError("no hash implementation"))?;
+        let mut s_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(NoiseError::InitError("no DH implementation"))?;
+        let mut e_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(NoiseError::InitError("no DH implementation"))?;
+        let cipherstate1 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(NoiseError::InitError("no cipher implementation"))?;
+        let cipherstate2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(NoiseError::InitError("no cipher implementation"))?;
 
         let s = match self.s {
             Some(k) => {
@@ -148,14 +148,18 @@ impl<'a> NoiseBuilder<'a> {
             }
         };
 
-        let e = match self.e {
+        if let Some(fixed_k) = self.e_fixed {
+            (&mut *e_dh).set(fixed_k);
+        }
+        let e = Toggle::off(e_dh);
+
+        let e_fixed = match self.e_fixed {
             Some(k) => {
-                (&mut *e_dh).set(k);
-                Toggle::on(e_dh)
+                let mut e_fixed_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(NoiseError::InitError("no DH implementation"))?;
+                (&mut *e_fixed_dh).set(k);
+                Some(e_fixed_dh)
             },
-            None => {
-                Toggle::off(e_dh)
-            }
+            None => None
         };
 
         let mut rs_buf = [0u8; MAXDHLEN];
@@ -177,11 +181,11 @@ impl<'a> NoiseBuilder<'a> {
         };
 
         let hs = HandshakeState::new(rng, cipher, hash,
-                                     s, e, rs, re,
+                                     s, e, self.e_fixed.is_some(), rs, re,
                                      initiator,
                                      self.params.handshake,
-                                     &[0u8; 0],
-                                     None,
+                                     &self.plog.unwrap_or_else(|| vec![0u8; 0]),
+                                     self.psk,
                                      CipherStates::new(cipherstate1, cipherstate2)?)?;
         Ok(hs.into())
     }
@@ -203,8 +207,8 @@ mod tests {
     #[test]
     fn test_builder_keygen() {
         let builder = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap());
-        let key1 = builder.generate_new_private_key();
-        let key2 = builder.generate_new_private_key();
+        let key1 = builder.generate_private_key();
+        let key2 = builder.generate_private_key();
         assert!(key1.unwrap() != key2.unwrap());
     }
 

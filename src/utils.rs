@@ -5,6 +5,9 @@ pub fn copy_memory(input: &[u8], out: &mut [u8]) -> usize {
     input.len()
 }
 
+/// Toggle is similar to Option, except that even in the Off/"None" case, there is still
+/// an owned allocated inner object. This is useful for holding onto pre-allocated objects
+/// that can be toggled as enabled.
 pub struct Toggle<T> {
     inner: T,
     on: bool,

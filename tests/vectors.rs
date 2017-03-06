@@ -6,6 +6,7 @@ use rustc_serialize::{Encodable, Decodable, Decoder};
 use rustc_serialize::hex::{FromHex, ToHex};
 use rustc_serialize::json::{self, DecoderError, Encoder};
 use snow::*;
+use std::fmt;
 
 struct HexBytes {
     original: String,
@@ -17,6 +18,12 @@ impl Deref for HexBytes {
 
     fn deref(&self) -> &Self::Target {
         &self.payload
+    }
+}
+
+impl fmt::Debug for HexBytes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self.original)
     }
 }
 
@@ -37,7 +44,13 @@ struct TestMessage {
     ciphertext: HexBytes,
 }
 
-#[derive(RustcDecodable)]
+impl fmt::Debug for TestMessage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Message")
+    }
+}
+
+#[derive(RustcDecodable, Debug)]
 struct TestVector {
     name: String,
     pattern: String,
@@ -97,8 +110,8 @@ fn build_session_pair(vector: &TestVector) -> Result<(NoiseSession<HandshakeStat
         resp_builder = resp_builder.fixed_ephemeral_key_for_testing_only(&*resp_e);
     }
 
-    let mut init = init_builder.build_initiator()?;
-    let mut resp = resp_builder.build_responder()?;
+    let mut init = init_builder.prologue(&vector.init_prologue).build_initiator()?;
+    let mut resp = resp_builder.prologue(&vector.resp_prologue).build_responder()?;
 
     Ok((init, resp))
 }
@@ -106,22 +119,26 @@ fn build_session_pair(vector: &TestVector) -> Result<(NoiseSession<HandshakeStat
 fn confirm_message_vectors<'a>(mut init: &'a mut NoiseSession<HandshakeState>, mut resp: &'a mut NoiseSession<HandshakeState>, messages: &Vec<TestMessage>) -> Result<(), String> {
     let (mut sendbuf, mut recvbuf) = ([0u8; 65535], [0u8; 65535]);
     for (i, message) in messages.iter().enumerate() {
-        println!("  message {}", i);
         let (send, recv) = if i % 2 == 0 {
             (&mut init, &mut resp)
         } else {
             (&mut resp, &mut init)
         };
 
-        let (len, _) = send.write_message(&*message.payload, &mut sendbuf).unwrap();
+        let (len, _) = send.write_message(&*message.payload, &mut sendbuf).map_err(|_| format!("write_message failed on message {}", i))?;
+        recv.read_message(&sendbuf[..len], &mut recvbuf).map_err(|_| format!("read_message failed on message {}", i))?;
         if &sendbuf[..len] != &(*message.ciphertext)[..] {
             let mut s = String::new();
+            s.push_str(&format!("message {}", i));
             s.push_str(&format!("plaintext:  {}\n", &(*message.payload)[..].to_hex()));
             s.push_str(&format!("expected:   {}\n", &(*message.ciphertext)[..].to_hex()));
             s.push_str(&format!("ciphertext: {}", &sendbuf[..len].to_hex()));
             return Err(s)
         }
-        recv.read_message(&sendbuf[..len], &mut recvbuf).unwrap();
+        // TODO also confirm cipherstates after handshake is finished
+        if send.is_finished() && recv.is_finished() {
+            break;
+        }
     }
     Ok(())
 }
@@ -154,8 +171,9 @@ fn test_vectors_noise_c_basic() {
             },
             Err(s) => {
                 fails += 1;
-                println!("failure on {}", vector.name);
+                println!("FAIL");
                 println!("{}", s);
+                println!("{:?}", vector);
             }
         }
     }
@@ -163,5 +181,7 @@ fn test_vectors_noise_c_basic() {
     println!("\n{}/{} passed", passes, passes+fails);
     println!("* ignored {} Ed448-Goldilocks variants", ignored_448);
     println!("* ignored {} one-way patterns\n", ignored_oneway);
-    panic!("done");
+    if fails > 0 {
+        panic!("at least one vector failed.");
+    }
 }
