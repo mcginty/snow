@@ -116,9 +116,11 @@ fn build_session_pair(vector: &TestVector) -> Result<(NoiseSession<HandshakeStat
     Ok((init, resp))
 }
 
-fn confirm_message_vectors<'a>(mut init: &'a mut NoiseSession<HandshakeState>, mut resp: &'a mut NoiseSession<HandshakeState>, messages: &Vec<TestMessage>) -> Result<(), String> {
+fn confirm_message_vectors(mut init: NoiseSession<HandshakeState>, mut resp: NoiseSession<HandshakeState>, messages_vec: &Vec<TestMessage>, is_oneway: bool) -> Result<(), String> {
     let (mut sendbuf, mut recvbuf) = ([0u8; 65535], [0u8; 65535]);
-    for (i, message) in messages.iter().enumerate() {
+    let mut messages = messages_vec.iter().enumerate();
+    while !init.is_finished() {
+        let (i, message) = messages.next().unwrap();
         let (send, recv) = if i % 2 == 0 {
             (&mut init, &mut resp)
         } else {
@@ -130,28 +132,41 @@ fn confirm_message_vectors<'a>(mut init: &'a mut NoiseSession<HandshakeState>, m
         if &sendbuf[..len] != &(*message.ciphertext)[..] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
-            s.push_str(&format!("plaintext:  {}\n", &(*message.payload)[..].to_hex()));
-            s.push_str(&format!("expected:   {}\n", &(*message.ciphertext)[..].to_hex()));
-            s.push_str(&format!("ciphertext: {}", &sendbuf[..len].to_hex()));
+            s.push_str(&format!("plaintext: {}\n", &(*message.payload)[..].to_hex()));
+            s.push_str(&format!("expected:  {}\n", &(*message.ciphertext)[..].to_hex()));
+            s.push_str(&format!("actual:    {}", &sendbuf[..len].to_hex()));
             return Err(s)
         }
-        // TODO also confirm cipherstates after handshake is finished
-        if send.is_finished() && recv.is_finished() {
-            break;
+    }
+
+    let (mut init, mut resp) = (init.transition(), resp.transition());
+    for (i, message) in messages {
+        let (send, recv) = if is_oneway || i % 2 == 0 {
+            (&mut init.0, &mut resp.0)
+        } else {
+            (&mut resp.1, &mut init.1)
+        };
+
+        send.encrypt(&*message.payload, &mut sendbuf);
+        recv.decrypt(&sendbuf[..message.ciphertext.len()], &mut recvbuf);
+        if &sendbuf[..message.ciphertext.len()] != &(*message.ciphertext)[..] {
+            let mut s = String::new();
+            s.push_str(&format!("message {}", i));
+            s.push_str(&format!("plaintext: {}\n", &(*message.payload)[..].to_hex()));
+            s.push_str(&format!("expected:  {}\n", &(*message.ciphertext)[..].to_hex()));
+            s.push_str(&format!("actual:    {}", &sendbuf[..message.ciphertext.len()].to_hex()));
+            return Err(s)
         }
     }
     Ok(())
 }
 
-#[test]
-fn test_vectors_noise_c_basic() {
-    let vectors_json = include_str!("vectors/noise-c-basic.txt");
-    let test_vectors: TestVectors = json::decode(vectors_json).unwrap();
+fn test_vectors_from_json(json: &str) {
+    let test_vectors: TestVectors = json::decode(json).unwrap();
 
     let mut passes = 0;
     let mut fails = 0;
     let mut ignored_448 = 0;
-    let mut ignored_oneway = 0;
 
     for vector in test_vectors.vectors {
         let params: NoiseParams = vector.name.parse().unwrap();
@@ -159,13 +174,9 @@ fn test_vectors_noise_c_basic() {
             ignored_448 += 1;
             continue;
         }
-        if params.handshake.is_oneway() {
-            ignored_oneway += 1;
-            continue;
-        }
         let (mut init, mut resp) = build_session_pair(&vector).unwrap();
 
-        match confirm_message_vectors(&mut init, &mut resp, &vector.messages) {
+        match confirm_message_vectors(init, resp, &vector.messages, params.handshake.is_oneway()) {
             Ok(_) => {
                 passes += 1;
             },
@@ -180,8 +191,17 @@ fn test_vectors_noise_c_basic() {
 
     println!("\n{}/{} passed", passes, passes+fails);
     println!("* ignored {} Ed448-Goldilocks variants", ignored_448);
-    println!("* ignored {} one-way patterns\n", ignored_oneway);
     if fails > 0 {
         panic!("at least one vector failed.");
     }
+}
+
+#[test]
+fn test_vectors_noise_c_basic() {
+    test_vectors_from_json(include_str!("vectors/noise-c-basic.txt"));
+}
+
+#[test]
+fn test_vectors_cacophony() {
+    test_vectors_from_json(include_str!("vectors/cacophony.txt"));
 }
