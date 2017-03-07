@@ -142,13 +142,13 @@ fn confirm_message_vectors(mut init: NoiseSession<HandshakeState>, mut resp: Noi
     let (mut init, mut resp) = (init.transition().unwrap(), resp.transition().unwrap());
     for (i, message) in messages {
         let (send, recv) = if is_oneway || i % 2 == 0 {
-            (&mut init.cipherstates.0, &mut resp.cipherstates.0)
+            (&mut init, &mut resp)
         } else {
-            (&mut resp.cipherstates.1, &mut init.cipherstates.1)
+            (&mut resp, &mut init)
         };
 
-        send.encrypt(&*message.payload, &mut sendbuf);
-        recv.decrypt(&sendbuf[..message.ciphertext.len()], &mut recvbuf);
+        send.write_message(&*message.payload, &mut sendbuf);
+        recv.read_message(&sendbuf[..message.ciphertext.len()], &mut recvbuf);
         if &sendbuf[..message.ciphertext.len()] != &(*message.ciphertext)[..] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
