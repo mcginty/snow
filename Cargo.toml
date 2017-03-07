@@ -1,5 +1,5 @@
 [package]
-name = "screech"
+name = "snow"
 version = "0.1.0"
 authors = ["trevp", "mcginty"]
 
@@ -18,3 +18,4 @@ features = ["simd_opt"]
 [dependencies.chacha20-poly1305-aead]
 version = "^0.1.2"
 features = ["simd_opt"]
+

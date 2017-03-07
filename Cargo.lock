@@ -1,5 +1,5 @@
 [root]
-name = "screech"
+name = "snow"
 version = "0.1.0"
 dependencies = [
  "arrayvec 0.3.20 (registry+https://github.com/rust-lang/crates.io-index)",

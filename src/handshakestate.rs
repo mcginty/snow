@@ -74,6 +74,7 @@ pub struct HandshakeState {
     rs: Toggle<[u8; MAXDHLEN]>,           // remote static
     re: Toggle<[u8; MAXDHLEN]>,           // remote ephemeral
     handshake_pattern: HandshakePattern,
+    initiator: bool,
     my_turn: bool,
     message_patterns: MessagePatterns, // 2D Token array
 }
@@ -167,6 +168,7 @@ impl HandshakeState {
             rs: rs, 
             re: re,
             handshake_pattern: handshake_pattern,
+            initiator: initiator,
             my_turn: initiator,
             message_patterns: tokens.msg_patterns.into(),
         })
@@ -201,9 +203,9 @@ impl HandshakeState {
         self.symmetricstate.has_key()
     }
 
-    pub fn write_message(&mut self, 
+    pub fn write_handshake_message(&mut self,
                          payload: &[u8], 
-                         message: &mut [u8]) -> Result<(usize, bool), NoiseError> {
+                         message: &mut [u8]) -> Result<usize, NoiseError> {
         if !self.my_turn {
             return Err(NoiseError::StateError("not ready to write messages yet."));
         }
@@ -256,12 +258,12 @@ impl HandshakeState {
         if last {
             self.symmetricstate.split(&mut *self.cipherstates.0, &mut *self.cipherstates.1);
         }
-        Ok((byte_index, last))
+        Ok(byte_index)
     }
 
-    pub fn read_message(&mut self, 
+    pub fn read_handshake_message(&mut self,
                         message: &[u8], 
-                        payload: &mut [u8]) -> Result<(usize, bool), NoiseError> {
+                        payload: &mut [u8]) -> Result<usize, NoiseError> {
         if message.len() > MAXMSGLEN {
             return Err(NoiseError::InputError("msg greater than max message length"));
         }
@@ -317,11 +319,19 @@ impl HandshakeState {
             self.symmetricstate.split(&mut *self.cipherstates.0, &mut *self.cipherstates.1);
         }
         let payload_len = if self.symmetricstate.has_key() { ptr.len() - TAGLEN } else { ptr.len() };
-        Ok((payload_len, last))
+        Ok(payload_len)
     }
 
-    pub fn finish(self) -> CipherStates {
-        self.cipherstates
+    pub fn finish(self) -> Result<CipherStates, NoiseError> {
+        if self.is_finished() {
+            Ok(self.cipherstates)
+        } else {
+            Err(StateError("handshake not yet completed"))
+        }
+    }
+
+    pub fn is_initiator(&self) -> bool {
+        self.initiator
     }
 
     pub fn is_finished(&self) -> bool {

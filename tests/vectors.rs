@@ -127,7 +127,7 @@ fn confirm_message_vectors(mut init: NoiseSession<HandshakeState>, mut resp: Noi
             (&mut resp, &mut init)
         };
 
-        let (len, _) = send.write_message(&*message.payload, &mut sendbuf).map_err(|_| format!("write_message failed on message {}", i))?;
+        let len = send.write_message(&*message.payload, &mut sendbuf).map_err(|_| format!("write_message failed on message {}", i))?;
         recv.read_message(&sendbuf[..len], &mut recvbuf).map_err(|_| format!("read_message failed on message {}", i))?;
         if &sendbuf[..len] != &(*message.ciphertext)[..] {
             let mut s = String::new();
@@ -139,12 +139,12 @@ fn confirm_message_vectors(mut init: NoiseSession<HandshakeState>, mut resp: Noi
         }
     }
 
-    let (mut init, mut resp) = (init.transition(), resp.transition());
+    let (mut init, mut resp) = (init.transition().unwrap(), resp.transition().unwrap());
     for (i, message) in messages {
         let (send, recv) = if is_oneway || i % 2 == 0 {
-            (&mut init.0, &mut resp.0)
+            (&mut init.cipherstates.0, &mut resp.cipherstates.0)
         } else {
-            (&mut resp.1, &mut init.1)
+            (&mut resp.cipherstates.1, &mut init.cipherstates.1)
         };
 
         send.encrypt(&*message.payload, &mut sendbuf);
