@@ -9,6 +9,7 @@ pub trait NoiseSessionState {
     fn read_message(&mut self, input: &[u8], payload: &mut [u8]) -> Result<usize, NoiseError>;
 }
 
+/// The high-level state machine for the flow from handshake to transport stages.
 pub struct NoiseSession<S> where S: NoiseSessionState {
     state: S,
 }

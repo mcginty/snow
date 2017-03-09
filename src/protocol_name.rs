@@ -78,6 +78,27 @@ impl FromStr for HashChoice {
     }
 }
 
+/// The set of choices (as specified in the Noise spec) that constitute a full protocol definition.
+///
+/// See: [Chapter 11: Protocol Names](http://noiseprotocol.org/noise.html#protocol-names).
+///
+/// # Examples
+///
+/// From a string definition:
+///
+/// ```
+/// let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
+/// ```
+///
+/// Or the more verbose, but significantly less stringy:
+///
+/// ```
+/// let params: NoiseParams = NoiseParams::new(BaseChoice::Noise,
+///                                            HandshakePattern::XX,
+///                                            DHChoice::Curve25519,
+///                                            CipherChoice::AESGCM,
+///                                            HashChoice::SHA256);
+/// ```
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub struct NoiseParams {
     pub base: BaseChoice,
@@ -88,6 +109,8 @@ pub struct NoiseParams {
 }
 
 impl NoiseParams {
+
+    /// Construct a new NoiseParams via specifying enums directly.
     pub fn new(base: BaseChoice,
                handshake: HandshakePattern,
                dh: DHChoice,

@@ -9,7 +9,7 @@
 //! # Examples
 //! See `examples/simple.rs` for a more complete TCP client/server example.
 //!
-//! ```
+//! ```rust,ignore
 //! let noise = NoiseBuilder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse().unwrap())
 //!                          .build_initiator()
 //!                          .unwrap();
