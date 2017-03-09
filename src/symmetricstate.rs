@@ -15,7 +15,7 @@ pub trait SymmetricStateType {
     fn has_key(&self) -> bool;
     fn has_preshared_key(&self) -> bool;
     fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize;
-    fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> bool;
+    fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, ()>;
     fn split(&mut self, child1: &mut CipherStateType, child2: &mut CipherStateType);
 }
 
@@ -102,30 +102,26 @@ impl SymmetricStateType for SymmetricState {
 
     fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
         let hash_len = self.hasher.hash_len();
-        let output_len:usize;
-        if self.has_key {
-            self.cipherstate.encrypt_ad(&self.h[..hash_len], plaintext, out);
-            output_len = plaintext.len() + TAGLEN;
+        let output_len = if self.has_key {
+            self.cipherstate.encrypt_ad(&self.h[..hash_len], plaintext, out) as usize
         } else {
             copy_memory(plaintext, out);
-            output_len = plaintext.len();
-        }
+            plaintext.len()
+        };
         self.mix_hash(&out[..output_len]);
         output_len
     }
 
-    fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> bool {
+    fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let hash_len = self.hasher.hash_len();
-        if self.has_key {
-            if !self.cipherstate.decrypt_ad(&self.h[..hash_len], data, out) {
-                return false;
-            }
-        }
-        else {
+        let payload_len = if self.has_key {
+            self.cipherstate.decrypt_ad(&self.h[..hash_len], data, out)?
+        } else {
             copy_memory(data, out);
-        }
+            data.len()
+        };
         self.mix_hash(data);
-        true
+        Ok(payload_len)
     }
 
     fn split(&mut self, child1: &mut CipherStateType, child2: &mut CipherStateType) {
