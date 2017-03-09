@@ -35,41 +35,6 @@ impl RandomType for RandomInc {
     }
 }
 
-struct TestResolver {
-    next_byte: u8,
-    parent: DefaultResolver,
-}
-
-impl TestResolver {
-    pub fn new(next_byte: u8) -> Self {
-        TestResolver{ next_byte: next_byte, parent: DefaultResolver }
-    }
-
-    pub fn next_byte(&mut self, next_byte: u8) {
-        self.next_byte = next_byte;
-    }
-}
-
-impl CryptoResolver for TestResolver {
-    fn resolve_rng(&self) -> Option<Box<RandomType>> {
-        let mut rng = RandomInc::default();
-        rng.next_byte = self.next_byte;
-        Some(Box::new(rng))
-    }
-
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<DhType>> {
-        self.parent.resolve_dh(choice)
-    }
-
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<HashType>> {
-        self.parent.resolve_hash(choice)
-    }
-
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<CipherStateType>> {
-        self.parent.resolve_cipher(choice)
-    }
-}
-
 pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
     for count in 0..data.len() {out[count] = data[count];}
     data.len()

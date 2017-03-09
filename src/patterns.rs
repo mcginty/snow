@@ -3,6 +3,7 @@ use std::str::FromStr;
 #[derive(Copy, Clone, Debug)]
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss}
 
+// TODO make the HandshakePattern name more consistent with the *Choice enums
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, XR, KN, KK, KX, IN, IK, IX, XXfallback}
 

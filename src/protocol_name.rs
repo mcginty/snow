@@ -1,4 +1,3 @@
-// Noise_NK_25519_ChaChaPoly_BLAKE2s
 use std::str::FromStr;
 use patterns::*;
 
@@ -87,12 +86,16 @@ impl FromStr for HashChoice {
 /// From a string definition:
 ///
 /// ```
+/// # use snow::*;
+///
 /// let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
 /// ```
 ///
 /// Or the more verbose, but significantly less stringy:
 ///
 /// ```
+/// # use snow::*;
+///
 /// let params: NoiseParams = NoiseParams::new(BaseChoice::Noise,
 ///                                            HandshakePattern::XX,
 ///                                            DHChoice::Curve25519,

@@ -63,7 +63,6 @@ impl From<&'static [&'static [Token]]> for MessagePatterns {
     }
 }
 
-// TODO move has_* bools to just using Option<*>, but verify behavior is the same.
 pub struct HandshakeState {
     rng : Box<RandomType>,                // for generating ephemerals
     symmetricstate : SymmetricState,      // for handshaking
