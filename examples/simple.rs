@@ -1,3 +1,10 @@
+//! This is a barebones TCP Client/Server that establishes a Noise_NN session, and sends
+//! an important message across the wire.
+//!
+//! # Usage
+//! Run the server a-like-a-so `cargo run --example simple -- -s`, then run the client
+//! as `cargo run --example simple` to see the magic happen.
+
 extern crate clap;
 extern crate snow;
 
