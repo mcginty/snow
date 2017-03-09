@@ -66,7 +66,7 @@ impl NoiseSession<HandshakeState> {
         self.state.is_finished()
     }
 
-    pub fn transition(self) -> Result<NoiseSession<TransportState>, NoiseError> {
+    pub fn into_transport_mode(self) -> Result<NoiseSession<TransportState>, NoiseError> {
         if !self.state.is_finished() {
             Err(NoiseError::StateError("handshake not yet finished"))
         } else {

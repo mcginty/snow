@@ -139,7 +139,7 @@ fn confirm_message_vectors(mut init: NoiseSession<HandshakeState>, mut resp: Noi
         }
     }
 
-    let (mut init, mut resp) = (init.transition().unwrap(), resp.transition().unwrap());
+    let (mut init, mut resp) = (init.into_transport_mode().unwrap(), resp.into_transport_mode().unwrap());
     for (i, message) in messages {
         let (send, recv) = if is_oneway || i % 2 == 0 {
             (&mut init, &mut resp)

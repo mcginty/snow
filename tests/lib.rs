@@ -311,6 +311,6 @@ fn test_noise_session_transition_change() {
     assert!(h_r.read_message(&buffer_msg[..64], &mut buffer_out).unwrap() == 0);
 
     assert!(h_i.is_handshake_finished());
-    let final_ciphers = h_i.transition().unwrap();
+    let final_ciphers = h_i.into_transport_mode().unwrap();
 }
 

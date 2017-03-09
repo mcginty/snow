@@ -6,11 +6,17 @@ dependencies = [
  "blake2-rfc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "chacha20-poly1305-aead 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clap 2.19.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rust-crypto 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "static_slice 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "ansi_term"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "arrayvec"
@@ -20,6 +26,11 @@ dependencies = [
  "nodrop 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "odds 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "bitflags"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "blake2-rfc"
@@ -40,6 +51,21 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "constant_time_eq 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "clap"
+version = "2.19.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "strsim 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "term_size 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-segmentation 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-width 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "vec_map 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -110,6 +136,21 @@ version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "strsim"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "term_size"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "time"
 version = "0.1.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -118,6 +159,21 @@ dependencies = [
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "unicode-segmentation"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "unicode-width"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "vec_map"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "winapi"
@@ -130,10 +186,13 @@ version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
+"checksum ansi_term 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "23ac7c30002a5accbf7e8987d0632fa6de155b7c3d39d0067317a391e00a2ef6"
 "checksum arrayvec 0.3.20 (registry+https://github.com/rust-lang/crates.io-index)" = "d89f1b0e242270b5b797778af0c8d182a1a2ccac5d8d6fadf414223cc0fab096"
+"checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum blake2-rfc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)" = "0c6a476f32fef3402f1161f89d0d39822809627754a126f8441ff2a9d45e2d59"
 "checksum byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"
 "checksum chacha20-poly1305-aead 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "77d2058ba29594f69c75e8a9018e0485e3914ca5084e3613cd64529042f5423b"
+"checksum clap 2.19.3 (registry+https://github.com/rust-lang/crates.io-index)" = "95b78f3fe0fc94c13c731714363260e04b557a637166f33a4570d3189d642374"
 "checksum constant_time_eq 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "07dcb7959f0f6f1cf662f9a7ff389bcb919924d99ac41cf31f10d611d8721323"
 "checksum gcc 0.3.36 (registry+https://github.com/rust-lang/crates.io-index)" = "7ba4da09e2b9daa3da0e3f260c8ffa03c8b1aca9a7d885230dc85717ece64b1e"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
@@ -144,6 +203,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum rust-crypto 0.2.36 (registry+https://github.com/rust-lang/crates.io-index)" = "f76d05d3993fd5f4af9434e8e436db163a12a9d40e1a58a726f27a01dfd12a2a"
 "checksum rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)" = "6159e4e6e559c81bd706afe9c8fd68f547d3e851ce12e76b1de7914bab61691b"
 "checksum static_slice 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c5cdd0d4ca4cc586aac9230e117a4c04819bfd863f676f19cfa1320c596a7244"
+"checksum strsim 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "67f84c44fbb2f91db7fef94554e6b2ac05909c9c0b0bc23bb98d3a1aebfe7f7c"
+"checksum term_size 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3f7f5f3f71b0040cecc71af239414c23fd3c73570f5ff54cf50e03cef637f2a0"
 "checksum time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)" = "3c7ec6d62a20df54e07ab3b78b9a3932972f4b7981de295563686849eb3989af"
+"checksum unicode-segmentation 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "c3bc443ded17b11305ffffe6b37e2076f328a5a8cb6aa877b1b98f77699e98b5"
+"checksum unicode-width 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "bf3a113775714a22dcb774d8ea3655c53a32debae63a063acc00a91cc586245f"
+"checksum vec_map 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cac5efe5cb0fa14ec2f84f83c701c562ee63f6dcc680861b21d65c682adfb05f"
 "checksum winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"
 "checksum winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2d315eee3b34aca4797b2da6b13ed88266e6d612562a0c46390af8299fc699bc"
