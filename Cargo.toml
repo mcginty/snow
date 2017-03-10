@@ -1,7 +1,11 @@
 [package]
 name = "snow"
+description = "A pure-rust implementation of the Noise Protocol Framework"
+homepage = "https://github.com/mcginty/snow"
+repository = "https://github.com/mcginty/snow"
 version = "0.0.1-preview.0"
 authors = ["trevp", "mcginty"]
+license = "Unlicense"
 
 [dependencies]
 arrayvec = "^0.3"
