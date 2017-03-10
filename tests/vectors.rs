@@ -119,7 +119,7 @@ fn build_session_pair(vector: &TestVector) -> Result<(NoiseSession<HandshakeStat
 fn confirm_message_vectors(mut init: NoiseSession<HandshakeState>, mut resp: NoiseSession<HandshakeState>, messages_vec: &Vec<TestMessage>, is_oneway: bool) -> Result<(), String> {
     let (mut sendbuf, mut recvbuf) = ([0u8; 65535], [0u8; 65535]);
     let mut messages = messages_vec.iter().enumerate();
-    while !init.is_finished() {
+    while !init.is_handshake_finished() {
         let (i, message) = messages.next().unwrap();
         let (send, recv) = if i % 2 == 0 {
             (&mut init, &mut resp)

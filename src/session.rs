@@ -76,20 +76,6 @@ impl NoiseSession<HandshakeState> {
     }
 }
 
-impl<S: NoiseSessionState> Deref for NoiseSession<S> {
-    type Target = S;
-
-    fn deref(&self) -> &S {
-        &self.state
-    }
-}
-
-impl<S: NoiseSessionState> DerefMut for NoiseSession<S> {
-    fn deref_mut(&mut self) -> &mut S {
-        &mut self.state
-    }
-}
-
 impl<S: NoiseSessionState> NoiseSessionState for NoiseSession<S> {
     fn is_payload_encrypted(&self) -> bool {
         self.state.is_payload_encrypted()
