@@ -1,6 +1,10 @@
 
 # Snow
 
+<!---[![Crates.io](https://img.shields.io/crates/v/snow.svg)](https://crates.io/crates/snow)
+[![Docs.rs](https://docs.rs/snow/badge.svg)](https://docs.rs/snow)-->
+[![Build Status](https://travis-ci.org/mcginty/snow.svg?branch=master)](https://travis-ci.org/mcginty/snow)
+
 An implementation of the Noise Protocol by Trevor Perrin that is designed to be
 Hard To Fuck Up™.
 
