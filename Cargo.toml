@@ -9,10 +9,10 @@ license = "Unlicense"
 
 [dependencies]
 arrayvec = "^0.3"
-rust-crypto = "*"
-byteorder = "*"
-rand = "0.3"
-rustc-serialize = "0.3"
+rust-crypto = "0.2.36"
+byteorder = "^1.0"
+rand = "^0.3"
+rustc-serialize = "^0.3"
 static_slice = "0.0.2"
 
 [dependencies.blake2-rfc]
