@@ -375,7 +375,7 @@ mod tests {
     }
 
     #[test]
-    fn test_BLAKE2s() {
+    fn test_blake2s() {
         // BLAKE2s test - draft-saarinen-blake2-06
         let mut output = [0u8; 32];
         let mut hasher:HashBLAKE2s = Default::default();

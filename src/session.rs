@@ -1,8 +1,8 @@
-use handshakestate::{CipherStates, HandshakeState, NoiseError};
+use handshakestate::{HandshakeState, NoiseError};
 use std::convert::{TryFrom, TryInto};
-use std::ops::{Deref, DerefMut};
 use transportstate::*;
 
+/// Methods that must be implemented across all states in the NoiseSession state machine.
 pub trait NoiseSessionState {
     fn is_payload_encrypted(&self) -> bool;
     fn write_message(&mut self, payload: &[u8], output: &mut [u8]) -> Result<usize, NoiseError>;

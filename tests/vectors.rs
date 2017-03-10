@@ -2,9 +2,9 @@ extern crate snow;
 extern crate rustc_serialize;
 
 use std::ops::Deref;
-use rustc_serialize::{Encodable, Decodable, Decoder};
+use rustc_serialize::{Decodable, Decoder};
 use rustc_serialize::hex::{FromHex, ToHex};
-use rustc_serialize::json::{self, DecoderError, Encoder};
+use rustc_serialize::json;
 use snow::*;
 use std::fmt;
 
@@ -110,8 +110,8 @@ fn build_session_pair(vector: &TestVector) -> Result<(NoiseSession<HandshakeStat
         resp_builder = resp_builder.fixed_ephemeral_key_for_testing_only(&*resp_e);
     }
 
-    let mut init = init_builder.prologue(&vector.init_prologue).build_initiator()?;
-    let mut resp = resp_builder.prologue(&vector.resp_prologue).build_responder()?;
+    let init = init_builder.prologue(&vector.init_prologue).build_initiator()?;
+    let resp = resp_builder.prologue(&vector.resp_prologue).build_responder()?;
 
     Ok((init, resp))
 }
@@ -147,9 +147,9 @@ fn confirm_message_vectors(mut init: NoiseSession<HandshakeState>, mut resp: Noi
             (&mut resp, &mut init)
         };
 
-        send.write_message(&*message.payload, &mut sendbuf);
-        recv.read_message(&sendbuf[..message.ciphertext.len()], &mut recvbuf);
-        if &sendbuf[..message.ciphertext.len()] != &(*message.ciphertext)[..] {
+        let len = send.write_message(&*message.payload, &mut sendbuf).unwrap();
+        recv.read_message(&sendbuf[..len], &mut recvbuf).unwrap();
+        if &sendbuf[..len] != &(*message.ciphertext)[..] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
             s.push_str(&format!("plaintext: {}\n", &(*message.payload)[..].to_hex()));
@@ -174,7 +174,7 @@ fn test_vectors_from_json(json: &str) {
             ignored_448 += 1;
             continue;
         }
-        let (mut init, mut resp) = build_session_pair(&vector).unwrap();
+        let (init, resp) = build_session_pair(&vector).unwrap();
 
         match confirm_message_vectors(init, resp, &vector.messages, params.handshake.is_oneway()) {
             Ok(_) => {

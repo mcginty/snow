@@ -5,9 +5,6 @@ extern crate rustc_serialize;
 mod vectors;
 
 use snow::*;
-use std::ops::DerefMut;
-use vectors::*;
-use self::rustc_serialize::hex::ToHex;
 
 struct RandomInc {
     next_byte: u8

@@ -1,12 +1,6 @@
 extern crate rustc_serialize;
 extern crate arrayvec;
 
-use constants::*;
-use utils::*;
-use crypto_types::*;
-use cipherstate::*;
-use symmetricstate::*;
-use patterns::*;
 use handshakestate::*;
 
 pub struct TransportState {

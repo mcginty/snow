@@ -43,7 +43,6 @@ mod noise;
 mod session;
 mod transportstate;
 
-use cipherstate::CipherState;
 pub use crypto_types::{RandomType, DhType, CipherType, HashType};
 pub use handshakestate::{HandshakeState, NoiseError};
 pub use cipherstate::CipherStateType;

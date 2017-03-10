@@ -65,7 +65,6 @@ pub struct NoiseBuilder<'a> {
     params: NoiseParams,
     resolver: Box<CryptoResolver>, // The mapper from protocol choices to crypto implementations
     s: Option<&'a [u8]>,
-    e: Option<&'a [u8]>,
     e_fixed: Option<&'a [u8]>,
     rs: Option<Vec<u8>>,
     re: Option<Vec<u8>>,
@@ -86,7 +85,6 @@ impl<'a> NoiseBuilder<'a> {
             params: params,
             resolver: resolver,
             s: None,
-            e: None,
             e_fixed: None,
             rs: None,
             re: None,
