@@ -1,6 +1,6 @@
 [package]
 name = "snow"
-version = "0.0.1-prealpha"
+version = "0.0.1-preview.0"
 authors = ["trevp", "mcginty"]
 
 [dependencies]
