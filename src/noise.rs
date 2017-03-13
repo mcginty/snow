@@ -7,6 +7,7 @@ use cipherstate::*;
 use session::*;
 use utils::*;
 use params::*;
+use error::NoiseError;
 
 pub trait CryptoResolver {
     fn resolve_rng(&self) -> Option<Box<Random>>;

@@ -1,8 +1,14 @@
 extern crate rustc_serialize;
 extern crate arrayvec;
 
-use handshakestate::*;
+use error::NoiseError;
+use handshakestate::{CipherStates, HandshakeState};
 
+/// A state machine encompassing the transport phase of a Noise session, using the two
+/// `CipherState`s (for sending and receiving) that were spawned from the `SymmetricState`'s
+/// `Split()` method, called after a handshake has been finished.
+///
+/// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct TransportState {
     pub cipherstates: CipherStates,
     initiator: bool,

@@ -1,4 +1,5 @@
-use handshakestate::{HandshakeState, NoiseError};
+use error::NoiseError;
+use handshakestate::HandshakeState;
 use std::convert::{TryFrom, TryInto};
 use transportstate::*;
 

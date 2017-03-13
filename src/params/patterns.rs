@@ -106,6 +106,9 @@ impl HandshakePattern {
     }
 }
 
+/// The defined token patterns for a given handshake.
+///
+/// See: http://noiseprotocol.org/noise.html#handshake-patterns
 pub struct HandshakeTokens {
     pub premsg_pattern_i: &'static [Token],
     pub premsg_pattern_r: &'static [Token],

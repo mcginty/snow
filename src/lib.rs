@@ -30,6 +30,7 @@
 
 #![feature(try_from)]
 #[macro_use] extern crate static_slice;
+mod error;
 mod crypto_types;
 mod wrappers;
 mod constants;
@@ -44,7 +45,8 @@ mod transportstate;
 pub mod params;
 
 pub use crypto_types::{Random, Dh, Cipher, Hash};
-pub use handshakestate::{HandshakeState, NoiseError};
+pub use error::NoiseError;
+pub use handshakestate::HandshakeState;
 pub use cipherstate::CipherStateType;
 pub use noise::NoiseBuilder;
 pub use session::*;

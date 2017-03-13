@@ -9,17 +9,8 @@ use cipherstate::*;
 use symmetricstate::*;
 use params::*;
 use std::ops::{Deref, DerefMut};
-use self::NoiseError::*;
-
-
-#[derive(Debug)]
-pub enum NoiseError {
-    InitError(&'static str),
-    PrereqError(String),
-    InputError(&'static str),
-    StateError(&'static str),
-    DecryptError
-}
+use NoiseError;
+use NoiseError::*;
 
 pub struct CipherStates(pub Box<CipherStateType>, pub Box<CipherStateType>);
 
@@ -63,6 +54,9 @@ impl From<&'static [&'static [Token]]> for MessagePatterns {
     }
 }
 
+/// A state machine encompassing the handshake phase of a Noise session.
+///
+/// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct HandshakeState {
     rng : Box<Random>,                // for generating ephemerals
     symmetricstate : SymmetricState,      // for handshaking
