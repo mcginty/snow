@@ -177,15 +177,6 @@ impl<'a> NoiseBuilder<'a> {
         }
         let e = Toggle::off(e_dh);
 
-        let e_fixed = match self.e_fixed {
-            Some(k) => {
-                let mut e_fixed_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(NoiseError::InitError("no DH implementation"))?;
-                (&mut *e_fixed_dh).set(k);
-                Some(e_fixed_dh)
-            },
-            None => None
-        };
-
         let mut rs_buf = [0u8; MAXDHLEN];
         let rs = match self.rs {
             Some(v) => {

@@ -17,7 +17,7 @@ use self::byteorder::{ByteOrder, BigEndian, LittleEndian};
 
 use types::*;
 use constants::*;
-use utils::*;
+use utils::copy_memory;
 use std::io::{Cursor, Write};
 
 #[derive(Default)]
@@ -330,9 +330,6 @@ mod tests {
     use self::rustc_serialize::hex::{FromHex, ToHex};
     use super::crypto::poly1305::Poly1305;
     use super::crypto::mac::Mac;
-
-    use utils::*;
-    use constants::*;
 
     #[test]
     fn test_sha256() {
