@@ -7,6 +7,8 @@ use std::str::FromStr;
 pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss}
 
 // TODO make the HandshakePattern name more consistent with the *Choice enums
+/// One of the patterns as defined in the
+/// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, XR, KN, KK, KX, IN, IK, IX, XXfallback}
 
