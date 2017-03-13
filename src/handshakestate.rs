@@ -12,6 +12,7 @@ use std::ops::{Deref, DerefMut};
 use NoiseError;
 use NoiseError::*;
 
+// TODO: this doesn't belong here
 pub struct CipherStates(pub Box<CipherStateType>, pub Box<CipherStateType>);
 
 impl CipherStates {
@@ -24,6 +25,7 @@ impl CipherStates {
     }
 }
 
+// TODO: This code is not so beautiful.
 type MessagePatternInner = ArrayVec<[ArrayVec<[Token; 10]>; 10]>;
 struct MessagePatterns(MessagePatternInner);
 impl Deref for MessagePatterns {
@@ -58,18 +60,18 @@ impl From<&'static [&'static [Token]]> for MessagePatterns {
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct HandshakeState {
-    rng : Box<Random>,                // for generating ephemerals
-    symmetricstate : SymmetricState,      // for handshaking
+    rng : Box<Random>,
+    symmetricstate : SymmetricState,
     cipherstates: CipherStates,
-    s: Toggle<Box<Dh>>,               // local static
-    e: Toggle<Box<Dh>>,               // local ephemeral
-    fixed_ephemeral: bool,                // fixed ephemeral (FOR TEST VECTORS ONLY)
-    rs: Toggle<[u8; MAXDHLEN]>,           // remote static
-    re: Toggle<[u8; MAXDHLEN]>,           // remote ephemeral
+    s: Toggle<Box<Dh>>,
+    e: Toggle<Box<Dh>>,
+    fixed_ephemeral: bool,
+    rs: Toggle<[u8; MAXDHLEN]>,
+    re: Toggle<[u8; MAXDHLEN]>,
     handshake_pattern: HandshakePattern,
     initiator: bool,
     my_turn: bool,
-    message_patterns: MessagePatterns, // 2D Token array
+    message_patterns: MessagePatterns,
 }
 
 impl HandshakeState {
