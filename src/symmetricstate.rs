@@ -21,7 +21,7 @@ pub trait SymmetricStateType {
 
 pub struct SymmetricState {
     cipherstate : Box<CipherStateType>,
-    hasher: Box<HashType>,
+    hasher: Box<Hash>,
     h : [u8; MAXHASHLEN],
     ck: [u8; MAXHASHLEN],
     has_key: bool,
@@ -29,7 +29,7 @@ pub struct SymmetricState {
 }
 
 impl SymmetricState {
-    pub fn new(cipherstate: Box<CipherStateType>, hasher: Box<HashType>) -> SymmetricState
+    pub fn new(cipherstate: Box<CipherStateType>, hasher: Box<Hash>) -> SymmetricState
     {
         SymmetricState {
             cipherstate: cipherstate,

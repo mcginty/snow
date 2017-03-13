@@ -7,7 +7,7 @@ use utils::*;
 use crypto_types::*;
 use cipherstate::*;
 use symmetricstate::*;
-use patterns::*;
+use params::*;
 use std::ops::{Deref, DerefMut};
 use self::NoiseError::*;
 
@@ -64,11 +64,11 @@ impl From<&'static [&'static [Token]]> for MessagePatterns {
 }
 
 pub struct HandshakeState {
-    rng : Box<RandomType>,                // for generating ephemerals
+    rng : Box<Random>,                // for generating ephemerals
     symmetricstate : SymmetricState,      // for handshaking
     cipherstates: CipherStates,
-    s: Toggle<Box<DhType>>,               // local static
-    e: Toggle<Box<DhType>>,               // local ephemeral
+    s: Toggle<Box<Dh>>,               // local static
+    e: Toggle<Box<Dh>>,               // local ephemeral
     fixed_ephemeral: bool,                // fixed ephemeral (FOR TEST VECTORS ONLY)
     rs: Toggle<[u8; MAXDHLEN]>,           // remote static
     re: Toggle<[u8; MAXDHLEN]>,           // remote ephemeral
@@ -80,19 +80,19 @@ pub struct HandshakeState {
 
 impl HandshakeState {
     pub fn new(
-            rng: Box<RandomType>,
-            cipherstate: Box<CipherStateType>,
-            hasher: Box<HashType>,
-            s : Toggle<Box<DhType>>,
-            e : Toggle<Box<DhType>>,
-            fixed_ephemeral: bool,
-            rs: Toggle<[u8; MAXDHLEN]>,
-            re: Toggle<[u8; MAXDHLEN]>,
-            initiator: bool,
-            handshake_pattern: HandshakePattern,
-            prologue: &[u8],
-            optional_preshared_key: Option<Vec<u8>>,
-            cipherstates: CipherStates) -> Result<HandshakeState, NoiseError> {
+        rng: Box<Random>,
+        cipherstate: Box<CipherStateType>,
+        hasher: Box<Hash>,
+        s : Toggle<Box<Dh>>,
+        e : Toggle<Box<Dh>>,
+        fixed_ephemeral: bool,
+        rs: Toggle<[u8; MAXDHLEN]>,
+        re: Toggle<[u8; MAXDHLEN]>,
+        initiator: bool,
+        handshake_pattern: HandshakePattern,
+        prologue: &[u8],
+        optional_preshared_key: Option<Vec<u8>>,
+        cipherstates: CipherStates) -> Result<HandshakeState, NoiseError> {
 
         if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
         || (s.is_on() && rs.is_on() && s.pub_len() >  rs.len())

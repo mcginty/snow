@@ -1,23 +1,26 @@
 use utils::*;
 use constants::*;
 
-pub trait RandomType {
+/// Provides randomness
+pub trait Random {
     fn fill_bytes(&mut self, out: &mut [u8]);
 }
 
-pub trait DhType {
+/// Provides Diffie-Hellman operations
+pub trait Dh {
     fn name(&self) -> &'static str;
     fn pub_len(&self) -> usize;
     fn priv_len(&self) -> usize;
 
     fn set(&mut self, privkey: &[u8]);
-    fn generate(&mut self, rng: &mut RandomType); 
+    fn generate(&mut self, rng: &mut Random);
     fn pubkey(&self) -> &[u8];
     fn privkey(&self) -> &[u8];
     fn dh(&self, pubkey: &[u8], out: &mut [u8]);
 }
 
-pub trait CipherType {
+/// Provides cipher operations
+pub trait Cipher {
     fn name(&self) -> &'static str;
 
     fn set(&mut self, key: &[u8]);
@@ -25,7 +28,8 @@ pub trait CipherType {
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()>;
 }
 
-pub trait HashType {
+/// Provides hashing operations
+pub trait Hash {
     fn name(&self) -> &'static str;
     fn block_len(&self) -> usize;
     fn hash_len(&self) -> usize;

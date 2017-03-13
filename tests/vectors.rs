@@ -6,6 +6,7 @@ use rustc_serialize::{Decodable, Decoder};
 use rustc_serialize::hex::{FromHex, ToHex};
 use rustc_serialize::json;
 use snow::*;
+use snow::params::*;
 use std::fmt;
 
 struct HexBytes {

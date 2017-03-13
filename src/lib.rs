@@ -37,17 +37,15 @@ mod utils;
 mod cipherstate;
 mod symmetricstate;
 mod handshakestate;
-mod patterns;
-mod protocol_name;
 mod noise;
 mod session;
 mod transportstate;
 
-pub use crypto_types::{RandomType, DhType, CipherType, HashType};
+pub mod params;
+
+pub use crypto_types::{Random, Dh, Cipher, Hash};
 pub use handshakestate::{HandshakeState, NoiseError};
 pub use cipherstate::CipherStateType;
-pub use patterns::{HandshakePattern};
-pub use protocol_name::*;
 pub use noise::NoiseBuilder;
 pub use session::*;
 pub use transportstate::*;

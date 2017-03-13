@@ -11,13 +11,13 @@ pub trait CipherStateType {
 }
 
 #[derive(Default)]
-pub struct CipherState<C: CipherType + Default> {
+pub struct CipherState<C: Cipher + Default> {
     cipher : C,
     n : u64,
     has_key : bool,
 }
 
-impl<C: CipherType + Default> CipherStateType for CipherState<C> {
+impl<C: Cipher + Default> CipherStateType for CipherState<C> {
 
     fn name(&self) -> &'static str {
         self.cipher.name()

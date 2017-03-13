@@ -9,7 +9,8 @@ extern crate clap;
 extern crate snow;
 
 use clap::App;
-use snow::{NoiseBuilder, NoiseParams, NoiseSessionState};
+use snow::{NoiseBuilder, NoiseSessionState};
+use snow::params::NoiseParams;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 

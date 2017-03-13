@@ -1,5 +1,7 @@
 use std::str::FromStr;
-use patterns::*;
+mod patterns;
+
+pub use self::patterns::*;
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum BaseChoice {
@@ -86,7 +88,7 @@ impl FromStr for HashChoice {
 /// From a string definition:
 ///
 /// ```
-/// # use snow::*;
+/// # use snow::params::*;
 ///
 /// let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
 /// ```
@@ -94,7 +96,7 @@ impl FromStr for HashChoice {
 /// Or the more verbose, but significantly less stringy:
 ///
 /// ```
-/// # use snow::*;
+/// # use snow::params::*;
 ///
 /// let params: NoiseParams = NoiseParams::new(BaseChoice::Noise,
 ///                                            HandshakePattern::XX,
@@ -120,7 +122,7 @@ impl NoiseParams {
                cipher: CipherChoice,
                hash: HashChoice) -> Self
     {
-         NoiseParams {
+        NoiseParams {
             base: base,
             handshake: handshake,
             dh: dh,

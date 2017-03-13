@@ -5,6 +5,7 @@ extern crate rustc_serialize;
 mod vectors;
 
 use snow::*;
+use snow::params::*;
 
 struct RandomInc {
     next_byte: u8
@@ -17,7 +18,7 @@ impl Default for RandomInc {
     }
 }
 
-impl RandomType for RandomInc {
+impl Random for RandomInc {
 
     fn fill_bytes(&mut self, out: &mut [u8]) {
         for count in 0..out.len() {

@@ -52,7 +52,7 @@ pub struct HashBLAKE2s {
     hasher: Blake2s
 }
 
-impl DhType for Dh25519 {
+impl Dh for Dh25519 {
 
     fn name(&self) -> &'static str {
         static NAME: &'static str = "25519";
@@ -73,7 +73,7 @@ impl DhType for Dh25519 {
         copy_memory(&pubkey, &mut self.pubkey);
     }
 
-    fn generate(&mut self, rng: &mut RandomType) {
+    fn generate(&mut self, rng: &mut Random) {
         rng.fill_bytes(&mut self.privkey);
         self.privkey[0]  &= 248;
         self.privkey[31] &= 127;
@@ -97,7 +97,7 @@ impl DhType for Dh25519 {
 
 }
 
-impl CipherType for CipherAESGCM {
+impl Cipher for CipherAESGCM {
 
     fn name(&self) -> &'static str {
         static NAME: &'static str = "AESGCM";
@@ -133,7 +133,7 @@ impl CipherType for CipherAESGCM {
     }
 }
 
-impl CipherType for CipherChaChaPoly {
+impl Cipher for CipherChaChaPoly {
 
     fn name(&self) -> &'static str {
         "ChaChaPoly"
@@ -189,7 +189,7 @@ impl Default for HashSHA256 {
     }
 }
 
-impl HashType for HashSHA256 {
+impl Hash for HashSHA256 {
 
     fn block_len(&self) -> usize {
         return 64;
@@ -223,7 +223,7 @@ impl Default for HashSHA512 {
     }
 }
 
-impl HashType for HashSHA512 {
+impl Hash for HashSHA512 {
 
     fn name(&self) -> &'static str {
         static NAME: &'static str = "SHA512";
@@ -257,7 +257,7 @@ impl Default for HashBLAKE2b {
     }
 }
 
-impl HashType for HashBLAKE2b {
+impl Hash for HashBLAKE2b {
 
     fn name(&self) -> &'static str {
         "BLAKE2b"
@@ -291,7 +291,7 @@ impl Default for HashBLAKE2s {
     }
 }
 
-impl HashType for HashBLAKE2s {
+impl Hash for HashBLAKE2s {
 
     fn name(&self) -> &'static str {
         "BLAKE2s"
