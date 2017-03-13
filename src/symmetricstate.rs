@@ -2,7 +2,7 @@ extern crate rustc_serialize;
 
 use utils::*;
 use constants::*;
-use crypto_types::*;
+use types::*;
 use cipherstate::*;
 
 pub trait SymmetricStateType {

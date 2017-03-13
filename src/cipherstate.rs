@@ -1,5 +1,5 @@
 
-use crypto_types::*;
+use types::*;
 
 pub trait CipherStateType {
     fn name(&self) -> &'static str;

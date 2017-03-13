@@ -1,5 +1,5 @@
 use constants::*;
-use crypto_types::*;
+use types::*;
 use handshakestate::*;
 use wrappers::rand_wrapper::*;
 use wrappers::crypto_wrapper::*;

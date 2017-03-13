@@ -4,7 +4,7 @@ extern crate arrayvec;
 use self::arrayvec::{ArrayVec, ArrayString};
 use constants::*;
 use utils::*;
-use crypto_types::*;
+use types::*;
 use cipherstate::*;
 use symmetricstate::*;
 use params::*;
@@ -57,6 +57,9 @@ impl From<&'static [&'static [Token]]> for MessagePatterns {
 }
 
 /// A state machine encompassing the handshake phase of a Noise session.
+///
+/// **Note:** you are probably looking for [`NoiseBuilder`](struct.NoiseBuilder.html) to
+/// get started.
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct HandshakeState {

@@ -15,7 +15,7 @@ use self::blake2_rfc::blake2s::Blake2s;
 
 use self::byteorder::{ByteOrder, BigEndian, LittleEndian};
 
-use crypto_types::*;
+use types::*;
 use constants::*;
 use utils::*;
 use std::io::{Cursor, Write};
@@ -325,7 +325,7 @@ mod tests {
 
     extern crate rustc_serialize;
 
-    use crypto_types::*;
+    use types::*;
     use super::*;
     use self::rustc_serialize::hex::{FromHex, ToHex};
     use super::crypto::poly1305::Poly1305;

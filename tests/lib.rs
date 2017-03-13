@@ -6,6 +6,7 @@ mod vectors;
 
 use snow::*;
 use snow::params::*;
+use snow::types::*;
 
 struct RandomInc {
     next_byte: u8

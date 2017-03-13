@@ -1,3 +1,5 @@
+//! The traits for cryptographic implementations that can be used by Noise.
+
 use utils::*;
 use constants::*;
 
