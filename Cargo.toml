@@ -3,7 +3,7 @@ name = "snow"
 description = "A pure-rust implementation of the Noise Protocol Framework"
 homepage = "https://github.com/mcginty/snow"
 repository = "https://github.com/mcginty/snow"
-version = "0.0.1-preview.2"
+version = "0.0.1-preview.3"
 authors = ["trevp", "mcginty"]
 license = "Unlicense"
 categories = ["cryptography"]
@@ -11,7 +11,7 @@ readme = "README.md"
 keywords = ["noise", "protocol", "crypto"]
 
 [badges]
-travis-ci = { repository = "https://github.com/mcginty/snow", branch = "master" }
+travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
 arrayvec = "^0.3"
