@@ -106,8 +106,8 @@ impl HandshakeState {
             None    => "Noise_"
         };
         let mut handshake_name = ArrayString::<[u8; 128]>::from(prefix).unwrap();
-        let tokens = resolve_handshake_pattern(handshake_pattern);
-        handshake_name.push_str(&tokens.name).unwrap();
+        let tokens = HandshakeTokens::from(handshake_pattern);
+        handshake_name.push_str(handshake_pattern.as_str()).unwrap();
         handshake_name.push('_').unwrap();
         handshake_name.push_str(s.name()).unwrap();
         handshake_name.push('_').unwrap();
