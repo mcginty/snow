@@ -9,6 +9,7 @@ use utils::*;
 use params::*;
 use error::NoiseError;
 
+/// An object that resolves the providers of Noise crypto choices
 pub trait CryptoResolver {
     fn resolve_rng(&self) -> Option<Box<Random>>;
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh>>;
@@ -76,7 +77,7 @@ pub struct NoiseBuilder<'a> {
 impl<'a> NoiseBuilder<'a> {
     /// Create a NoiseBuilder with the default crypto resolver.
     pub fn new(params: NoiseParams) -> Self {
-        Self::with_resolver(params, Box::new(DefaultResolver{}))
+        Self::with_resolver(params, Box::new(DefaultResolver))
     }
 
     /// Create a NoiseBuilder with a custom crypto resolver.

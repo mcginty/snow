@@ -2,7 +2,7 @@ extern crate rustc_serialize;
 extern crate arrayvec;
 
 use error::NoiseError;
-use handshakestate::{CipherStates, HandshakeState};
+use handshakestate::CipherStates;
 
 /// A state machine encompassing the transport phase of a Noise session, using the two
 /// `CipherState`s (for sending and receiving) that were spawned from the `SymmetricState`'s
