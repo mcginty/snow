@@ -1,3 +1,5 @@
+//! All structures related to Noise parameter definitions (cryptographic primitive choices, protocol patterns/names)
+
 use std::str::FromStr;
 mod patterns;
 
