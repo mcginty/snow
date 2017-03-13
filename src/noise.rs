@@ -65,11 +65,10 @@ impl CryptoResolver for DefaultResolver {
 /// ```
 pub struct NoiseBuilder<'a> {
     params: NoiseParams,
-    resolver: Box<CryptoResolver>, // The mapper from protocol choices to crypto implementations
+    resolver: Box<CryptoResolver>,
     s: Option<&'a [u8]>,
     e_fixed: Option<&'a [u8]>,
-    rs: Option<Vec<u8>>,
-    re: Option<Vec<u8>>,
+    rs: Option<&'a [u8]>,
     psk: Option<&'a [u8]>,
     plog: Option<&'a [u8]>,
 }
@@ -89,7 +88,6 @@ impl<'a> NoiseBuilder<'a> {
             s: None,
             e_fixed: None,
             rs: None,
-            re: None,
             plog: None,
             psk: None,
         }
@@ -120,8 +118,8 @@ impl<'a> NoiseBuilder<'a> {
     }
 
     /// The responder's static public key.
-    pub fn remote_public_key(mut self, pub_key: &[u8]) -> Self {
-        self.rs = Some(pub_key.to_vec());
+    pub fn remote_public_key(mut self, pub_key: &'a [u8]) -> Self {
+        self.rs = Some(pub_key);
         self
     }
 
@@ -197,14 +195,7 @@ impl<'a> NoiseBuilder<'a> {
             None => Toggle::off(rs_buf),
         };
 
-        let mut re_buf = [0u8; MAXDHLEN];
-        let re = match self.re {
-            Some(v) => {
-                re_buf[..v.len()].copy_from_slice(&v[..]);
-                Toggle::on(re_buf)
-            },
-            None => Toggle::off(re_buf),
-        };
+        let re = Toggle::off([0u8; MAXDHLEN]);
 
         let hs = HandshakeState::new(rng, cipher, hash,
                                      s, e, self.e_fixed.is_some(), rs, re,
