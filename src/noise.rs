@@ -70,8 +70,8 @@ pub struct NoiseBuilder<'a> {
     e_fixed: Option<&'a [u8]>,
     rs: Option<Vec<u8>>,
     re: Option<Vec<u8>>,
-    psk: Option<Vec<u8>>,
-    plog: Option<Vec<u8>>,
+    psk: Option<&'a [u8]>,
+    plog: Option<&'a [u8]>,
 }
 
 impl<'a> NoiseBuilder<'a> {
@@ -96,8 +96,8 @@ impl<'a> NoiseBuilder<'a> {
     }
 
     /// Specify a PSK (only used with `NoisePSK` base parameter)
-    pub fn preshared_key(mut self, key: &[u8]) -> Self {
-        self.psk = Some(key.to_vec());
+    pub fn preshared_key(mut self, key: &'a [u8]) -> Self {
+        self.psk = Some(key);
         self
     }
 
@@ -114,8 +114,8 @@ impl<'a> NoiseBuilder<'a> {
     }
 
     /// Arbitrary data to be hashed in to the handshake hash value.
-    pub fn prologue(mut self, key: &[u8]) -> Self {
-        self.plog = Some(key.to_vec());
+    pub fn prologue(mut self, key: &'a [u8]) -> Self {
+        self.plog = Some(key);
         self
     }
 
@@ -210,7 +210,7 @@ impl<'a> NoiseBuilder<'a> {
                                      s, e, self.e_fixed.is_some(), rs, re,
                                      initiator,
                                      self.params.handshake,
-                                     &self.plog.unwrap_or_else(|| vec![0u8; 0]),
+                                     &self.plog.unwrap_or_else(|| &[0u8; 0]),
                                      self.psk,
                                      CipherStates::new(cipherstate1, cipherstate2)?)?;
         Ok(hs.into())

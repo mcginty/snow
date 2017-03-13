@@ -89,7 +89,7 @@ impl HandshakeState {
         initiator: bool,
         handshake_pattern: HandshakePattern,
         prologue: &[u8],
-        optional_preshared_key: Option<Vec<u8>>,
+        optional_preshared_key: Option<&[u8]>,
         cipherstates: CipherStates) -> Result<HandshakeState, NoiseError> {
 
         if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
