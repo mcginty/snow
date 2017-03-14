@@ -76,7 +76,7 @@ struct TestVectors {
     vectors: Vec<TestVector>,
 }
 
-fn build_session_pair(vector: &TestVector) -> Result<(NoiseSession<HandshakeState>, NoiseSession<HandshakeState>), NoiseError> {
+fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), NoiseError> {
     let params: NoiseParams = vector.name.parse().unwrap();
     let mut init_builder = NoiseBuilder::new(params.clone());
     let mut resp_builder = NoiseBuilder::new(params);
@@ -117,7 +117,7 @@ fn build_session_pair(vector: &TestVector) -> Result<(NoiseSession<HandshakeStat
     Ok((init, resp))
 }
 
-fn confirm_message_vectors(mut init: NoiseSession<HandshakeState>, mut resp: NoiseSession<HandshakeState>, messages_vec: &Vec<TestMessage>, is_oneway: bool) -> Result<(), String> {
+fn confirm_message_vectors(mut init: Session, mut resp: Session, messages_vec: &Vec<TestMessage>, is_oneway: bool) -> Result<(), String> {
     let (mut sendbuf, mut recvbuf) = ([0u8; 65535], [0u8; 65535]);
     let mut messages = messages_vec.iter().enumerate();
     while !init.is_handshake_finished() {

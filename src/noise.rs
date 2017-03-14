@@ -136,16 +136,16 @@ impl<'a> NoiseBuilder<'a> {
     }
 
     /// Build a NoiseSession for the side who will initiate the handshake (send the first message)
-    pub fn build_initiator(self) -> Result<NoiseSession<HandshakeState>, NoiseError> {
+    pub fn build_initiator(self) -> Result<Session, NoiseError> {
         self.build(true)
     }
 
     /// Build a NoiseSession for the side who will be responder (receive the first message)
-    pub fn build_responder(self) -> Result<NoiseSession<HandshakeState>, NoiseError> {
+    pub fn build_responder(self) -> Result<Session, NoiseError> {
         self.build(false)
     }
 
-    fn build(self, initiator: bool) -> Result<NoiseSession<HandshakeState>, NoiseError> {
+    fn build(self, initiator: bool) -> Result<Session, NoiseError> {
         if !self.s.is_some() && self.params.handshake.needs_local_static_key(initiator) {
             return Err(NoiseError::InitError("local key needed for chosen handshake pattern"));
         }
