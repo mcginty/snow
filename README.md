@@ -7,7 +7,10 @@
 An implementation of the [Noise Protocol](https://noiseprotocol.org/) by Trevor Perrin that is designed to be
 Hard To Fuck Up™.
 
+See the documentation at [https://docs.rs/snow](https://docs.rs/snow).
+
 🔥 This library is in the state of **preview** - do everyone a favor and only use this for fun or criticizing the author's code for now.
+
 
 ## Crypto
 Cryptographic providers are swappable through `NoiseBuilder::with_provider()`, but by default it chooses select, artisanal
