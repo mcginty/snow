@@ -45,8 +45,6 @@ pub mod params;
 pub mod types;
 
 pub use error::NoiseError;
-pub use handshakestate::HandshakeState;
 pub use cipherstate::CipherStateType;
 pub use noise::NoiseBuilder;
 pub use session::*;
-pub use transportstate::TransportState;
