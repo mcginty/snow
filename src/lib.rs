@@ -31,7 +31,6 @@
 #![feature(try_from)]
 #[macro_use] extern crate static_slice;
 mod error;
-mod wrappers;
 mod constants;
 mod utils;
 mod cipherstate;
@@ -43,6 +42,7 @@ mod transportstate;
 
 pub mod params;
 pub mod types;
+pub mod wrappers;
 
 pub use error::NoiseError;
 pub use cipherstate::CipherStateType;
