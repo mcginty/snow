@@ -237,7 +237,7 @@ impl HandshakeState {
                     }
                     byte_index += self.symmetricstate.encrypt_and_hash(
                         &self.s.pubkey(),
-                        &mut message[byte_index..]) as usize;
+                        &mut message[byte_index..]);
                 },
                 Token::Dhee => self.dh(false, false)?,
                 Token::Dhes => self.dh(false, true )?,
@@ -247,7 +247,7 @@ impl HandshakeState {
         }
 
         self.my_turn = false;
-        byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]) as usize;
+        byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]);
         if byte_index > MAXMSGLEN {
             return Err(NoiseError::InputError("with tokens, message size exceeds maximum"));
         }

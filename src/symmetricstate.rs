@@ -103,7 +103,7 @@ impl SymmetricStateType for SymmetricState {
     fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
         let hash_len = self.hasher.hash_len();
         let output_len = if self.has_key {
-            self.cipherstate.encrypt_ad(&self.h[..hash_len], plaintext, out) as usize
+            self.cipherstate.encrypt_ad(&self.h[..hash_len], plaintext, out)
         } else {
             copy_memory(plaintext, out);
             plaintext.len()
