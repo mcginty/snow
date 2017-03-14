@@ -3,8 +3,8 @@
 //! Read the [Noise Protocol Framework Spec](http://noiseprotocol.org/noise.html) for more
 //! information.
 //!
-//! The typical usage flow is to use `NoiseBuilder` to construct a`NoiseSession<HandshakeState>`,
-//! which can transition to a `NoiseSession<TransportState>` once the handshake is completed.
+//! The typical usage flow is to use `NoiseBuilder` to construct a `Session`, which is main
+//! state machine you will want to interact with.
 //!
 //! # Examples
 //! See `examples/simple.rs` for a more complete TCP client/server example.
