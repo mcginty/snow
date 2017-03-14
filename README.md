@@ -1,14 +1,19 @@
-
 # Snow
 
 [![Crates.io](https://img.shields.io/crates/v/snow.svg)](https://crates.io/crates/snow)
 [![Docs.rs](https://docs.rs/snow/badge.svg)](https://docs.rs/snow)
 [![Build Status](https://travis-ci.org/mcginty/snow.svg?branch=master)](https://travis-ci.org/mcginty/snow)
 
-An implementation of the Noise Protocol by Trevor Perrin that is designed to be
+An implementation of the [Noise Protocol](https://noiseprotocol.org/) by Trevor Perrin that is designed to be
 Hard To Fuck Up™.
 
-# What's it look like?
+🔥 This library is in the state of **preview** - do everyone a favor and only use this for fun or criticizing the author's code for now.
+
+## Crypto
+Cryptographic providers are swappable through `NoiseBuilder::with_provider()`, but by default it chooses select, artisanal
+pure-Rust implementations (see `Cargo.toml` for a quick overview).
+
+## What's it look like?
 See `examples/simple.rs` for a more complete TCP client/server example.
 
 ```rust
@@ -31,4 +36,4 @@ let noise = noise.into_transport_mode();
 
 ## Status
 
-Work in progress. Unreviewed. Unaudited. All APIs are unstable. Don't use for security critical purposes.
+Work in progress. Unreviewed. Unaudited. All APIs are unstable. Don't use for security critical purposes. *Side effects may include nausea, heart palpatations, yolocryptosis, and permanent sexual dysfunction.*
