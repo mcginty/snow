@@ -12,18 +12,6 @@ use std::ops::{Deref, DerefMut};
 use NoiseError;
 use NoiseError::*;
 
-// TODO: this doesn't belong here
-pub struct CipherStates(pub CipherState, pub CipherState);
-
-impl CipherStates {
-    pub fn new(sending: CipherState, receiving: CipherState) -> Result<Self, NoiseError> {
-        if sending.name() != receiving.name() {
-            return Err(InitError("cipherstates don't match"));
-        }
-
-        Ok(CipherStates(sending, receiving))
-    }
-}
 
 // TODO: This code is not so beautiful.
 type MessagePatternInner = ArrayVec<[ArrayVec<[Token; 10]>; 10]>;

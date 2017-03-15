@@ -1,5 +1,5 @@
-
-use types::*;
+use error::NoiseError;
+use types::Cipher;
 
 pub struct CipherState {
     cipher : Box<Cipher>,
@@ -49,3 +49,14 @@ impl CipherState {
     }
 }
 
+pub struct CipherStates(pub CipherState, pub CipherState);
+
+impl CipherStates {
+    pub fn new(sending: CipherState, receiving: CipherState) -> Result<Self, NoiseError> {
+        if sending.name() != receiving.name() {
+            return Err(NoiseError::InitError("cipherstates don't match"));
+        }
+
+        Ok(CipherStates(sending, receiving))
+    }
+}
