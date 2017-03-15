@@ -10,7 +10,7 @@ pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss}
 /// One of the patterns as defined in the
 /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, XR, KN, KK, KX, IN, IK, IX, XXfallback}
+pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX, XXfallback}
 
 impl HandshakePattern {
 
@@ -24,17 +24,16 @@ impl HandshakePattern {
         }
     }
 
-    // XXX double check
     /// Whether this pattern requires a long-term static key.
     pub fn needs_local_static_key(&self, initiator: bool) -> bool {
         if initiator {
             match *self {
-                X | N | K | NN | NK | NX => false,
+                N | NN | NK | NX => false,
                 _ => true
             }
         } else {
             match *self {
-                N | NN | XN | KN | IN => false,
+                NN | XN | KN | IN => false,
                 _ => true
             }
         }
@@ -44,7 +43,7 @@ impl HandshakePattern {
     pub fn need_known_remote_pubkey(&self, initiator: bool) -> bool {
         if initiator {
             match *self {
-                NK | XK | KK | IK => true,
+                N | K | X | NK | XK | KK | IK => true,
                 _ => false
             }
         } else {
@@ -70,7 +69,6 @@ impl FromStr for HandshakePattern {
             "XN" => Ok(XN),
             "XK" => Ok(XK),
             "XX" => Ok(XX),
-            "XR" => Ok(XR),
             "KN" => Ok(KN),
             "KK" => Ok(KK),
             "KX" => Ok(KX),
@@ -96,7 +94,6 @@ impl HandshakePattern {
             XN => "XN",
             XK => "XK",
             XX => "XX",
-            XR => "XR",
             KN => "KN",
             KK => "KK",
             KX => "KX",
@@ -169,11 +166,6 @@ impl From<HandshakePattern> for HandshakeTokens {
                 static_slice![Token: ],
                 static_slice![Token: ],
                 static_slice![&'static [Token]: &[E], &[E, Dhee, S, Dhse], &[S, Dhse]],
-            ),
-            XR => (
-                static_slice![Token: ],
-                static_slice![Token: ],
-                static_slice![&'static [Token]: &[E], &[E, Dhee], &[S, Dhse], &[S, Dhse]],
             ),
             KN => (
                 static_slice![Token: S],
