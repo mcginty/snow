@@ -4,6 +4,8 @@
 [![Docs.rs](https://docs.rs/snow/badge.svg)](https://docs.rs/snow)
 [![Build Status](https://travis-ci.org/mcginty/snow.svg?branch=master)](https://travis-ci.org/mcginty/snow)
 
+![totally official snow logo](http://i.imgur.com/XVakFvn.jpg)
+
 An implementation of the [Noise Protocol](https://noiseprotocol.org/) by Trevor Perrin that is designed to be
 Hard To Fuck Up™.
 
