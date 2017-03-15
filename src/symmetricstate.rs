@@ -16,11 +16,11 @@ pub trait SymmetricStateType {
     fn has_preshared_key(&self) -> bool;
     fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize;
     fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, ()>;
-    fn split(&mut self, child1: &mut CipherStateType, child2: &mut CipherStateType);
+    fn split(&mut self, child1: &mut CipherState, child2: &mut CipherState);
 }
 
 pub struct SymmetricState {
-    cipherstate : Box<CipherStateType>,
+    cipherstate : CipherState,
     hasher: Box<Hash>,
     h : [u8; MAXHASHLEN],
     ck: [u8; MAXHASHLEN],
@@ -29,7 +29,7 @@ pub struct SymmetricState {
 }
 
 impl SymmetricState {
-    pub fn new(cipherstate: Box<CipherStateType>, hasher: Box<Hash>) -> SymmetricState
+    pub fn new(cipherstate: CipherState, hasher: Box<Hash>) -> SymmetricState
     {
         SymmetricState {
             cipherstate: cipherstate,
@@ -124,7 +124,7 @@ impl SymmetricStateType for SymmetricState {
         Ok(payload_len)
     }
 
-    fn split(&mut self, child1: &mut CipherStateType, child2: &mut CipherStateType) {
+    fn split(&mut self, child1: &mut CipherState, child2: &mut CipherState) {
         let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
         self.hasher.hkdf(&self.ck[..hash_len], &[0u8; 0],

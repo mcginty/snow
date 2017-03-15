@@ -13,10 +13,10 @@ use NoiseError;
 use NoiseError::*;
 
 // TODO: this doesn't belong here
-pub struct CipherStates(pub Box<CipherStateType>, pub Box<CipherStateType>);
+pub struct CipherStates(pub CipherState, pub CipherState);
 
 impl CipherStates {
-    pub fn new(sending: Box<CipherStateType>, receiving: Box<CipherStateType>) -> Result<Self, NoiseError> {
+    pub fn new(sending: CipherState, receiving: CipherState) -> Result<Self, NoiseError> {
         if sending.name() != receiving.name() {
             return Err(InitError("cipherstates don't match"));
         }
@@ -79,7 +79,7 @@ pub struct HandshakeState {
 impl HandshakeState {
     pub fn new(
         rng: Box<Random>,
-        cipherstate: Box<CipherStateType>,
+        cipherstate: CipherState,
         hasher: Box<Hash>,
         s : Toggle<Box<Dh>>,
         e : Toggle<Box<Dh>>,
@@ -252,7 +252,7 @@ impl HandshakeState {
             return Err(NoiseError::InputError("with tokens, message size exceeds maximum"));
         }
         if last {
-            self.symmetricstate.split(&mut *self.cipherstates.0, &mut *self.cipherstates.1);
+            self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
         }
         Ok(byte_index)
     }
@@ -308,7 +308,7 @@ impl HandshakeState {
         self.symmetricstate.decrypt_and_hash(ptr, payload).map_err(|_| NoiseError::DecryptError)?;
         self.my_turn = true;
         if last {
-            self.symmetricstate.split(&mut *self.cipherstates.0, &mut *self.cipherstates.1);
+            self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
         }
         let payload_len = if self.symmetricstate.has_key() { ptr.len() - TAGLEN } else { ptr.len() };
         Ok(payload_len)

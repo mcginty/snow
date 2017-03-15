@@ -14,7 +14,7 @@ pub trait CryptoResolver {
     fn resolve_rng(&self) -> Option<Box<Random>>;
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh>>;
     fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash>>;
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<CipherStateType>>;
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher>>;
 }
 
 pub struct DefaultResolver;
@@ -39,10 +39,10 @@ impl CryptoResolver for DefaultResolver {
         }
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<CipherStateType>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher>> {
         match *choice {
-            CipherChoice::ChaChaPoly => Some(Box::new(CipherState::<CipherChaChaPoly>::default())),
-            CipherChoice::AESGCM     => Some(Box::new(CipherState::<CipherAESGCM>::default())),
+            CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
+            CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
         }
     }
 }
@@ -159,8 +159,10 @@ impl<'a> NoiseBuilder<'a> {
         let hash = self.resolver.resolve_hash(&self.params.hash).ok_or(NoiseError::InitError("no hash implementation"))?;
         let mut s_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(NoiseError::InitError("no DH implementation"))?;
         let mut e_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(NoiseError::InitError("no DH implementation"))?;
-        let cipherstate1 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(NoiseError::InitError("no cipher implementation"))?;
-        let cipherstate2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(NoiseError::InitError("no cipher implementation"))?;
+        let cipher1 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(NoiseError::InitError("no cipher implementation"))?;
+        let cipher2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(NoiseError::InitError("no cipher implementation"))?;
+        let handshake_cipherstate = CipherState::new(cipher);
+        let cipherstates = CipherStates::new(CipherState::new(cipher1), CipherState::new(cipher2))?;
 
         let s = match self.s {
             Some(k) => {
@@ -188,13 +190,13 @@ impl<'a> NoiseBuilder<'a> {
 
         let re = Toggle::off([0u8; MAXDHLEN]);
 
-        let hs = HandshakeState::new(rng, cipher, hash,
+        let hs = HandshakeState::new(rng, handshake_cipherstate, hash,
                                      s, e, self.e_fixed.is_some(), rs, re,
                                      initiator,
                                      self.params.handshake,
                                      &self.plog.unwrap_or_else(|| &[0u8; 0]),
                                      self.psk,
-                                     CipherStates::new(cipherstate1, cipherstate2)?)?;
+                                     cipherstates)?;
         Ok(hs.into())
     }
 }

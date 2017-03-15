@@ -45,6 +45,5 @@ pub mod types;
 pub mod wrappers;
 
 pub use error::NoiseError;
-pub use cipherstate::CipherStateType;
 pub use noise::NoiseBuilder;
 pub use session::*;
