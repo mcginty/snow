@@ -46,4 +46,4 @@ pub mod wrappers;
 
 pub use error::NoiseError;
 pub use noise::NoiseBuilder;
-pub use session::*;
+pub use session::Session;
