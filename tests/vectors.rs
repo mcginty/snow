@@ -198,13 +198,11 @@ fn test_vectors_from_json(json: &str) {
 }
 
 #[test]
-#[ignore]
 fn test_vectors_noise_c_basic() {
     test_vectors_from_json(include_str!("vectors/noise-c-basic.txt"));
 }
 
 #[test]
-#[ignore]
 fn test_vectors_cacophony() {
     test_vectors_from_json(include_str!("vectors/cacophony.txt"));
 }

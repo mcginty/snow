@@ -5,8 +5,5 @@ rust:
 cache: cargo
 
 script:
-  - rustc --version --verbose
-  - cargo --version --verbose
-  - cargo test --verbose
-  - cargo test --verbose -- --ignored
+  - cargo test --all --verbose
 
