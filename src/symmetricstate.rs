@@ -135,5 +135,4 @@ impl SymmetricStateType for SymmetricState {
         child2.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
     }
 
-
 }

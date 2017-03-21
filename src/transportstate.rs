@@ -1,6 +1,7 @@
 extern crate rustc_serialize;
 extern crate arrayvec;
 
+use params::HandshakePattern;
 use error::NoiseError;
 use cipherstate::CipherStates;
 use constants::{MAXMSGLEN, TAGLEN};
@@ -12,13 +13,15 @@ use constants::{MAXMSGLEN, TAGLEN};
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct TransportState {
     pub cipherstates: CipherStates,
+    pattern: HandshakePattern,
     initiator: bool,
 }
 
 impl TransportState {
-    pub fn new(cipherstates: CipherStates, initiator: bool) -> Self {
+    pub fn new(cipherstates: CipherStates, pattern: HandshakePattern, initiator: bool) -> Self {
         TransportState {
             cipherstates: cipherstates,
+            pattern: pattern,
             initiator: initiator,
         }
     }
@@ -26,7 +29,9 @@ impl TransportState {
     pub fn write_transport_message(&mut self,
                                    payload: &[u8],
                                    message: &mut [u8]) -> Result<usize, NoiseError> {
-        if payload.len() + TAGLEN > MAXMSGLEN {
+        if !self.initiator && self.pattern.is_oneway() {
+            return Err(NoiseError::StateError("receiver in one-way pattern can't send"));
+        } else if payload.len() + TAGLEN > MAXMSGLEN {
             return Err(NoiseError::InputError("message len exceeds Noise max"));
         } else if payload.len() + TAGLEN > message.len() {
             return Err(NoiseError::InputError("output buffer too small"));
@@ -39,6 +44,9 @@ impl TransportState {
     pub fn read_transport_message(&mut self,
                                    payload: &[u8],
                                    message: &mut [u8]) -> Result<usize, NoiseError> {
+        if self.initiator && self.pattern.is_oneway() {
+            return Err(NoiseError::StateError("sender in one-way pattern can't receive"));
+        }
         let cipher = if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
         cipher.decrypt(payload, message).map_err(|_| NoiseError::DecryptError)
     }

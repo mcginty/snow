@@ -60,6 +60,7 @@ pub struct HandshakeState {
     rs: Toggle<[u8; MAXDHLEN]>,
     re: Toggle<[u8; MAXDHLEN]>,
     initiator: bool,
+    handshake_pattern: HandshakePattern,
     my_turn: bool,
     message_patterns: MessagePatterns,
 }
@@ -153,6 +154,7 @@ impl HandshakeState {
             rs: rs, 
             re: re,
             initiator: initiator,
+            handshake_pattern: handshake_pattern,
             my_turn: initiator,
             message_patterns: tokens.msg_patterns.into(),
         })
@@ -311,9 +313,9 @@ impl HandshakeState {
         Ok(payload_len)
     }
 
-    pub fn finish(self) -> Result<CipherStates, NoiseError> {
+    pub fn finish(self) -> Result<(CipherStates, HandshakePattern), NoiseError> {
         if self.is_finished() {
-            Ok(self.cipherstates)
+            Ok((self.cipherstates, self.handshake_pattern))
         } else {
             Err(StateError("handshake not yet completed"))
         }

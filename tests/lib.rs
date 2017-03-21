@@ -7,6 +7,7 @@ mod vectors;
 use snow::*;
 use snow::params::*;
 use snow::types::*;
+use snow::wrappers::crypto_wrapper::Dh25519;
 
 struct RandomInc {
     next_byte: u8
@@ -59,7 +60,6 @@ fn test_protocol_name() {
         panic!("invalid protocol was parsed inaccurately");
     }
 }
-
 
 #[test]
 fn test_noise_session_transition_change() {
@@ -142,3 +142,37 @@ fn test_transport_message_undersized_output_buffer() {
     noise = noise.into_transport_mode().unwrap();
     assert!(noise.write_message(&[0u8; 300], &mut buffer_out).is_err());
 }
+
+#[test]
+fn test_oneway_initiator_enforcements() {
+    let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
+    let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+
+    let mut buffer_out = [0u8; 1024];
+    noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
+    noise = noise.into_transport_mode().unwrap();
+    assert!(noise.read_message(&[0u8; 1024], &mut buffer_out).is_err());
+}
+
+#[test]
+fn test_oneway_responder_enforcements() {
+    let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
+    let resp_builder = NoiseBuilder::new(params);
+    let rpk = resp_builder.generate_private_key().unwrap();
+    let mut rk: Dh25519 = Dh25519::default();
+    rk.set(&rpk);
+
+    let mut resp = resp_builder.local_private_key(&rpk).build_responder().unwrap();
+    let mut init = NoiseBuilder::new(params).remote_public_key(rk.pubkey()).build_initiator().unwrap();
+
+    let mut buffer_resp = [0u8; 65535];
+    let mut buffer_init = [0u8; 65535];
+    let len = init.write_message(&[0u8; 0], &mut buffer_init).unwrap();
+    resp.read_message(&buffer_init[..len], &mut buffer_resp).unwrap();
+    init = init.into_transport_mode().unwrap();
+    resp = resp.into_transport_mode().unwrap();
+
+    assert!(init.read_message(&[0u8; 1024], &mut buffer_init).is_err());
+    assert!(resp.write_message(&[0u8; 1024], &mut buffer_resp).is_err());
+}
+

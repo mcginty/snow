@@ -122,8 +122,8 @@ impl TryFrom<HandshakeState> for TransportState {
 
     fn try_from(old: HandshakeState) -> Result<Self, Self::Error> {
         let initiator = old.is_initiator();
-        let cipherstates = old.finish()?;
-        Ok(TransportState::new(cipherstates, initiator))
+        let (cipherstates, handshake_pattern) = old.finish()?;
+        Ok(TransportState::new(cipherstates, handshake_pattern, initiator))
     }
 }
 
