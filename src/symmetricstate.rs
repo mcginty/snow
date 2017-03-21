@@ -14,8 +14,8 @@ pub trait SymmetricStateType {
     fn mix_preshared_key(&mut self, psk: &[u8]);
     fn has_key(&self) -> bool;
     fn has_preshared_key(&self) -> bool;
-    fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize;
-    fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, ()>;
+    fn encrypt_and_mix_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize;
+    fn decrypt_and_mix_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, ()>;
     fn split(&mut self, child1: &mut CipherState, child2: &mut CipherState);
 }
 
@@ -100,7 +100,8 @@ impl SymmetricStateType for SymmetricState {
         self.has_preshared_key
     }
 
-    fn encrypt_and_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
+    /// Encrypt a message and mixes in the hash of the output
+    fn encrypt_and_mix_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
         let hash_len = self.hasher.hash_len();
         let output_len = if self.has_key {
             self.cipherstate.encrypt_ad(&self.h[..hash_len], plaintext, out)
@@ -112,7 +113,7 @@ impl SymmetricStateType for SymmetricState {
         output_len
     }
 
-    fn decrypt_and_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, ()> {
+    fn decrypt_and_mix_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let hash_len = self.hasher.hash_len();
         let payload_len = if self.has_key {
             self.cipherstate.decrypt_ad(&self.h[..hash_len], data, out)?

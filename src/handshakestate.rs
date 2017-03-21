@@ -229,7 +229,7 @@ impl HandshakeState {
                     if byte_index + self.s.pub_len() >= message.len() {
                         return Err(NoiseError::InputError("message does not fit in output buffer"))
                     }
-                    byte_index += self.symmetricstate.encrypt_and_hash(
+                    byte_index += self.symmetricstate.encrypt_and_mix_hash(
                         &self.s.pubkey(),
                         &mut message[byte_index..]);
                 },
@@ -244,7 +244,7 @@ impl HandshakeState {
         if byte_index + payload.len() + TAGLEN >= message.len() {
             return Err(NoiseError::InputError("message does not fit in output buffer"));
         }
-        byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]);
+        byte_index += self.symmetricstate.encrypt_and_mix_hash(payload, &mut message[byte_index..]);
         if byte_index > MAXMSGLEN {
             return Err(NoiseError::InputError("with tokens, message size exceeds maximum"));
         }
@@ -292,7 +292,7 @@ impl HandshakeState {
                             ptr = &ptr[dh_len..];
                             temp
                         };
-                        self.symmetricstate.decrypt_and_hash(data, &mut self.rs[..dh_len]).map_err(|_| NoiseError::DecryptError)?;
+                        self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| NoiseError::DecryptError)?;
                         self.rs.enable();
                     },
                     Token::Dhee => self.dh(false, false)?,
@@ -302,7 +302,7 @@ impl HandshakeState {
                 }
             }
         }
-        self.symmetricstate.decrypt_and_hash(ptr, payload).map_err(|_| NoiseError::DecryptError)?;
+        self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| NoiseError::DecryptError)?;
         self.my_turn = true;
         if last {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
