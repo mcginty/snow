@@ -1,3 +1,5 @@
+#![cfg(feature = "vector-tests")]
+
 extern crate snow;
 extern crate rustc_serialize;
 

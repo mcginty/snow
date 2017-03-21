@@ -5,5 +5,5 @@ rust:
 cache: cargo
 
 script:
-  - cargo test --all --verbose
+  - cargo test --features vector-tests --verbose
 
