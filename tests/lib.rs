@@ -104,16 +104,7 @@ fn test_sanity_session() {
 }
 
 #[test]
-fn test_oversized_handshake_message() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
-
-    let mut buffer_out = [0u8; 65535];
-    assert!(h_i.write_message(&[0u8; 65530], &mut buffer_out).is_err());
-}
-
-#[test]
-fn test_handshake_max_message_len() {
+fn test_handshake_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
 
@@ -122,10 +113,32 @@ fn test_handshake_max_message_len() {
 }
 
 #[test]
-fn test_undersized_handshake_output_buffer() {
+fn test_handshake_message_undersized_output_buffer() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 200];
     assert!(h_i.write_message(&[0u8; 400], &mut buffer_out).is_err());
+}
+
+#[test]
+fn test_transport_message_exceeds_max_len() {
+    let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
+    let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+
+    let mut buffer_out = [0u8; 65535*2];
+    noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
+    noise = noise.into_transport_mode().unwrap();
+    assert!(noise.write_message(&[0u8; 65534], &mut buffer_out).is_err());
+}
+
+#[test]
+fn test_transport_message_undersized_output_buffer() {
+    let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
+    let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+
+    let mut buffer_out = [0u8; 200];
+    noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
+    noise = noise.into_transport_mode().unwrap();
+    assert!(noise.write_message(&[0u8; 300], &mut buffer_out).is_err());
 }

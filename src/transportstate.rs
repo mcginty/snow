@@ -3,6 +3,7 @@ extern crate arrayvec;
 
 use error::NoiseError;
 use cipherstate::CipherStates;
+use constants::{MAXMSGLEN, TAGLEN};
 
 /// A state machine encompassing the transport phase of a Noise session, using the two
 /// `CipherState`s (for sending and receiving) that were spawned from the `SymmetricState`'s
@@ -25,6 +26,12 @@ impl TransportState {
     pub fn write_transport_message(&mut self,
                                    payload: &[u8],
                                    message: &mut [u8]) -> Result<usize, NoiseError> {
+        if payload.len() + TAGLEN > MAXMSGLEN {
+            return Err(NoiseError::InputError("message len exceeds Noise max"));
+        } else if payload.len() + TAGLEN > message.len() {
+            return Err(NoiseError::InputError("output buffer too small"));
+        }
+
         let cipher = if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
         Ok(cipher.encrypt(payload, message))
     }
