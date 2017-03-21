@@ -69,6 +69,10 @@ impl Session {
     ///
     /// Will result in `NoiseError::DecryptError` if the contents couldn't be decrypted and/or the
     /// authentication tag didn't verify.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if there is no key, or if there is a nonce overflow.
     pub fn read_message(&mut self, input: &[u8], payload: &mut [u8]) -> Result<usize, NoiseError> {
         match *self {
             Session::Handshake(ref mut state) => state.read_handshake_message(input, payload),

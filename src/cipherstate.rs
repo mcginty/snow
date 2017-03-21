@@ -26,6 +26,7 @@ impl CipherState {
         self.has_key = true;
     }
 
+    // TODO: don't panic
     pub fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
         assert!(self.has_key);
         let len = self.cipher.encrypt(self.n, authtext, plaintext, out);
@@ -33,6 +34,7 @@ impl CipherState {
         len
     }
 
+    // TODO: don't panic
     pub fn decrypt_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
         assert!(self.has_key);
         let len = self.cipher.decrypt(self.n, authtext, ciphertext, out);
