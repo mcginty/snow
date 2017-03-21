@@ -205,6 +205,9 @@ impl HandshakeState {
         for token in next_tokens.iter() {
             match *token {
                 Token::E => {
+                    if byte_index + self.e.pub_len() >= message.len() {
+                        return Err(NoiseError::InputError("message does not fit in output buffer"))
+                    }
                     if !self.fixed_ephemeral {
                         self.e.generate(&mut *self.rng);
                     }
@@ -223,6 +226,9 @@ impl HandshakeState {
                     if !self.s.is_on() {
                         return Err(NoiseError::StateError("self.has_s is false"));
                     }
+                    if byte_index + self.s.pub_len() >= message.len() {
+                        return Err(NoiseError::InputError("message does not fit in output buffer"))
+                    }
                     byte_index += self.symmetricstate.encrypt_and_hash(
                         &self.s.pubkey(),
                         &mut message[byte_index..]);
@@ -235,6 +241,9 @@ impl HandshakeState {
         }
 
         self.my_turn = false;
+        if byte_index + payload.len() + TAGLEN >= message.len() {
+            return Err(NoiseError::InputError("message does not fit in output buffer"));
+        }
         byte_index += self.symmetricstate.encrypt_and_hash(payload, &mut message[byte_index..]);
         if byte_index > MAXMSGLEN {
             return Err(NoiseError::InputError("with tokens, message size exceeds maximum"));

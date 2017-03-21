@@ -102,3 +102,21 @@ fn test_sanity_session() {
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
     assert!(&buffer_out[..len] == "hack the planet".as_bytes());
 }
+
+#[test]
+fn test_oversized_handshake_message() {
+    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
+
+    let mut buffer_out = [0u8; 65535];
+    assert!(h_i.write_message(&[0u8; 65530], &mut buffer_out).is_err());
+}
+
+#[test]
+fn test_undersized_handshake_output_buffer() {
+    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
+
+    let mut buffer_out = [0u8; 200];
+    assert!(h_i.write_message(&[0u8; 400], &mut buffer_out).is_err());
+}
