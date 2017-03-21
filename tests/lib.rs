@@ -113,6 +113,15 @@ fn test_oversized_handshake_message() {
 }
 
 #[test]
+fn test_handshake_max_message_len() {
+    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
+
+    let mut buffer_out = [0u8; 65535*2];
+    assert!(h_i.write_message(&[0u8; 65530], &mut buffer_out).is_err());
+}
+
+#[test]
 fn test_undersized_handshake_output_buffer() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();

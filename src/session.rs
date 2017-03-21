@@ -118,9 +118,9 @@ impl Into<Session> for HandshakeState {
 }
 
 impl TryFrom<HandshakeState> for TransportState {
-    type Err = NoiseError;
+    type Error = NoiseError;
 
-    fn try_from(old: HandshakeState) -> Result<Self, Self::Err> {
+    fn try_from(old: HandshakeState) -> Result<Self, Self::Error> {
         let initiator = old.is_initiator();
         let cipherstates = old.finish()?;
         Ok(TransportState::new(cipherstates, initiator))
