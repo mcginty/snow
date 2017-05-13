@@ -1,5 +1,3 @@
-extern crate rustc_serialize;
-
 use utils::*;
 use constants::*;
 use types::*;

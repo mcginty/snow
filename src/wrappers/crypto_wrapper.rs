@@ -1,6 +1,5 @@
 extern crate crypto;
 extern crate byteorder;
-extern crate rustc_serialize;
 extern crate blake2_rfc;
 extern crate chacha20_poly1305_aead;
 
@@ -323,11 +322,11 @@ impl Hash for HashBLAKE2s {
 #[cfg(test)]
 mod tests {
 
-    extern crate rustc_serialize;
+    extern crate hex;
 
     use types::*;
     use super::*;
-    use self::rustc_serialize::hex::{FromHex, ToHex};
+    use self::hex::{FromHex, ToHex};
     use super::crypto::poly1305::Poly1305;
     use super::crypto::mac::Mac;
 
@@ -342,8 +341,8 @@ mod tests {
 
     #[test]
     fn test_hmac_sha256_sha512() {
-        let key = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".from_hex().unwrap();
-        let data = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".from_hex().unwrap();
+        let key = Vec::<u8>::from_hex("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+        let data = Vec::<u8>::from_hex("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd").unwrap();
         let mut output1 = [0u8; 32];
         let mut hasher:HashSHA256 = Default::default();
         hasher.hmac(&key, &data, &mut output1);
@@ -352,7 +351,7 @@ mod tests {
         let mut output2 = [0u8; 64];
         let mut hasher:HashSHA512 = Default::default();
         hasher.hmac(&key, &data, &mut output2);
-        assert!(output2.to_hex() == "fa73b0089d56a284efb0f0756c890be9\
+        assert!(output2.to_owned().to_hex() == "fa73b0089d56a284efb0f0756c890be9\
                                      b1b5dbdd8ee81a3655f83e33b2279d39\
                                      bf3e848279a722c806b485a47e67c807\
                                      b946a337bee8942674278859e13292fb");
@@ -365,7 +364,7 @@ mod tests {
         let mut hasher:HashBLAKE2b = Default::default();
         hasher.input("abc".as_bytes());
         hasher.result(&mut output);
-        assert!(output.to_hex() == "ba80a53f981c4d0d6a2797b69f12f6e9\
+        assert!(output.to_owned().to_hex() == "ba80a53f981c4d0d6a2797b69f12f6e9\
                                     4c212f14685ac4b74b12bb6fdbffa2d1\
                                     7d87c5392aab792dc252d5de4533cc95\
                                     18d38aa8dbf1925ab92386edd4009923");
@@ -386,9 +385,9 @@ mod tests {
     fn test_curve25519() {
     // Curve25519 test - draft-curves-10
         let mut keypair:Dh25519 = Default::default();
-        let scalar = "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4".from_hex().unwrap();
+        let scalar = Vec::<u8>::from_hex("a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4").unwrap();
         copy_memory(&scalar, &mut keypair.privkey);
-        let public = "e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c".from_hex().unwrap();
+        let public = Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c").unwrap();
         let mut output = [0u8; 32];
         keypair.dh(&public, &mut output);
         assert!(output.to_hex() == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
@@ -436,10 +435,10 @@ mod tests {
     #[test]
     fn test_poly1305() {
     // Poly1305 internal test - RFC 7539
-        let key = "85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b".from_hex().unwrap();
-        let msg = "43727970746f6772617068696320466f\
+        let key = Vec::<u8>::from_hex("85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b").unwrap();
+        let msg = Vec::<u8>::from_hex("43727970746f6772617068696320466f\
                    72756d2052657365617263682047726f\
-                   7570".from_hex().unwrap();
+                   7570").unwrap();
         let mut poly = Poly1305::new(&key);
         poly.input(&msg);
         let mut output = [0u8; 16];
@@ -484,16 +483,16 @@ mod tests {
         let mut cipher2 : CipherChaChaPoly = Default::default();
         cipher2.set(&key);
         cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
-        assert!(resulttext.to_hex() == plaintext.to_hex());
+        assert!(resulttext.to_owned().to_hex() == plaintext.to_owned().to_hex());
     }
 
     #[test]
     fn test_chachapoly_known_answer() {
     //ChaChaPoly known-answer test - RFC 7539
-        let key ="1c9240a5eb55d38af333888604f6b5f0\
-                  473917c1402b80099dca5cbc207075c0".from_hex().unwrap();
+        let key =Vec::<u8>::from_hex("1c9240a5eb55d38af333888604f6b5f0\
+                  473917c1402b80099dca5cbc207075c0").unwrap();
         let nonce = 0x0807060504030201u64;
-        let ciphertext ="64a0861575861af460f062c79be643bd\
+        let ciphertext =Vec::<u8>::from_hex("64a0861575861af460f062c79be643bd\
                          5e805cfd345cf389f108670ac76c8cb2\
                          4c6cfc18755d43eea09ee94e382d26b0\
                          bdb7b73c321b0100d4f03b7f355894cf\
@@ -509,9 +508,9 @@ mod tests {
                          cebb4e466dae5a1073a6727627097a10\
                          49e617d91d361094fa68f0ff77987130\
                          305beaba2eda04df997b714d6c6f2c29\
-                         a6ad5cb4022b02709b".from_hex().unwrap();
-        let tag = "eead9d67890cbb22392336fea1851f38".from_hex().unwrap();
-        let authtext = "f33388860000000000004e91".from_hex().unwrap();
+                         a6ad5cb4022b02709b").unwrap();
+        let tag = Vec::<u8>::from_hex("eead9d67890cbb22392336fea1851f38").unwrap();
+        let authtext = Vec::<u8>::from_hex("f33388860000000000004e91").unwrap();
         let mut combined_text = [0u8; 1024];
         let mut out = [0u8; 1024];
         copy_memory(&ciphertext, &mut combined_text);
@@ -537,6 +536,6 @@ mod tests {
                                  6d206f74686572207468616e20617320\
                                  2fe2809c776f726b20696e2070726f67\
                                  726573732e2fe2809d";
-        assert!(out[..ciphertext.len()].to_hex() == desired_plaintext);
+        assert!(out[..ciphertext.len()].to_owned().to_hex() == desired_plaintext);
     }
 }

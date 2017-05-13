@@ -1,8 +1,6 @@
 #![allow(non_snake_case)]
+extern crate hex;
 extern crate snow;
-extern crate rustc_serialize;
-
-mod vectors;
 
 use snow::*;
 use snow::params::*;

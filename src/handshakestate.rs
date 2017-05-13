@@ -1,4 +1,3 @@
-extern crate rustc_serialize;
 extern crate arrayvec;
 
 use self::arrayvec::{ArrayVec, ArrayString};

@@ -1,12 +1,14 @@
 #![cfg(feature = "vector-tests")]
-
+extern crate hex;
 extern crate snow;
-extern crate rustc_serialize;
 
+#[macro_use] extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
+
+use serde::de::{self, Deserialize, Deserializer, Visitor, Unexpected};
 use std::ops::Deref;
-use rustc_serialize::{Decodable, Decoder};
-use rustc_serialize::hex::{FromHex, ToHex};
-use rustc_serialize::json;
+use hex::{FromHex, ToHex};
 use snow::*;
 use snow::params::*;
 use std::fmt;
@@ -30,18 +32,35 @@ impl fmt::Debug for HexBytes {
     }
 }
 
-impl Decodable for HexBytes {
-    fn decode<D: Decoder>(d: &mut D) -> Result<Self, D::Error> {
-        let hex = d.read_str()?;
-        let bytes = hex.from_hex().map_err(|_| d.error("field is an invalid binary hex encoding"))?;
+struct HexBytesVisitor;
+impl<'de> Visitor<'de> for HexBytesVisitor {
+    type Value = HexBytes;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "a hex string")
+    }
+
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+        where E: de::Error
+    {
+        let bytes = Vec::<u8>::from_hex(s).map_err(|_| de::Error::invalid_value(Unexpected::Str(s), &self))?;
         Ok(HexBytes {
-            original: hex,
+            original: s.to_owned(),
             payload: bytes,
         })
     }
+
 }
 
-#[derive(RustcDecodable)]
+impl<'de> Deserialize<'de> for HexBytes {
+    fn deserialize<D>(deserializer: D) -> Result<HexBytes, D::Error>
+        where D: Deserializer<'de>
+    {
+        deserializer.deserialize_str(HexBytesVisitor)
+    }
+}
+
+#[derive(Deserialize)]
 struct TestMessage {
     payload: HexBytes,
     ciphertext: HexBytes,
@@ -53,7 +72,7 @@ impl fmt::Debug for TestMessage {
     }
 }
 
-#[derive(RustcDecodable, Debug)]
+#[derive(Deserialize, Debug)]
 struct TestVector {
     name: String,
     pattern: String,
@@ -73,7 +92,7 @@ struct TestVector {
     messages: Vec<TestMessage>,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 struct TestVectors {
     vectors: Vec<TestVector>,
 }
@@ -135,9 +154,9 @@ fn confirm_message_vectors(mut init: Session, mut resp: Session, messages_vec: &
         if &sendbuf[..len] != &(*message.ciphertext)[..] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
-            s.push_str(&format!("plaintext: {}\n", &(*message.payload)[..].to_hex()));
-            s.push_str(&format!("expected:  {}\n", &(*message.ciphertext)[..].to_hex()));
-            s.push_str(&format!("actual:    {}", &sendbuf[..len].to_hex()));
+            s.push_str(&format!("plaintext: {}\n", message.payload.to_hex()));
+            s.push_str(&format!("expected:  {}\n", message.ciphertext.to_hex()));
+            s.push_str(&format!("actual:    {}", &sendbuf[..len].to_owned().to_hex()));
             return Err(s)
         }
     }
@@ -155,9 +174,9 @@ fn confirm_message_vectors(mut init: Session, mut resp: Session, messages_vec: &
         if &sendbuf[..len] != &(*message.ciphertext)[..] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
-            s.push_str(&format!("plaintext: {}\n", &(*message.payload)[..].to_hex()));
-            s.push_str(&format!("expected:  {}\n", &(*message.ciphertext)[..].to_hex()));
-            s.push_str(&format!("actual:    {}", &sendbuf[..message.ciphertext.len()].to_hex()));
+            s.push_str(&format!("plaintext: {}\n", message.payload.to_hex()));
+            s.push_str(&format!("expected:  {}\n", message.ciphertext.to_hex()));
+            s.push_str(&format!("actual:    {}", &sendbuf[..message.ciphertext.len()].to_owned().to_hex()));
             return Err(s)
         }
     }
@@ -165,7 +184,7 @@ fn confirm_message_vectors(mut init: Session, mut resp: Session, messages_vec: &
 }
 
 fn test_vectors_from_json(json: &str) {
-    let test_vectors: TestVectors = json::decode(json).unwrap();
+    let test_vectors: TestVectors = serde_json::from_str(json).unwrap();
 
     let mut passes = 0;
     let mut fails = 0;
