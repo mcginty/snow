@@ -10,7 +10,7 @@ pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss}
 /// One of the patterns as defined in the
 /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX, XXfallback}
+pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX}
 
 impl HandshakePattern {
 
@@ -75,7 +75,6 @@ impl FromStr for HandshakePattern {
             "IN" => Ok(IN),
             "IK" => Ok(IK),
             "IX" => Ok(IX),
-            "XXfallback" => Ok(XXfallback),
             _    => Err("handshake not recognized")
         }
     }
@@ -100,7 +99,6 @@ impl HandshakePattern {
             IN => "IN",
             IK => "IK",
             IX => "IX",
-            XXfallback => "XXfallback",
         }
     }
 }
@@ -197,11 +195,6 @@ impl From<HandshakePattern> for HandshakeTokens {
                 static_slice![Token: ],
                 static_slice![&'static [Token]: &[E, S], &[E, Dhee, Dhes, S, Dhse]],
             ),
-            XXfallback => (
-                static_slice![Token: ],
-                static_slice![Token: E],
-                static_slice![&'static [Token]: &[E, Dhee, S, Dhse], &[S, Dhse]],
-            )
         };
 
         HandshakeTokens {
