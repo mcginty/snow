@@ -100,7 +100,7 @@ struct TestVectors {
 fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), NoiseError> {
     let params: NoiseParams = vector.name.parse().unwrap();
     let mut init_builder = NoiseBuilder::new(params.clone());
-    let mut resp_builder = NoiseBuilder::new(params);
+    let mut resp_builder = NoiseBuilder::new(params.clone());
 
     match (params.base, &vector.init_psk, &vector.resp_psk) {
         (BaseChoice::NoisePSK, &Some(ref init_psk), &Some(ref resp_psk)) => {
@@ -198,7 +198,7 @@ fn test_vectors_from_json(json: &str) {
         }
         let (init, resp) = build_session_pair(&vector).unwrap();
 
-        match confirm_message_vectors(init, resp, &vector.messages, params.handshake.is_oneway()) {
+        match confirm_message_vectors(init, resp, &vector.messages, params.handshake.pattern.is_oneway()) {
             Ok(_) => {
                 passes += 1;
             },
