@@ -44,7 +44,7 @@ fn test_protocol_name() {
     let protocol_spec: NoiseParams = "Noise_NK_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
 
     assert_eq!(protocol_spec.base, BaseChoice::Noise);
-    assert_eq!(protocol_spec.handshake, HandshakePattern::NK);
+    assert_eq!(protocol_spec.handshake.pattern, HandshakePattern::NK);
     assert_eq!(protocol_spec.cipher, CipherChoice::ChaChaPoly);
     assert_eq!(protocol_spec.hash, HashChoice::Blake2s);
 
@@ -62,7 +62,7 @@ fn test_protocol_name() {
 #[test]
 fn test_noise_session_transition_change() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
+    let mut h_i = NoiseBuilder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = NoiseBuilder::new(params).build_responder().unwrap();
 
     let mut buffer_msg = [0u8; 200];
@@ -82,7 +82,7 @@ fn test_noise_session_transition_change() {
 #[test]
 fn test_sanity_session() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
+    let mut h_i = NoiseBuilder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = NoiseBuilder::new(params).build_responder().unwrap();
 
     let mut buffer_msg = [0u8; 200];
@@ -104,7 +104,7 @@ fn test_sanity_session() {
 #[test]
 fn test_rekey() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
+    let mut h_i = NoiseBuilder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = NoiseBuilder::new(params).build_responder().unwrap();
 
     assert!(h_i.rekey(None, None).is_err());
@@ -190,7 +190,7 @@ fn test_oneway_initiator_enforcements() {
 #[test]
 fn test_oneway_responder_enforcements() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
-    let resp_builder = NoiseBuilder::new(params);
+    let resp_builder = NoiseBuilder::new(params.clone());
     let rpk = resp_builder.generate_private_key().unwrap();
     let mut rk: Dh25519 = Dh25519::default();
     rk.set(&rpk);

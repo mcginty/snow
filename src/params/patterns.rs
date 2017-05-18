@@ -4,13 +4,13 @@ use std::str::FromStr;
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[derive(Copy, Clone, Debug)]
-pub enum Token {E, S, Dhee, Dhes, Dhse, Dhss}
+pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss }
 
 // TODO make the HandshakePattern name more consistent with the *Choice enums
 /// One of the patterns as defined in the
 /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum HandshakePattern {N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX}
+pub enum HandshakePattern { N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX }
 
 impl HandshakePattern {
 
@@ -52,6 +52,79 @@ impl HandshakePattern {
                 _ => false,
             }
         }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum HandshakeModifier { Psk(u8), Fallback }
+
+impl FromStr for HandshakeModifier {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        println!("parsing modifier {}", s);
+        if s.starts_with("psk") {
+            Ok(HandshakeModifier::Psk((&s[3..]).parse().map_err(|_| "psk must have number parameter")?))
+        } else if s == "fallback" {
+            Ok(HandshakeModifier::Fallback)
+        } else {
+            Err("unrecognized or invalid modifier")
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct HandshakeModifierList {
+    pub list: Vec<HandshakeModifier>
+}
+
+impl FromStr for HandshakeModifierList {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.is_empty() {
+            Ok(HandshakeModifierList{ list: vec![] })
+        } else {
+            let modifier_names = s.split('+');
+            let mut modifiers: Vec<HandshakeModifier> = Vec::new();
+            for modifier_name in modifier_names {
+                modifiers.push(modifier_name.parse()?);
+            }
+            Ok(HandshakeModifierList{ list: modifiers })
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct HandshakeChoice {
+    pub pattern: HandshakePattern,
+    pub modifiers: HandshakeModifierList,
+}
+
+impl FromStr for HandshakeChoice {
+    type Err = &'static str;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (pattern, remainder);
+        if s.len() > 1 {
+            if let Ok(p) = (&s[..2]).parse::<HandshakePattern>() {
+                println!("2-character handshake detected");
+                pattern = p;
+                remainder = &s[2..];
+            } else {
+                println!("1-character handshake detected");
+                pattern = (&s[..1]).parse::<HandshakePattern>()?;
+                remainder = &s[1..];
+            };
+        } else {
+            println!("1-character handshake detected");
+            pattern = (&s[..1]).parse::<HandshakePattern>()?;
+            remainder = &s[1..];
+        }
+
+        Ok(HandshakeChoice {
+            pattern: pattern,
+            modifiers: remainder.parse()?
+        })
     }
 }
 
@@ -204,3 +277,4 @@ impl From<HandshakePattern> for HandshakeTokens {
         }
     }
 }
+

@@ -148,11 +148,11 @@ impl<'builder> NoiseBuilder<'builder> {
     }
 
     fn build(self, initiator: bool) -> Result<Session, NoiseError> {
-        if !self.s.is_some() && self.params.handshake.needs_local_static_key(initiator) {
+        if !self.s.is_some() && self.params.handshake.pattern.needs_local_static_key(initiator) {
             return Err(NoiseError::InitError("local key needed for chosen handshake pattern"));
         }
 
-        if !self.rs.is_some() && self.params.handshake.need_known_remote_pubkey(initiator) {
+        if !self.rs.is_some() && self.params.handshake.pattern.need_known_remote_pubkey(initiator) {
             return Err(NoiseError::InitError("remote key needed for chosen handshake pattern"));
         }
 
@@ -195,7 +195,7 @@ impl<'builder> NoiseBuilder<'builder> {
         let hs = HandshakeState::new(rng, handshake_cipherstate, hash,
                                      s, e, self.e_fixed.is_some(), rs, re,
                                      initiator,
-                                     self.params.handshake,
+                                     self.params.handshake.pattern,
                                      &self.plog.unwrap_or_else(|| &[0u8; 0]),
                                      cipherstates)?;
         Ok(hs.into())

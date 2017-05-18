@@ -99,22 +99,10 @@ impl FromStr for HashChoice {
 ///
 /// let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
 /// ```
-///
-/// Or the more verbose, but significantly less stringy:
-///
-/// ```
-/// # use snow::params::*;
-///
-/// let params: NoiseParams = NoiseParams::new(BaseChoice::Noise,
-///                                            HandshakePattern::XX,
-///                                            DHChoice::Curve25519,
-///                                            CipherChoice::AESGCM,
-///                                            HashChoice::SHA256);
-/// ```
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct NoiseParams {
     pub base: BaseChoice,
-    pub handshake: HandshakePattern,
+    pub handshake: HandshakeChoice,
     pub dh: DHChoice,
     pub cipher: CipherChoice,
     pub hash: HashChoice,
@@ -124,7 +112,7 @@ impl NoiseParams {
 
     /// Construct a new NoiseParams via specifying enums directly.
     pub fn new(base: BaseChoice,
-               handshake: HandshakePattern,
+               handshake: HandshakeChoice,
                dh: DHChoice,
                cipher: CipherChoice,
                hash: HashChoice) -> Self
@@ -149,5 +137,47 @@ impl FromStr for NoiseParams {
                             split.next().ok_or(TOO_FEW)?.parse()?,
                             split.next().ok_or(TOO_FEW)?.parse()?,
                             split.next().ok_or(TOO_FEW)?.parse()?))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_simple_handshake() {
+        let _: HandshakePattern = "XX".parse().unwrap();
+    }
+
+    #[test]
+    fn test_basic() {
+        let p: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
+        assert!(p.handshake.modifiers.list.is_empty());
+    }
+
+    #[test]
+    fn test_fallback_mod() {
+        let p: NoiseParams = "Noise_XXfallback_25519_AESGCM_SHA256".parse().unwrap();
+        assert!(p.handshake.modifiers.list[0] == HandshakeModifier::Fallback);
+    }
+
+    #[test]
+    fn test_psk_fallback_mod() {
+        let p: NoiseParams = "Noise_XXfallback+psk0_25519_AESGCM_SHA256".parse().unwrap();
+        assert!(p.handshake.modifiers.list.len() == 2);
+    }
+
+    #[test]
+    fn test_single_psk_mod() {
+        let p: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
+        match p.handshake.modifiers.list[0] {
+            HandshakeModifier::Psk(0) => {},
+            _ => panic!("modifier isn't as expected!")
+        }
+    }
+
+    #[test]
+    fn test_multi_psk_mod() {
+        let _: NoiseParams = "Noise_XXpsk0+psk1+psk2_25519_AESGCM_SHA256".parse().unwrap();
     }
 }
