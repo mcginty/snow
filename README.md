@@ -13,6 +13,13 @@ See the documentation at [https://docs.rs/snow](https://docs.rs/snow).
 
 🔥 This library is in the state of **preview** - do everyone a favor and only use this for fun or criticizing the author's code for now.
 
+## Implemented
+
+Snow is currently tracking the Noise Protocol rev32 specification.
+
+- [ ] `pskN` modifier
+- [ ] `fallback` modifier
+- [ ] Rekey support
 
 ## Crypto
 Cryptographic providers are swappable through `NoiseBuilder::with_provider()`, but by default it chooses select, artisanal
