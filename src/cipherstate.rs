@@ -49,16 +49,29 @@ impl CipherState {
     pub fn decrypt(&mut self, ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
         self.decrypt_ad(&[0u8;0], ciphertext, out)
     }
+
+    pub fn rekey(&mut self, key: &[u8]) {
+        self.cipher.set(&key);
+    }
 }
 
 pub struct CipherStates(pub CipherState, pub CipherState);
 
 impl CipherStates {
-    pub fn new(sending: CipherState, receiving: CipherState) -> Result<Self, NoiseError> {
-        if sending.name() != receiving.name() {
+    pub fn new(initiator: CipherState, responder: CipherState) -> Result<Self, NoiseError> {
+        if initiator.name() != responder.name() {
             return Err(NoiseError::InitError("cipherstates don't match"));
         }
 
-        Ok(CipherStates(sending, receiving))
+        Ok(CipherStates(initiator, responder))
+    }
+
+    pub fn rekey_initiator(&mut self, key: &[u8]) {
+        self.0.rekey(key)
+    }
+
+
+    pub fn rekey_responder(&mut self, key: &[u8]) {
+        self.1.rekey(key)
     }
 }

@@ -19,7 +19,7 @@ Snow is currently tracking the Noise Protocol rev32 specification, but support f
 
 - [ ] `pskN` modifier
 - [ ] `fallback` modifier
-- [ ] Rekey support
+- [x] Rekey support
 
 ## Crypto
 Cryptographic providers are swappable through `NoiseBuilder::with_provider()`, but by default it chooses select, artisanal

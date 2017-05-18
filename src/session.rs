@@ -80,6 +80,26 @@ impl Session {
         }
     }
 
+    /// Set a new key for the one or both of the initiator-egress and responder-egress symmetric ciphers.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `NoiseError::StateError` if not in transport mode.
+    pub fn rekey(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) -> Result<(), NoiseError> {
+        match *self {
+            Session::Handshake(_) => Err(NoiseError::StateError("cannot rekey during handshake")),
+            Session::Transport(ref mut state) => {
+                if let Some(key) = initiator {
+                    state.rekey_initiator(key);
+                }
+                if let Some(key) = responder {
+                    state.rekey_responder(key);
+                }
+                Ok(())
+            },
+        }
+    }
+
     /// Transition the session into transport mode. This can only be done once the handshake
     /// has finished.
     ///
