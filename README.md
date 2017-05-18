@@ -15,7 +15,7 @@ See the documentation at [https://docs.rs/snow](https://docs.rs/snow).
 
 ## Implemented
 
-Snow is currently tracking the Noise Protocol rev32 specification.
+Snow is currently tracking the Noise Protocol rev32 specification, but support for the new changes from rev31 is ongoing:
 
 - [ ] `pskN` modifier
 - [ ] `fallback` modifier
