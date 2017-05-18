@@ -197,7 +197,6 @@ impl<'builder> NoiseBuilder<'builder> {
                                      initiator,
                                      self.params.handshake,
                                      &self.plog.unwrap_or_else(|| &[0u8; 0]),
-                                     self.psk,
                                      cipherstates)?;
         Ok(hs.into())
     }
@@ -210,7 +209,6 @@ mod tests {
     #[test]
     fn test_builder() {
         let _noise = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
-            .preshared_key(&[1,1,1,1,1,1,1])
             .prologue(&[2,2,2,2,2,2,2,2])
             .local_private_key(&[0u8; 32])
             .build_initiator().unwrap();
@@ -236,7 +234,6 @@ mod tests {
     #[test]
     fn test_builder_missing_prereqs() {
         let noise = NoiseBuilder::new("Noise_NK_25519_ChaChaPoly_SHA256".parse().unwrap())
-            .preshared_key(&[1,1,1,1,1,1,1])
             .prologue(&[2,2,2,2,2,2,2,2])
             .local_private_key(&[0u8; 32])
             .build_initiator(); // missing remote key, should result in Err

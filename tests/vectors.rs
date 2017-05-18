@@ -188,12 +188,12 @@ fn test_vectors_from_json(json: &str) {
 
     let mut passes = 0;
     let mut fails = 0;
-    let mut ignored_448 = 0;
+    let mut ignored = 0;
 
     for vector in test_vectors.vectors {
         let params: NoiseParams = vector.name.parse().unwrap();
-        if params.dh == DHChoice::Ed448 {
-            ignored_448 += 1;
+        if params.dh == DHChoice::Ed448 || params.base == BaseChoice::NoisePSK {
+            ignored += 1;
             continue;
         }
         let (init, resp) = build_session_pair(&vector).unwrap();
@@ -212,7 +212,7 @@ fn test_vectors_from_json(json: &str) {
     }
 
     println!("\n{}/{} passed", passes, passes+fails);
-    println!("* ignored {} Ed448-Goldilocks variants", ignored_448);
+    println!("* ignored {} unsupported variants", ignored);
     if fails > 0 {
         panic!("at least one vector failed.");
     }

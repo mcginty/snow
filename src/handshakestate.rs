@@ -77,7 +77,6 @@ impl HandshakeState {
         initiator: bool,
         handshake_pattern: HandshakePattern,
         prologue: &[u8],
-        optional_preshared_key: Option<&[u8]>,
         cipherstates: CipherStates) -> Result<HandshakeState, NoiseError> {
 
         if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
@@ -87,11 +86,7 @@ impl HandshakeState {
             return Err(PrereqError(format!("key lengths aren't right. my pub: {}, their: {}", s.pub_len(), rs.len())));
         }
 
-        let prefix = match optional_preshared_key {
-            Some(_) => "NoisePSK_",
-            None    => "Noise_"
-        };
-        let mut handshake_name = ArrayString::<[u8; 128]>::from(prefix).unwrap();
+        let mut handshake_name = ArrayString::<[u8; 128]>::from("Noise_").unwrap();
         let tokens = HandshakeTokens::from(handshake_pattern);
         handshake_name.push_str(handshake_pattern.as_str()).unwrap();
         handshake_name.push('_').unwrap();
@@ -105,10 +100,6 @@ impl HandshakeState {
 
         symmetricstate.initialize(&handshake_name[..]);
         symmetricstate.mix_hash(prologue);
-
-        if let Some(preshared_key) = optional_preshared_key {
-            symmetricstate.mix_preshared_key(&preshared_key);
-        }
 
         let dh_len = s.pub_len();
         if initiator {
