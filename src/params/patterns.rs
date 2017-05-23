@@ -107,16 +107,13 @@ impl FromStr for HandshakeChoice {
         let (pattern, remainder);
         if s.len() > 1 {
             if let Ok(p) = (&s[..2]).parse::<HandshakePattern>() {
-                println!("2-character handshake detected");
                 pattern = p;
                 remainder = &s[2..];
             } else {
-                println!("1-character handshake detected");
                 pattern = (&s[..1]).parse::<HandshakePattern>()?;
                 remainder = &s[1..];
             };
         } else {
-            println!("1-character handshake detected");
             pattern = (&s[..1]).parse::<HandshakePattern>()?;
             remainder = &s[1..];
         }

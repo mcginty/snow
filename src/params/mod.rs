@@ -178,6 +178,13 @@ mod tests {
 
     #[test]
     fn test_multi_psk_mod() {
-        let _: NoiseParams = "Noise_XXpsk0+psk1+psk2_25519_AESGCM_SHA256".parse().unwrap();
+        use self::HandshakeModifier::*;
+
+        let p: NoiseParams = "Noise_XXpsk0+psk1+psk2_25519_AESGCM_SHA256".parse().unwrap();
+        let mods = p.handshake.modifiers.list;
+        match (mods[0], mods[1], mods[2]) {
+            (Psk(0), Psk(1), Psk(2)) => {},
+            _ => panic!("modifiers weren't as expected! actual: {:?}", mods)
+        }
     }
 }
