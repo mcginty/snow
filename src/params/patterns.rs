@@ -1,10 +1,27 @@
 use std::str::FromStr;
+use arrayvec::ArrayVec;
+
+#[macro_export]
+macro_rules! message_vec {
+    ($($item:expr),*) => ({
+        let tokies: &[&[Token]] = &[$($item),*];
+        let mut vec = ArrayVec::<[ArrayVec<[Token; 10]>; 10]>::new();
+        for i in tokies {
+            let mut inner = ArrayVec::new();
+            for j in *i {
+                inner.push(*j);
+            }
+            vec.push(inner);
+        }
+        vec
+    });
+}
 
 /// The tokens which describe message patterns.
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[derive(Copy, Clone, Debug)]
-pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss }
+pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk }
 
 // TODO make the HandshakePattern name more consistent with the *Choice enums
 /// One of the patterns as defined in the
@@ -173,19 +190,22 @@ impl HandshakePattern {
     }
 }
 
+type PremessagePatterns = &'static [Token];
+pub type MessagePatterns = ArrayVec<[ArrayVec<[Token; 10]>; 10]>;
+
 /// The defined token patterns for a given handshake.
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 pub struct HandshakeTokens {
-    pub premsg_pattern_i: &'static [Token],
-    pub premsg_pattern_r: &'static [Token],
-    pub msg_patterns: &'static [&'static [Token]],
+    pub premsg_pattern_i: PremessagePatterns,
+    pub premsg_pattern_r: PremessagePatterns,
+    pub msg_patterns: MessagePatterns,
 }
 
 use self::Token::*;
 use self::HandshakePattern::*;
 
-type Patterns = (&'static [Token], &'static [Token], &'static [&'static [Token]]);
+type Patterns = (PremessagePatterns, PremessagePatterns, MessagePatterns);
 
 impl From<HandshakePattern> for HandshakeTokens {
     fn from(handshake_pattern: HandshakePattern) -> Self {
@@ -193,77 +213,77 @@ impl From<HandshakePattern> for HandshakeTokens {
             N  => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                static_slice![&'static [Token]: &[E, Dhes]]
+                message_vec![&[E, Dhes]]
             ),
             K  => (
                 static_slice![Token: S],
                 static_slice![Token: S],
-                static_slice![&'static [Token]: &[E, Dhes, Dhss]]
+                message_vec![&[E, Dhes, Dhss]]
             ),
             X  => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                static_slice![&'static [Token]: &[E, Dhes, S, Dhss]]
+                message_vec![&[E, Dhes, S, Dhss]]
             ),
             NN => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                static_slice![&'static [Token]: &[E], &[E, Dhee]]
+                message_vec![&[E], &[E, Dhee]]
             ),
             NK => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                static_slice![&'static [Token]: &[E, Dhes], &[E, Dhee]]
+                message_vec![&[E, Dhes], &[E, Dhee]]
             ),
             NX => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                static_slice![&'static [Token]: &[E], &[E, Dhee, S, Dhse]]
+                message_vec![&[E], &[E, Dhee, S, Dhse]]
             ),
             XN => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                static_slice![&'static [Token]: &[E], &[E, Dhee], &[S, Dhse]]
+                message_vec![&[E], &[E, Dhee], &[S, Dhse]]
             ),
             XK => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                static_slice![&'static [Token]: &[E, Dhes], &[E, Dhee], &[S, Dhse]]
+                message_vec![&[E, Dhes], &[E, Dhee], &[S, Dhse]]
             ),
             XX => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                static_slice![&'static [Token]: &[E], &[E, Dhee, S, Dhse], &[S, Dhse]],
+                message_vec![&[E], &[E, Dhee, S, Dhse], &[S, Dhse]],
             ),
             KN => (
                 static_slice![Token: S],
                 static_slice![Token: ],
-                static_slice![&'static [Token]: &[E], &[E, Dhee, Dhes]],
+                message_vec![&[E], &[E, Dhee, Dhes]],
             ),
             KK => (
                 static_slice![Token: S],
                 static_slice![Token: S],
-                static_slice![&'static [Token]: &[E, Dhes, Dhss], &[E, Dhee, Dhes]],
+                message_vec![&[E, Dhes, Dhss], &[E, Dhee, Dhes]],
             ),
             KX => (
                 static_slice![Token: S],
                 static_slice![Token: ],
-                static_slice![&'static [Token]: &[E], &[E, Dhee, Dhes, S, Dhse]],
+                message_vec![&[E], &[E, Dhee, Dhes, S, Dhse]],
             ),
             IN => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                static_slice![&'static [Token]: &[E, S], &[E, Dhee, Dhes]],
+                message_vec![&[E, S], &[E, Dhee, Dhes]],
             ),
             IK => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                static_slice![&'static [Token]: &[E, Dhes, S, Dhss], &[E, Dhee, Dhes]],
+                message_vec![&[E, Dhes, S, Dhss], &[E, Dhee, Dhes]],
             ),
             IX => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                static_slice![&'static [Token]: &[E, S], &[E, Dhee, Dhes, S, Dhse]],
+                message_vec![&[E, S], &[E, Dhee, Dhes, S, Dhse]],
             ),
         };
 

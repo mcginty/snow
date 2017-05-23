@@ -1,47 +1,13 @@
-extern crate arrayvec;
-
-use self::arrayvec::{ArrayVec, ArrayString};
+use arrayvec::ArrayString;
 use constants::*;
 use utils::*;
 use types::*;
 use cipherstate::*;
 use symmetricstate::*;
 use params::*;
-use std::ops::{Deref, DerefMut};
 use NoiseError;
 use NoiseError::*;
 
-
-// TODO: This code is not so beautiful.
-type MessagePatternInner = ArrayVec<[ArrayVec<[Token; 10]>; 10]>;
-struct MessagePatterns(MessagePatternInner);
-impl Deref for MessagePatterns {
-    type Target = MessagePatternInner;
-
-    fn deref(&self) -> &MessagePatternInner {
-        &self.0
-    }
-}
-
-impl DerefMut for MessagePatterns {
-    fn deref_mut(&mut self) -> &mut MessagePatternInner {
-        &mut self.0
-    }
-}
-
-impl From<&'static [&'static [Token]]> for MessagePatterns {
-    fn from(arrays: &'static [&'static [Token]]) -> Self {
-        let mut patterns = ArrayVec::new();
-        for i in arrays {
-            let mut inner = ArrayVec::new();
-            for j in *i {
-                inner.push(*j);
-            }
-            patterns.push(inner);
-        }
-        MessagePatterns(patterns)
-    }
-}
 
 /// A state machine encompassing the handshake phase of a Noise session.
 ///
@@ -225,6 +191,9 @@ impl HandshakeState {
                         &self.s.pubkey(),
                         &mut message[byte_index..]);
                 },
+                Token::Psk => {
+                    unimplemented!();
+                },
                 Token::Dhee => self.dh(false, false)?,
                 Token::Dhes => self.dh(false, true )?,
                 Token::Dhse => self.dh(true,  false)?,
@@ -286,6 +255,9 @@ impl HandshakeState {
                         };
                         self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| NoiseError::DecryptError)?;
                         self.rs.enable();
+                    },
+                    Token::Psk => {
+                        unimplemented!();
                     },
                     Token::Dhee => self.dh(false, false)?,
                     Token::Dhes => self.dh(true, false)?,

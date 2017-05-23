@@ -30,6 +30,7 @@
 
 #![feature(try_from)]
 #[macro_use] extern crate static_slice;
+extern crate arrayvec;
 mod error;
 mod constants;
 mod utils;
