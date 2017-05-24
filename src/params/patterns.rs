@@ -22,7 +22,7 @@ macro_rules! message_vec {
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk }
+pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
 
 // TODO make the HandshakePattern name more consistent with the *Choice enums
 /// One of the patterns as defined in the
@@ -116,6 +116,17 @@ impl FromStr for HandshakeModifierList {
 pub struct HandshakeChoice {
     pub pattern: HandshakePattern,
     pub modifiers: HandshakeModifierList,
+}
+
+impl HandshakeChoice {
+    pub fn is_psk(&self) -> bool {
+        for modifier in &self.modifiers.list {
+            if let &HandshakeModifier::Psk(_) = modifier {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 impl FromStr for HandshakeChoice {
@@ -293,10 +304,10 @@ impl TryFrom<HandshakeChoice> for HandshakeTokens {
             match modifier {
                 HandshakeModifier::Psk(n) => {
                     match n {
-                        0 => { patterns.2[0].insert(0, Token::Psk); },
+                        0 => { patterns.2[0].insert(0, Token::Psk(n)); },
                         _ => {
                             let i = (n as usize) - 1;
-                            if let Some(_) = patterns.2[i].push(Token::Psk) {
+                            if let Some(_) = patterns.2[i].push(Token::Psk(n)) {
                                 return Err("token incompatible with selected handshake");
                             }
                         }

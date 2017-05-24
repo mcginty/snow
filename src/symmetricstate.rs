@@ -9,9 +9,8 @@ pub trait SymmetricStateType {
     fn initialize(&mut self, handshake_name: &str);
     fn mix_key(&mut self, data: &[u8]);
     fn mix_hash(&mut self, data: &[u8]);
-    fn mix_preshared_key(&mut self, psk: &[u8]);
+    fn mix_key_and_hash(&mut self, psk: &[u8]);
     fn has_key(&self) -> bool;
-    fn has_preshared_key(&self) -> bool;
     fn encrypt_and_mix_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize;
     fn decrypt_and_mix_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, ()>;
     fn split(&mut self, child1: &mut CipherState, child2: &mut CipherState);
@@ -23,7 +22,6 @@ pub struct SymmetricState {
     h : [u8; MAXHASHLEN],
     ck: [u8; MAXHASHLEN],
     has_key: bool,
-    has_preshared_key: bool,
 }
 
 impl SymmetricState {
@@ -35,7 +33,6 @@ impl SymmetricState {
             h: [0u8; MAXHASHLEN],
             ck : [0u8; MAXHASHLEN],
             has_key: false,
-            has_preshared_key: false,
         }
     }
 }
@@ -61,7 +58,6 @@ impl SymmetricStateType for SymmetricState {
         }
         copy_memory(&self.h, &mut self.ck);
         self.has_key = false;
-        self.has_preshared_key = false;
     }
 
     fn mix_key(&mut self, data: &[u8]) {
@@ -81,21 +77,16 @@ impl SymmetricStateType for SymmetricState {
         self.hasher.result(&mut self.h);
     }
 
-    fn mix_preshared_key(&mut self, psk: &[u8]) {
+    fn mix_key_and_hash(&mut self, data: &[u8]) {
         let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(&self.ck[..hash_len], psk, &mut hkdf_output.0, &mut hkdf_output.1);
+        self.hasher.hkdf(&self.ck[..hash_len], data, &mut hkdf_output.0, &mut hkdf_output.1);
         copy_memory(&hkdf_output.0, &mut self.ck);
         self.mix_hash(&hkdf_output.1[..hash_len]);
-        self.has_preshared_key = true;
     }
 
     fn has_key(&self) -> bool {
         self.has_key
-    }
-
-    fn has_preshared_key(&self) -> bool {
-        self.has_preshared_key
     }
 
     /// Encrypt a message and mixes in the hash of the output

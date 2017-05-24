@@ -27,6 +27,7 @@ pub struct HandshakeState {
     re: Toggle<[u8; MAXDHLEN]>,
     initiator: bool,
     handshake: HandshakeChoice,
+    psks: [Option<[u8; PSKLEN]>; 10],
     my_turn: bool,
     message_patterns: MessagePatterns,
 }
@@ -43,6 +44,7 @@ impl HandshakeState {
         re: Toggle<[u8; MAXDHLEN]>,
         initiator: bool,
         handshake: HandshakeChoice,
+        psks: [Option<[u8; PSKLEN]>; 10],
         prologue: &[u8],
         cipherstates: CipherStates) -> Result<HandshakeState, NoiseError> {
 
@@ -113,6 +115,7 @@ impl HandshakeState {
             re: re,
             initiator: initiator,
             handshake: handshake,
+            psks: psks,
             my_turn: initiator,
             message_patterns: tokens.msg_patterns.into(),
         })
@@ -176,7 +179,7 @@ impl HandshakeState {
                         copy_memory(pubkey, &mut message[byte_index..]);
                         byte_index += self.s.pub_len();
                         self.symmetricstate.mix_hash(&pubkey);
-                        if self.symmetricstate.has_preshared_key() {
+                        if self.handshake.is_psk() {
                             self.symmetricstate.mix_key(&pubkey);
                         }
                     }
@@ -193,8 +196,15 @@ impl HandshakeState {
                         &self.s.pubkey(),
                         &mut message[byte_index..]);
                 },
-                Token::Psk => {
-                    return Err(NoiseError::StateError("PSK unsupported"));
+                Token::Psk(n) => {
+                    match &self.psks[n as usize] {
+                        &Some(psk) => {
+                            self.symmetricstate.mix_key_and_hash(&psk);
+                        },
+                        &None => {
+                            return Err(NoiseError::StateError("PSK missing"));
+                        }
+                    }
                 },
                 Token::Dhee => self.dh(false, false)?,
                 Token::Dhes => self.dh(false, true )?,
@@ -240,7 +250,7 @@ impl HandshakeState {
                         self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
                         ptr = &ptr[dh_len..];
                         self.symmetricstate.mix_hash(&self.re[..dh_len]);
-                        if self.symmetricstate.has_preshared_key() {
+                        if self.handshake.is_psk() {
                             self.symmetricstate.mix_key(&self.re[..dh_len]);
                         }
                         self.re.enable();
@@ -258,8 +268,15 @@ impl HandshakeState {
                         self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| NoiseError::DecryptError)?;
                         self.rs.enable();
                     },
-                    Token::Psk => {
-                        return Err(NoiseError::StateError("PSK unsupported"));
+                    Token::Psk(n) => {
+                        match &self.psks[n as usize] {
+                            &Some(psk) => {
+                                self.symmetricstate.mix_key_and_hash(&psk);
+                            },
+                            &None => {
+                                return Err(NoiseError::StateError("PSK missing"));
+                            }
+                        }
                     },
                     Token::Dhee => self.dh(false, false)?,
                     Token::Dhes => self.dh(true, false)?,

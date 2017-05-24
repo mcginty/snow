@@ -69,7 +69,7 @@ pub struct NoiseBuilder<'builder> {
     s:        Option<&'builder [u8]>,
     e_fixed:  Option<&'builder [u8]>,
     rs:       Option<&'builder [u8]>,
-    psk:      Option<&'builder [u8]>,
+    psks:     [Option<&'builder [u8]>; 10],
     plog:     Option<&'builder [u8]>,
 }
 
@@ -89,13 +89,13 @@ impl<'builder> NoiseBuilder<'builder> {
             e_fixed: None,
             rs: None,
             plog: None,
-            psk: None,
+            psks: [None; 10],
         }
     }
 
     /// Specify a PSK (only used with `NoisePSK` base parameter)
-    pub fn preshared_key(mut self, key: &'builder [u8]) -> Self {
-        self.psk = Some(key);
+    pub fn psk(mut self, location: u8, key: &'builder [u8]) -> Self {
+        self.psks[location as usize] = Some(key);
         self
     }
 
@@ -192,10 +192,23 @@ impl<'builder> NoiseBuilder<'builder> {
 
         let re = Toggle::off([0u8; MAXDHLEN]);
 
+        let mut psks = [None::<[u8; PSKLEN]>; 10];
+        for (i, psk) in self.psks.iter().enumerate() {
+            if let &Some(key) = psk {
+                if key.len() != PSKLEN {
+                    return Err(NoiseError::InputError("psk provided with incorrect length"));
+                }
+                let mut k = [0u8; PSKLEN];
+                k.copy_from_slice(key);
+                psks[i] = Some(k);
+            }
+        }
+
         let hs = HandshakeState::new(rng, handshake_cipherstate, hash,
                                      s, e, self.e_fixed.is_some(), rs, re,
                                      initiator,
                                      self.params.handshake,
+                                     psks,
                                      &self.plog.unwrap_or_else(|| &[0u8; 0]),
                                      cipherstates)?;
         Ok(hs.into())

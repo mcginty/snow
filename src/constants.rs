@@ -1,4 +1,5 @@
 
+pub const PSKLEN : usize = 32;
 pub const CIPHERKEYLEN : usize = 32;
 pub const TAGLEN : usize = 16;
 
