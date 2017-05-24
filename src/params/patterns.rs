@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::str::FromStr;
 use arrayvec::ArrayVec;
 
@@ -7,7 +8,7 @@ macro_rules! message_vec {
         let tokies: &[&[Token]] = &[$($item),*];
         let mut vec = ArrayVec::<[ArrayVec<[Token; 10]>; 10]>::new();
         for i in tokies {
-            let mut inner = ArrayVec::new();
+            let mut inner = ArrayVec::<[Token; 10]>::new();
             for j in *i {
                 inner.push(*j);
             }
@@ -20,7 +21,7 @@ macro_rules! message_vec {
 /// The tokens which describe message patterns.
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk }
 
 // TODO make the HandshakePattern name more consistent with the *Choice enums
@@ -79,7 +80,6 @@ impl FromStr for HandshakeModifier {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        println!("parsing modifier {}", s);
         if s.starts_with("psk") {
             Ok(HandshakeModifier::Psk((&s[3..]).parse().map_err(|_| "psk must have number parameter")?))
         } else if s == "fallback" {
@@ -129,7 +129,7 @@ impl FromStr for HandshakeChoice {
             } else {
                 pattern = (&s[..1]).parse::<HandshakePattern>()?;
                 remainder = &s[1..];
-            };
+            }
         } else {
             pattern = (&s[..1]).parse::<HandshakePattern>()?;
             remainder = &s[1..];
@@ -207,9 +207,11 @@ use self::HandshakePattern::*;
 
 type Patterns = (PremessagePatterns, PremessagePatterns, MessagePatterns);
 
-impl From<HandshakePattern> for HandshakeTokens {
-    fn from(handshake_pattern: HandshakePattern) -> Self {
-        let patterns: Patterns = match handshake_pattern {
+impl TryFrom<HandshakeChoice> for HandshakeTokens {
+    type Error = &'static str;
+
+    fn try_from(handshake: HandshakeChoice) -> Result<Self, Self::Error> {
+        let mut patterns: Patterns = match handshake.pattern {
             N  => (
                 static_slice![Token: ],
                 static_slice![Token: S],
@@ -287,11 +289,28 @@ impl From<HandshakePattern> for HandshakeTokens {
             ),
         };
 
-        HandshakeTokens {
+        for modifier in handshake.modifiers.list {
+            match modifier {
+                HandshakeModifier::Psk(n) => {
+                    match n {
+                        0 => { patterns.2[0].insert(0, Token::Psk); },
+                        _ => {
+                            let i = (n as usize) - 1;
+                            if let Some(_) = patterns.2[i].push(Token::Psk) {
+                                return Err("token incompatible with selected handshake");
+                            }
+                        }
+                    }
+                },
+                _ => {}
+            }
+        }
+
+        Ok(HandshakeTokens {
             premsg_pattern_i: patterns.0,
             premsg_pattern_r: patterns.1,
             msg_patterns: patterns.2,
-        }
+        })
     }
 }
 

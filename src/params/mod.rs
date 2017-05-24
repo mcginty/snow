@@ -1,6 +1,8 @@
 //! All structures related to Noise parameter definitions (cryptographic primitive choices, protocol
 //! patterns/names)
 
+#[allow(unused_imports)]
+use std::convert::TryFrom;
 use std::str::FromStr;
 mod patterns;
 
@@ -186,5 +188,30 @@ mod tests {
             (Psk(0), Psk(1), Psk(2)) => {},
             _ => panic!("modifiers weren't as expected! actual: {:?}", mods)
         }
+    }
+
+    #[test]
+    fn test_modified_psk_handshake() {
+        let p: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
+        let tokens = HandshakeTokens::try_from(p.handshake).unwrap();
+        assert!(tokens.msg_patterns[0][0] == Token::Psk);
+    }
+
+    #[test]
+    fn test_modified_multi_psk_handshake() {
+        let p: NoiseParams = "Noise_XXpsk0+psk2_25519_AESGCM_SHA256".parse().unwrap();
+
+        println!("parsed params, getting tokens");
+
+        let tokens = HandshakeTokens::try_from(p.handshake).unwrap();
+
+        println!("trying numbah 1");
+
+        assert!(tokens.msg_patterns[0][0] == Token::Psk);
+
+        println!("trying numbah 2");
+
+        let second = &tokens.msg_patterns[1];
+        assert!(second[second.len()-1] == Token::Psk);
     }
 }

@@ -195,7 +195,7 @@ impl<'builder> NoiseBuilder<'builder> {
         let hs = HandshakeState::new(rng, handshake_cipherstate, hash,
                                      s, e, self.e_fixed.is_some(), rs, re,
                                      initiator,
-                                     self.params.handshake.pattern,
+                                     self.params.handshake,
                                      &self.plog.unwrap_or_else(|| &[0u8; 0]),
                                      cipherstates)?;
         Ok(hs.into())

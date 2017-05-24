@@ -3,6 +3,7 @@ use constants::*;
 use utils::*;
 use types::*;
 use cipherstate::*;
+use std::convert::TryFrom;
 use symmetricstate::*;
 use params::*;
 use NoiseError;
@@ -25,7 +26,7 @@ pub struct HandshakeState {
     rs: Toggle<[u8; MAXDHLEN]>,
     re: Toggle<[u8; MAXDHLEN]>,
     initiator: bool,
-    handshake_pattern: HandshakePattern,
+    handshake: HandshakeChoice,
     my_turn: bool,
     message_patterns: MessagePatterns,
 }
@@ -41,7 +42,7 @@ impl HandshakeState {
         rs: Toggle<[u8; MAXDHLEN]>,
         re: Toggle<[u8; MAXDHLEN]>,
         initiator: bool,
-        handshake_pattern: HandshakePattern,
+        handshake: HandshakeChoice,
         prologue: &[u8],
         cipherstates: CipherStates) -> Result<HandshakeState, NoiseError> {
 
@@ -52,9 +53,10 @@ impl HandshakeState {
             return Err(PrereqError(format!("key lengths aren't right. my pub: {}, their: {}", s.pub_len(), rs.len())));
         }
 
+        // TODO support modifiers
         let mut handshake_name = ArrayString::<[u8; 128]>::from("Noise_").unwrap();
-        let tokens = HandshakeTokens::from(handshake_pattern);
-        handshake_name.push_str(handshake_pattern.as_str()).unwrap();
+        let tokens = HandshakeTokens::try_from(handshake.clone()).map_err(|e| NoiseError::InputError(e))?;
+        handshake_name.push_str(handshake.pattern.as_str()).unwrap();
         handshake_name.push('_').unwrap();
         handshake_name.push_str(s.name()).unwrap();
         handshake_name.push('_').unwrap();
@@ -110,7 +112,7 @@ impl HandshakeState {
             rs: rs, 
             re: re,
             initiator: initiator,
-            handshake_pattern: handshake_pattern,
+            handshake: handshake,
             my_turn: initiator,
             message_patterns: tokens.msg_patterns.into(),
         })
@@ -192,7 +194,7 @@ impl HandshakeState {
                         &mut message[byte_index..]);
                 },
                 Token::Psk => {
-                    unimplemented!();
+                    return Err(NoiseError::StateError("PSK unsupported"));
                 },
                 Token::Dhee => self.dh(false, false)?,
                 Token::Dhes => self.dh(false, true )?,
@@ -257,7 +259,7 @@ impl HandshakeState {
                         self.rs.enable();
                     },
                     Token::Psk => {
-                        unimplemented!();
+                        return Err(NoiseError::StateError("PSK unsupported"));
                     },
                     Token::Dhee => self.dh(false, false)?,
                     Token::Dhes => self.dh(true, false)?,
@@ -275,9 +277,9 @@ impl HandshakeState {
         Ok(payload_len)
     }
 
-    pub fn finish(self) -> Result<(CipherStates, HandshakePattern), NoiseError> {
+    pub fn finish(self) -> Result<(CipherStates, HandshakeChoice), NoiseError> {
         if self.is_finished() {
-            Ok((self.cipherstates, self.handshake_pattern))
+            Ok((self.cipherstates, self.handshake))
         } else {
             Err(StateError("handshake not yet completed"))
         }
