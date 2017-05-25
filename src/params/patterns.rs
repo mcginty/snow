@@ -127,6 +127,15 @@ impl HandshakeChoice {
         }
         false
     }
+
+    pub fn is_fallback(&self) -> bool {
+        for modifier in &self.modifiers.list {
+            if &HandshakeModifier::Fallback == modifier {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 impl FromStr for HandshakeChoice {

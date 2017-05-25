@@ -79,8 +79,8 @@ struct TestVector {
     dh: String,
     cipher: String,
     hash: String,
+    preshared_key: Option<HexBytes>,
     init_prologue: HexBytes,
-    init_psk: Option<HexBytes>,
     init_static: Option<HexBytes>,
     init_remote_static: Option<HexBytes>,
     init_ephemeral: Option<HexBytes>,
@@ -88,7 +88,6 @@ struct TestVector {
     resp_static: Option<HexBytes>,
     resp_remote_static: Option<HexBytes>,
     resp_ephemeral: Option<HexBytes>,
-    resp_psk: Option<HexBytes>,
     messages: Vec<TestMessage>,
 }
 
@@ -102,15 +101,16 @@ fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), NoiseEr
     let mut init_builder = NoiseBuilder::new(params.clone());
     let mut resp_builder = NoiseBuilder::new(params.clone());
 
-    match (params.base, &vector.init_psk, &vector.resp_psk) {
-        (BaseChoice::NoisePSK, &Some(ref init_psk), &Some(ref resp_psk)) => {
-            init_builder = init_builder.preshared_key(&*init_psk);
-            resp_builder = resp_builder.preshared_key(&*resp_psk);
-        },
-        (BaseChoice::NoisePSK, _, _) => {
-            panic!("NoisePSK case missing PSKs for init and/or resp");
-        },
-        _ => {}
+    if params.handshake.is_psk() {
+        match (params.handshake.modifiers.list[0], &vector.preshared_key) {
+            (HandshakeModifier::Psk(n), &Some(ref psk)) => {
+                init_builder = init_builder.psk(n, &*psk);
+                resp_builder = resp_builder.psk(n, &*psk);
+            },
+            _ => {
+                panic!("PSK handshake using weird modifiers I don't want to deal with")
+            }
+        }
     }
 
     if let Some(ref init_s) = vector.init_static {
@@ -227,3 +227,4 @@ fn test_vectors_noise_c_basic() {
 fn test_vectors_cacophony() {
     test_vectors_from_json(include_str!("vectors/cacophony.txt"));
 }
+
