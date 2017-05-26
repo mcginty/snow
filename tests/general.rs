@@ -34,6 +34,14 @@ impl Random for RandomInc {
     }
 }
 
+fn get_inc_key(start: u8) -> [u8; 32] {
+    let mut k = [0u8; 32];
+    for i in 0..32 {
+        k[i] = start + i as u8;
+    }
+    k
+}
+
 #[allow(unused)]
 struct TestResolver {
     next_byte: u8,
@@ -140,14 +148,14 @@ fn test_sanity_session() {
 }
 
 #[test]
-fn test_n_psk0_expected_value() {
+fn test_Npsk0_expected_value() {
     let params: NoiseParams = "Noise_Npsk0_25519_AESGCM_SHA256".parse().unwrap();
     let mut static_r: Dh25519 = Default::default();
-    static_r.set(&[0u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]);
+    static_r.set(&get_inc_key(0));
     let mut h_i = NoiseBuilder::new(params)
         .remote_public_key(static_r.pubkey())
-        .psk(0, &[1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 , 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32])
-        .fixed_ephemeral_key_for_testing_only(&[32u8, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63])
+        .psk(0, &get_inc_key(1))
+        .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator().unwrap();
 
     let mut buf = [0u8; 200];
@@ -162,7 +170,78 @@ fn test_n_psk0_expected_value() {
 }
 
 #[test]
-fn test_psk0_sanity_session() {
+fn test_Xpsk0_expected_value() {
+    let params: NoiseParams = "Noise_Xpsk0_25519_ChaChaPoly_SHA256".parse().unwrap();
+    let mut static_i: Dh25519 = Default::default();
+    let mut static_r: Dh25519 = Default::default();
+    static_i.set(&get_inc_key(0));
+    static_r.set(&get_inc_key(32));
+    let mut h_i = NoiseBuilder::new(params)
+        .local_private_key(static_i.privkey())
+        .remote_public_key(static_r.pubkey())
+        .psk(0, &get_inc_key(1))
+        .fixed_ephemeral_key_for_testing_only(&get_inc_key(64))
+        .build_initiator().unwrap();
+
+    let mut buf = [0u8; 200];
+    let len = h_i.write_message(&[], &mut buf).unwrap();
+    assert!(len == 96);
+
+    let expected = Vec::<u8>::from_hex("79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad51eef529db0dd9127d4aa59a9183e118337d75a4e55e7e00f85c3d20ede536dd0112eec8c3b2a514018a90ab685b027dd24aa0c70b0c0f00524cc23785028b9").unwrap();
+
+    println!("\nreality:  {}", (&buf[..len]).to_hex());
+    println!("expected: {}", (&expected).to_hex());
+    assert!(&buf[..len] == &expected[..]);
+}
+
+#[test]
+fn test_XXpsk0_expected_value() {
+    let params: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
+    let mut static_i: Dh25519 = Default::default();
+    let mut static_r: Dh25519 = Default::default();
+    static_i.set(&get_inc_key(0));
+    static_r.set(&get_inc_key(1));
+    let mut h_i = NoiseBuilder::new(params.clone())
+        .local_private_key(static_i.privkey())
+        .remote_public_key(static_r.pubkey())
+        .prologue(&[1u8, 2, 3])
+        .psk(0, &get_inc_key(4))
+        .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
+        .build_initiator().unwrap();
+    let mut h_r = NoiseBuilder::new(params)
+        .local_private_key(static_r.privkey())
+        .remote_public_key(static_i.pubkey())
+        .prologue(&[1u8, 2, 3])
+        .psk(0, &get_inc_key(4))
+        .fixed_ephemeral_key_for_testing_only(&get_inc_key(33))
+        .build_responder().unwrap();
+
+    let mut buf = [0u8; 1024];
+    let mut buf2 = [0u8; 1024];
+
+    let len = h_i.write_message("abc".as_bytes(), &mut buf).unwrap();
+    assert!(len == 51);
+    let len = h_r.read_message(&buf[..len], &mut buf2).unwrap();
+    assert!(&buf2[..len] == "abc".as_bytes());
+
+    let len = h_r.write_message("defg".as_bytes(), &mut buf).unwrap();
+    assert!(len == 100);
+    let len = h_i.read_message(&buf[..len], &mut buf2).unwrap();
+    assert!(&buf2[..len] == "defg".as_bytes());
+
+    let len = h_i.write_message(&[], &mut buf).unwrap();
+    assert!(len == 64);
+    let len = h_r.read_message(&buf[..len], &mut buf2).unwrap();
+    assert!(len == 0);
+
+    let expected = Vec::<u8>::from_hex("1b6d7cc3b13bd02217f9cdb98c50870db96281193dca4df570bf6230a603b686fd90d2914c7e797d9276ef8fb34b0c9d87faa048ce4bc7e7af21b6a450352275").unwrap();
+    println!("\nreality:  {}", (&buf[..64]).to_hex());
+    println!("expected: {}", (&expected).to_hex());
+    assert!(&buf[..64] == &expected[..]);
+}
+
+#[test]
+fn test_NNpsk0_sanity_session() {
     let params: NoiseParams = "Noise_NNpsk0_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = NoiseBuilder::new(params.clone())
         .psk(0, &[32u8; 32])
@@ -190,7 +269,7 @@ fn test_psk0_sanity_session() {
 }
 
 #[test]
-fn test_XX_psk1_sanity_session() {
+fn test_XXpsk1_sanity_session() {
     let params: NoiseParams = "Noise_XXpsk1_25519_AESGCM_SHA256".parse().unwrap();
     let b_i = NoiseBuilder::new(params.clone());
     let b_r = NoiseBuilder::new(params);
