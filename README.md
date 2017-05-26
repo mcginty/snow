@@ -17,9 +17,9 @@ See the documentation at [https://docs.rs/snow](https://docs.rs/snow).
 
 Snow is currently tracking the Noise Protocol rev32 specification, but support for the new changes from rev31 is ongoing:
 
-- [ ] `pskN` modifier
+- [x] Rekey()
+- [x] `pskN` modifier
 - [ ] `fallback` modifier
-- [x] Rekey support
 
 ## Crypto
 Cryptographic providers are swappable through `NoiseBuilder::with_provider()`, but by default it chooses select, artisanal
@@ -32,16 +32,16 @@ See `examples/simple.rs` for a more complete TCP client/server example.
 let noise = NoiseBuilder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse().unwrap())
                          .build_initiator()
                          .unwrap();
-
+ 
 let mut buf = [0u8; 65535];
-
+ 
 // write first handshake message
 noise.write_message(&[0u8; 0], &mut buf).unwrap();
-
+ 
 // receive response message
 let incoming = receive_message_from_the_mysterious_ether();
 noise.read_message(&incoming, &mut buf).unwrap();
-
+ 
 // complete handshake, and transition the state machine into transport mode
 let noise = noise.into_transport_mode();
 ```
