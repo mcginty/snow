@@ -2,7 +2,6 @@
 
 extern crate test;
 extern crate snow;
-extern crate rustc_serialize;
 
 use snow::*;
 use snow::params::*;
@@ -31,8 +30,8 @@ fn bench_xx_handshake(b: &mut Bencher) {
 
     b.bytes = MSG_SIZE as u64;
     b.iter(move || {
-        let pattern = "Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap();
-        let mut h_i = NoiseBuilder::new(pattern)
+        let pattern: NoiseParams = "Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap();
+        let mut h_i = NoiseBuilder::new(pattern.clone())
             .local_private_key(static_i.privkey())
             .build_initiator().unwrap();
         let mut h_r = NoiseBuilder::new(pattern)
@@ -182,7 +181,7 @@ fn bench_read_write_throughput_chachapoly_blake2s(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_new_builder_from_string_with_key(b: &mut Bencher) {
+fn bench_new_builder_with_key(b: &mut Bencher) {
     let static_i:Dh25519 = Default::default();
     let privkey = static_i.privkey();
     b.iter(move || {
@@ -193,38 +192,9 @@ fn bench_new_builder_from_string_with_key(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_new_builder_from_string_skeleton(b: &mut Bencher) {
+fn bench_new_builder_skeleton(b: &mut Bencher) {
     b.iter(move || {
         NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
-            .build_initiator().unwrap();
-    });
-}
-
-#[bench]
-fn bench_new_builder_from_params_skeleton(b: &mut Bencher) {
-    b.iter(move || {
-        let init = NoiseParams::new(BaseChoice::Noise,
-                                    HandshakePattern::NN,
-                                    DHChoice::Curve25519,
-                                    CipherChoice::ChaChaPoly,
-                                    HashChoice::SHA256);
-        NoiseBuilder::new(init)
-            .build_initiator().unwrap();
-    });
-}
-
-#[bench]
-fn bench_new_builder_from_params_with_key(b: &mut Bencher) {
-    let static_i:Dh25519 = Default::default();
-    let privkey = static_i.privkey();
-    b.iter(move || {
-        let init = NoiseParams::new(BaseChoice::Noise,
-                                    HandshakePattern::NN,
-                                    DHChoice::Curve25519,
-                                    CipherChoice::ChaChaPoly,
-                                    HashChoice::SHA256);
-        NoiseBuilder::new(init)
-            .local_private_key(privkey)
             .build_initiator().unwrap();
     });
 }
