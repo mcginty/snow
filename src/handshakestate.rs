@@ -1,4 +1,3 @@
-use arrayvec::ArrayString;
 use constants::*;
 use utils::*;
 use types::*;
@@ -26,7 +25,7 @@ pub struct HandshakeState {
     rs: Toggle<[u8; MAXDHLEN]>,
     re: Toggle<[u8; MAXDHLEN]>,
     initiator: bool,
-    handshake: HandshakeChoice,
+    params: NoiseParams,
     psks: [Option<[u8; PSKLEN]>; 10],
     my_turn: bool,
     message_patterns: MessagePatterns,
@@ -43,7 +42,7 @@ impl HandshakeState {
         rs: Toggle<[u8; MAXDHLEN]>,
         re: Toggle<[u8; MAXDHLEN]>,
         initiator: bool,
-        handshake: HandshakeChoice,
+        params: NoiseParams,
         psks: [Option<[u8; PSKLEN]>; 10],
         prologue: &[u8],
         cipherstates: CipherStates) -> Result<HandshakeState, NoiseError> {
@@ -56,19 +55,11 @@ impl HandshakeState {
         }
 
         // TODO support modifiers
-        let mut handshake_name = ArrayString::<[u8; 128]>::from("Noise_").unwrap();
-        let tokens = HandshakeTokens::try_from(handshake.clone()).map_err(|e| NoiseError::InputError(e))?;
-        handshake_name.push_str(handshake.pattern.as_str()).unwrap();
-        handshake_name.push('_').unwrap();
-        handshake_name.push_str(s.name()).unwrap();
-        handshake_name.push('_').unwrap();
-        handshake_name.push_str(cipherstate.name()).unwrap();
-        handshake_name.push('_').unwrap();
-        handshake_name.push_str(hasher.name()).unwrap();
+        let tokens = HandshakeTokens::try_from(params.handshake.clone()).map_err(|e| NoiseError::InputError(e))?;
 
         let mut symmetricstate = SymmetricState::new(cipherstate, hasher);
 
-        symmetricstate.initialize(&handshake_name[..]);
+        symmetricstate.initialize(&params.name);
         symmetricstate.mix_hash(prologue);
 
         let dh_len = s.pub_len();
@@ -114,7 +105,7 @@ impl HandshakeState {
             rs: rs, 
             re: re,
             initiator: initiator,
-            handshake: handshake,
+            params: params,
             psks: psks,
             my_turn: initiator,
             message_patterns: tokens.msg_patterns.into(),
@@ -179,7 +170,7 @@ impl HandshakeState {
                         copy_memory(pubkey, &mut message[byte_index..]);
                         byte_index += self.s.pub_len();
                         self.symmetricstate.mix_hash(&pubkey);
-                        if self.handshake.is_psk() {
+                        if self.params.handshake.is_psk() {
                             self.symmetricstate.mix_key(&pubkey);
                         }
                     }
@@ -250,7 +241,7 @@ impl HandshakeState {
                         self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
                         ptr = &ptr[dh_len..];
                         self.symmetricstate.mix_hash(&self.re[..dh_len]);
-                        if self.handshake.is_psk() {
+                        if self.params.handshake.is_psk() {
                             self.symmetricstate.mix_key(&self.re[..dh_len]);
                         }
                         self.re.enable();
@@ -296,7 +287,7 @@ impl HandshakeState {
 
     pub fn finish(self) -> Result<(CipherStates, HandshakeChoice), NoiseError> {
         if self.is_finished() {
-            Ok((self.cipherstates, self.handshake))
+            Ok((self.cipherstates, self.params.handshake))
         } else {
             Err(StateError("handshake not yet completed"))
         }

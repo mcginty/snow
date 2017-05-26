@@ -65,14 +65,26 @@ pub trait Hash {
         self.result(out);
     }
 
-    fn hkdf(&mut self, chaining_key: &[u8], input_key_material: &[u8], out1: &mut [u8], out2: & mut[u8]) {
+    fn hkdf(&mut self, chaining_key: &[u8], input_key_material: &[u8], outputs: usize, out1: &mut [u8], out2: &mut [u8], out3: &mut [u8]) {
         let hash_len = self.hash_len();
         let mut temp_key = [0u8; MAXHASHLEN];
-        let mut in2 = [0u8; MAXHASHLEN+1];
         self.hmac(chaining_key, input_key_material, &mut temp_key);
         self.hmac(&temp_key, &[1u8], out1);
+        if outputs == 1 {
+            return;
+        }
+
+        let mut in2 = [0u8; MAXHASHLEN+1];
         copy_memory(&out1[0..hash_len], &mut in2);
         in2[hash_len] = 2;
         self.hmac(&temp_key, &in2[..hash_len+1], out2);
+        if outputs == 2 {
+            return;
+        }
+
+        let mut in3 = [0u8; MAXHASHLEN+1];
+        copy_memory(&out2[0..hash_len], &mut in3);
+        in3[hash_len] = 3;
+        self.hmac(&temp_key, &in3[..hash_len+1], out3);
     }
 }

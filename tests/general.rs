@@ -2,6 +2,7 @@
 extern crate hex;
 extern crate snow;
 
+use hex::{FromHex, ToHex};
 use snow::*;
 use snow::params::*;
 use snow::types::*;
@@ -30,6 +31,43 @@ impl Random for RandomInc {
                 self.next_byte += 1;
             }
         }
+    }
+}
+
+#[allow(unused)]
+struct TestResolver {
+    next_byte: u8,
+    parent: DefaultResolver,
+}
+
+#[allow(unused)]
+impl TestResolver {
+    pub fn new(next_byte: u8) -> Self {
+        TestResolver{ next_byte: next_byte, parent: DefaultResolver }
+    }
+
+    pub fn next_byte(&mut self, next_byte: u8) {
+        self.next_byte = next_byte;
+    }
+}
+
+impl CryptoResolver for TestResolver {
+    fn resolve_rng(&self) -> Option<Box<Random>> {
+        let mut rng = RandomInc::default();
+        rng.next_byte = self.next_byte;
+        Some(Box::new(rng))
+    }
+
+    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh>> {
+        self.parent.resolve_dh(choice)
+    }
+
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash>> {
+        self.parent.resolve_hash(choice)
+    }
+
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher>> {
+        self.parent.resolve_cipher(choice)
     }
 }
 
@@ -99,6 +137,28 @@ fn test_sanity_session() {
     let len = h_i.write_message("hack the planet".as_bytes(), &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
     assert!(&buffer_out[..len] == "hack the planet".as_bytes());
+}
+
+#[test]
+fn test_n_psk0_expected_value() {
+    let params: NoiseParams = "Noise_Npsk0_25519_AESGCM_SHA256".parse().unwrap();
+    let mut static_r: Dh25519 = Default::default();
+    static_r.set(&[0u8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]);
+    let mut h_i = NoiseBuilder::new(params)
+        .remote_public_key(static_r.pubkey())
+        .psk(0, &[1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 , 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32])
+        .fixed_ephemeral_key_for_testing_only(&[32u8, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63])
+        .build_initiator().unwrap();
+
+    let mut buf = [0u8; 200];
+    let len = h_i.write_message(&[], &mut buf).unwrap();
+    assert!(len == 48);
+
+    let expected = Vec::<u8>::from_hex("358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662542044ae563929068930dcf04674526cb9").unwrap();
+
+    println!("\nreality:  {}", (&buf[..len]).to_hex());
+    println!("expected: {}", (&expected).to_hex());
+    assert!(&buf[..len] == &expected[..]);
 }
 
 #[test]

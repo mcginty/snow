@@ -46,5 +46,6 @@ pub mod types;
 pub mod wrappers;
 
 pub use error::NoiseError;
+pub use noise::{CryptoResolver, DefaultResolver};
 pub use noise::NoiseBuilder;
 pub use session::Session;

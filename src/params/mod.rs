@@ -103,6 +103,7 @@ impl FromStr for HashChoice {
 /// ```
 #[derive(PartialEq, Clone, Debug)]
 pub struct NoiseParams {
+    pub name: String,
     pub base: BaseChoice,
     pub handshake: HandshakeChoice,
     pub dh: DHChoice,
@@ -113,19 +114,14 @@ pub struct NoiseParams {
 impl NoiseParams {
 
     /// Construct a new NoiseParams via specifying enums directly.
-    pub fn new(base: BaseChoice,
+    pub fn new(name: String,
+               base: BaseChoice,
                handshake: HandshakeChoice,
                dh: DHChoice,
                cipher: CipherChoice,
                hash: HashChoice) -> Self
     {
-        NoiseParams {
-            base: base,
-            handshake: handshake,
-            dh: dh,
-            cipher: cipher,
-            hash: hash,
-        }
+        NoiseParams { name, base, handshake, dh, cipher, hash }
     }
 }
 
@@ -134,7 +130,8 @@ impl FromStr for NoiseParams {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split('_');
         static TOO_FEW: &'static str = "too few parameters";
-        Ok(NoiseParams::new(split.next().ok_or(TOO_FEW)?.parse()?,
+        Ok(NoiseParams::new(s.to_owned(),
+                            split.next().ok_or(TOO_FEW)?.parse()?,
                             split.next().ok_or(TOO_FEW)?.parse()?,
                             split.next().ok_or(TOO_FEW)?.parse()?,
                             split.next().ok_or(TOO_FEW)?.parse()?,
@@ -204,18 +201,12 @@ mod tests {
     fn test_modified_multi_psk_handshake() {
         let p: NoiseParams = "Noise_XXpsk0+psk2_25519_AESGCM_SHA256".parse().unwrap();
 
-        println!("parsed params, getting tokens");
-
         let tokens = HandshakeTokens::try_from(p.handshake).unwrap();
-
-        println!("trying numbah 1");
 
         match tokens.msg_patterns[0][0] {
             Token::Psk(_) => {},
             _ => panic!("missing token!")
         }
-
-        println!("trying numbah 2");
 
         let second = &tokens.msg_patterns[1];
         match second[second.len()-1] {
