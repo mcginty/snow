@@ -25,6 +25,12 @@ Snow is currently tracking and working on fully implementing the **revision 32**
 Cryptographic providers are swappable through `NoiseBuilder::with_provider()`, but by default it chooses select, artisanal
 pure-Rust implementations (see `Cargo.toml` for a quick overview).
 
+### Acceleration
+
+If you enable the `ring-accelerated` feature, Snow will default to choosing `ring`'s *much* faster crypto implementations when supported.
+
+If you enable the `ring-resolver` feature, Snow will include a ring_wrapper module as well as a `RingAcceleratedResolver` available to be used with `NoiseBuilder::with_resolver()`.
+
 ## What's it look like?
 See `examples/simple.rs` for a more complete TCP client/server example.
 
