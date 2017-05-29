@@ -7,7 +7,7 @@ use cipherstate::*;
 use session::*;
 use utils::*;
 use params::*;
-use error::NoiseError;
+use error::{ErrorKind, Result, InitStage, Prerequisite};
 
 /// An object that resolves the providers of Noise crypto choices
 pub trait CryptoResolver {
@@ -17,6 +17,7 @@ pub trait CryptoResolver {
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher>>;
 }
 
+/// The default pure-rust crypto implementation resolver.
 pub struct DefaultResolver;
 impl CryptoResolver for DefaultResolver {
     fn resolve_rng(&self) -> Option<Box<Random>> {
@@ -126,11 +127,11 @@ impl<'builder> NoiseBuilder<'builder> {
     // TODO this is inefficient as it computes the public key then throws it away
     // TODO also inefficient because it creates a new RNG and DH instance just for this.
     /// Generate a new private key. It's up to the user of this library how to store this.
-    pub fn generate_private_key(&self) -> Result<Vec<u8>, NoiseError> {
+    pub fn generate_private_key(&self) -> Result<Vec<u8>> {
         let mut rng = self.resolver.resolve_rng()
-            .ok_or(NoiseError::InitError("no suitable RNG"))?;
+            .ok_or(ErrorKind::Init(InitStage::GetRngImpl))?;
         let mut dh = self.resolver.resolve_dh(&self.params.dh)
-            .ok_or(NoiseError::InitError("no suitable DH implementation"))?;
+            .ok_or(ErrorKind::Init(InitStage::GetDhImpl))?;
         let mut private = vec![0u8; dh.priv_len()];
         dh.generate(&mut *rng);
         private[..dh.priv_len()].copy_from_slice(dh.privkey());
@@ -138,31 +139,31 @@ impl<'builder> NoiseBuilder<'builder> {
     }
 
     /// Build a NoiseSession for the side who will initiate the handshake (send the first message)
-    pub fn build_initiator(self) -> Result<Session, NoiseError> {
+    pub fn build_initiator(self) -> Result<Session> {
         self.build(true)
     }
 
     /// Build a NoiseSession for the side who will be responder (receive the first message)
-    pub fn build_responder(self) -> Result<Session, NoiseError> {
+    pub fn build_responder(self) -> Result<Session> {
         self.build(false)
     }
 
-    fn build(self, initiator: bool) -> Result<Session, NoiseError> {
+    fn build(self, initiator: bool) -> Result<Session> {
         if !self.s.is_some() && self.params.handshake.pattern.needs_local_static_key(initiator) {
-            return Err(NoiseError::InitError("local key needed for chosen handshake pattern"));
+            bail!(ErrorKind::Prereq(Prerequisite::LocalPrivateKey));
         }
 
         if !self.rs.is_some() && self.params.handshake.pattern.need_known_remote_pubkey(initiator) {
-            return Err(NoiseError::InitError("remote key needed for chosen handshake pattern"));
+            bail!(ErrorKind::Prereq(Prerequisite::RemotePublicKey));
         }
 
-        let rng = self.resolver.resolve_rng().ok_or(NoiseError::InitError("no suitable RNG"))?;
-        let cipher = self.resolver.resolve_cipher(&self.params.cipher).ok_or(NoiseError::InitError("no cipher implementation"))?;
-        let hash = self.resolver.resolve_hash(&self.params.hash).ok_or(NoiseError::InitError("no hash implementation"))?;
-        let mut s_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(NoiseError::InitError("no DH implementation"))?;
-        let mut e_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(NoiseError::InitError("no DH implementation"))?;
-        let cipher1 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(NoiseError::InitError("no cipher implementation"))?;
-        let cipher2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(NoiseError::InitError("no cipher implementation"))?;
+        let rng = self.resolver.resolve_rng().ok_or(ErrorKind::Init(InitStage::GetRngImpl))?;
+        let cipher = self.resolver.resolve_cipher(&self.params.cipher).ok_or(ErrorKind::Init(InitStage::GetCipherImpl))?;
+        let hash = self.resolver.resolve_hash(&self.params.hash).ok_or(ErrorKind::Init(InitStage::GetHashImpl))?;
+        let mut s_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(ErrorKind::Init(InitStage::GetDhImpl))?;
+        let mut e_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(ErrorKind::Init(InitStage::GetDhImpl))?;
+        let cipher1 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(ErrorKind::Init(InitStage::GetCipherImpl))?;
+        let cipher2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(ErrorKind::Init(InitStage::GetCipherImpl))?;
         let handshake_cipherstate = CipherState::new(cipher);
         let cipherstates = CipherStates::new(CipherState::new(cipher1), CipherState::new(cipher2))?;
 
@@ -196,7 +197,7 @@ impl<'builder> NoiseBuilder<'builder> {
         for (i, psk) in self.psks.iter().enumerate() {
             if let &Some(key) = psk {
                 if key.len() != PSKLEN {
-                    return Err(NoiseError::InputError("psk provided with incorrect length"));
+                    bail!(ErrorKind::Init(InitStage::ValidatePskLengths));
                 }
                 let mut k = [0u8; PSKLEN];
                 k.copy_from_slice(key);
@@ -237,7 +238,7 @@ mod tests {
 
     #[test]
     fn test_builder_bad_spec() {
-        let params: Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
+        let params: ::std::result::Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
 
         if let Ok(_) = params {
             panic!("NoiseParams should have failed");

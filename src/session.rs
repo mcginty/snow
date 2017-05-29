@@ -1,4 +1,4 @@
-use error::NoiseError;
+use error::{Error, ErrorKind, Result, StateProblem};
 use handshakestate::HandshakeState;
 use std::convert::{TryFrom, TryInto};
 use transportstate::*;
@@ -54,7 +54,7 @@ impl Session {
     ///
     /// Will result in `NoiseError::InputError` if the size of the output exceeds the max message
     /// length in the Noise Protocol (65535 bytes).
-    pub fn write_message(&mut self, payload: &[u8], output: &mut [u8]) -> Result<usize, NoiseError> {
+    pub fn write_message(&mut self, payload: &[u8], output: &mut [u8]) -> Result<usize> {
         match *self {
             Session::Handshake(ref mut state) => state.write_handshake_message(payload, output),
             Session::Transport(ref mut state) => state.write_transport_message(payload, output),
@@ -73,7 +73,7 @@ impl Session {
     /// # Panics
     ///
     /// This function will panic if there is no key, or if there is a nonce overflow.
-    pub fn read_message(&mut self, input: &[u8], payload: &mut [u8]) -> Result<usize, NoiseError> {
+    pub fn read_message(&mut self, input: &[u8], payload: &mut [u8]) -> Result<usize> {
         match *self {
             Session::Handshake(ref mut state) => state.read_handshake_message(input, payload),
             Session::Transport(ref mut state) => state.read_transport_message(input, payload),
@@ -85,9 +85,9 @@ impl Session {
     /// # Errors
     ///
     /// Will result in `NoiseError::StateError` if not in transport mode.
-    pub fn rekey(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) -> Result<(), NoiseError> {
+    pub fn rekey(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) -> Result<()> {
         match *self {
-            Session::Handshake(_) => Err(NoiseError::StateError("cannot rekey during handshake")),
+            Session::Handshake(_) => Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into()),
             Session::Transport(ref mut state) => {
                 if let Some(key) = initiator {
                     state.rekey_initiator(key);
@@ -121,11 +121,11 @@ impl Session {
     /// session = session.into_transport_mode()?;
     /// ```
     ///
-    pub fn into_transport_mode(self) -> Result<Self, NoiseError> {
+    pub fn into_transport_mode(self) -> Result<Self> {
         match self {
             Session::Handshake(state) => {
                 if !state.is_finished() {
-                    Err(NoiseError::StateError("handshake not yet finished"))
+                    Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into())
                 } else {
                     Ok(Session::Transport(state.try_into()?))
                 }
@@ -142,9 +142,9 @@ impl Into<Session> for HandshakeState {
 }
 
 impl TryFrom<HandshakeState> for TransportState {
-    type Error = NoiseError;
+    type Error = Error;
 
-    fn try_from(old: HandshakeState) -> Result<Self, Self::Error> {
+    fn try_from(old: HandshakeState) -> Result<Self> {
         let initiator = old.is_initiator();
         let (cipherstates, handshake) = old.finish()?;
         Ok(TransportState::new(cipherstates, handshake.pattern, initiator))

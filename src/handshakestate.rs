@@ -5,8 +5,7 @@ use cipherstate::*;
 use std::convert::TryFrom;
 use symmetricstate::*;
 use params::*;
-use NoiseError;
-use NoiseError::*;
+use error::{ErrorKind, Result, InitStage, StateProblem};
 
 
 /// A state machine encompassing the handshake phase of a Noise session.
@@ -45,17 +44,17 @@ impl HandshakeState {
         params: NoiseParams,
         psks: [Option<[u8; PSKLEN]>; 10],
         prologue: &[u8],
-        cipherstates: CipherStates) -> Result<HandshakeState, NoiseError> {
+        cipherstates: CipherStates) -> Result<HandshakeState> {
 
         if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
         || (s.is_on() && rs.is_on() && s.pub_len() >  rs.len())
         || (s.is_on() && re.is_on() && s.pub_len() >  re.len())
         {
-            return Err(PrereqError(format!("key lengths aren't right. my pub: {}, their: {}", s.pub_len(), rs.len())));
+            bail!(ErrorKind::Init(InitStage::ValidateKeyLengths));
         }
 
         // TODO support modifiers
-        let tokens = HandshakeTokens::try_from(params.handshake.clone()).map_err(|e| NoiseError::InputError(e))?;
+        let tokens = HandshakeTokens::try_from(params.handshake.clone())?;
 
         let mut symmetricstate = SymmetricState::new(cipherstate, hasher);
 
@@ -116,25 +115,24 @@ impl HandshakeState {
         self.s.pub_len()
     }
 
-    fn dh(&mut self, local_s: bool, remote_s: bool) -> Result<(), NoiseError> {
+    fn dh(&mut self, local_s: bool, remote_s: bool) -> Result<()> {
         if !((!local_s  || self.s.is_on())  &&
              ( local_s  || self.e.is_on())  &&
              (!remote_s || self.rs.is_on()) &&
              ( remote_s || self.re.is_on()))
         {
-            Err(NoiseError::StateError("missing key material"))
-        } else {
-            let dh_len = self.dh_len();
-            let mut dh_out = [0u8; MAXDHLEN];
-            match (local_s, remote_s) {
-                (true,  true ) => self.s.dh(&*self.rs, &mut dh_out),
-                (true,  false) => self.s.dh(&*self.re, &mut dh_out),
-                (false, true ) => self.e.dh(&*self.rs, &mut dh_out),
-                (false, false) => self.e.dh(&*self.re, &mut dh_out),
-            }
-            self.symmetricstate.mix_key(&dh_out[..dh_len]);
-            Ok(())
+            bail!(ErrorKind::State(StateProblem::MissingKeyMaterial));
         }
+        let dh_len = self.dh_len();
+        let mut dh_out = [0u8; MAXDHLEN];
+        match (local_s, remote_s) {
+            (true,  true ) => self.s.dh(&*self.rs, &mut dh_out),
+            (true,  false) => self.s.dh(&*self.re, &mut dh_out),
+            (false, true ) => self.e.dh(&*self.rs, &mut dh_out),
+            (false, false) => self.e.dh(&*self.re, &mut dh_out),
+        }
+        self.symmetricstate.mix_key(&dh_out[..dh_len]);
+        Ok(())
     }
 
     pub fn is_write_encrypted(&self) -> bool {
@@ -143,15 +141,15 @@ impl HandshakeState {
 
     pub fn write_handshake_message(&mut self,
                          payload: &[u8], 
-                         message: &mut [u8]) -> Result<usize, NoiseError> {
+                         message: &mut [u8]) -> Result<usize> {
         if !self.my_turn {
-            return Err(NoiseError::StateError("not ready to write messages yet."));
+            bail!(ErrorKind::State(StateProblem::NotTurnToWrite));
         }
 
         let next_tokens = if !self.message_patterns.is_empty() {
             self.message_patterns.remove(0).unwrap()
         } else {
-            return Err(NoiseError::StateError("no more message patterns"));
+            bail!(ErrorKind::State(StateProblem::HandshakeAlreadyFinished));
         };
         let last = self.message_patterns.is_empty();
 
@@ -160,7 +158,7 @@ impl HandshakeState {
             match *token {
                 Token::E => {
                     if byte_index + self.e.pub_len() > message.len() {
-                        return Err(NoiseError::InputError("message does not fit in output buffer"))
+                        bail!(ErrorKind::Input)
                     }
                     if !self.fixed_ephemeral {
                         self.e.generate(&mut *self.rng);
@@ -178,10 +176,10 @@ impl HandshakeState {
                 },
                 Token::S => {
                     if !self.s.is_on() {
-                        return Err(NoiseError::StateError("self.has_s is false"));
+                        bail!(ErrorKind::State(StateProblem::MissingKeyMaterial));
                     }
                     if byte_index + self.s.pub_len() > message.len() {
-                        return Err(NoiseError::InputError("message does not fit in output buffer"))
+                        bail!(ErrorKind::Input)
                     }
                     byte_index += self.symmetricstate.encrypt_and_mix_hash(
                         &self.s.pubkey(),
@@ -193,7 +191,7 @@ impl HandshakeState {
                             self.symmetricstate.mix_key_and_hash(&psk);
                         },
                         &None => {
-                            return Err(NoiseError::StateError("PSK missing"));
+                            bail!(ErrorKind::State(StateProblem::MissingPsk));
                         }
                     }
                 },
@@ -206,11 +204,11 @@ impl HandshakeState {
 
         self.my_turn = false;
         if byte_index + payload.len() + TAGLEN > message.len() {
-            return Err(NoiseError::InputError("message does not fit in output buffer"));
+            bail!(ErrorKind::Input);
         }
         byte_index += self.symmetricstate.encrypt_and_mix_hash(payload, &mut message[byte_index..]);
         if byte_index > MAXMSGLEN {
-            return Err(NoiseError::InputError("with tokens, message size exceeds maximum"));
+            bail!(ErrorKind::Input);
         }
         if last {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
@@ -220,9 +218,9 @@ impl HandshakeState {
 
     pub fn read_handshake_message(&mut self,
                         message: &[u8], 
-                        payload: &mut [u8]) -> Result<usize, NoiseError> {
+                        payload: &mut [u8]) -> Result<usize> {
         if message.len() > MAXMSGLEN {
-            return Err(NoiseError::InputError("msg greater than max message length"));
+            bail!(ErrorKind::Input);
         }
 
         let next_tokens = if self.message_patterns.len() > 0 {
@@ -256,7 +254,7 @@ impl HandshakeState {
                             ptr = &ptr[dh_len..];
                             temp
                         };
-                        self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| NoiseError::DecryptError)?;
+                        self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| ErrorKind::Decrypt)?;
                         self.rs.enable();
                     },
                     Token::Psk(n) => {
@@ -265,7 +263,7 @@ impl HandshakeState {
                                 self.symmetricstate.mix_key_and_hash(&psk);
                             },
                             &None => {
-                                return Err(NoiseError::StateError("PSK missing"));
+                                bail!(ErrorKind::State(StateProblem::MissingPsk));
                             }
                         }
                     },
@@ -276,7 +274,7 @@ impl HandshakeState {
                 }
             }
         }
-        self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| NoiseError::DecryptError)?;
+        self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| ErrorKind::Decrypt)?;
         self.my_turn = true;
         if last {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
@@ -285,11 +283,11 @@ impl HandshakeState {
         Ok(payload_len)
     }
 
-    pub fn finish(self) -> Result<(CipherStates, HandshakeChoice), NoiseError> {
+    pub fn finish(self) -> Result<(CipherStates, HandshakeChoice)> {
         if self.is_finished() {
             Ok((self.cipherstates, self.params.handshake))
         } else {
-            Err(StateError("handshake not yet completed"))
+            bail!(ErrorKind::State(StateProblem::HandshakeNotFinished));
         }
     }
 

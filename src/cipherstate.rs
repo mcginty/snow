@@ -1,4 +1,4 @@
-use error::NoiseError;
+use error::{self, ErrorKind, InitStage};
 use types::Cipher;
 
 pub struct CipherState {
@@ -58,9 +58,9 @@ impl CipherState {
 pub struct CipherStates(pub CipherState, pub CipherState);
 
 impl CipherStates {
-    pub fn new(initiator: CipherState, responder: CipherState) -> Result<Self, NoiseError> {
+    pub fn new(initiator: CipherState, responder: CipherState) -> error::Result<Self> {
         if initiator.name() != responder.name() {
-            return Err(NoiseError::InitError("cipherstates don't match"));
+            bail!(ErrorKind::Init(InitStage::ValidateCipherTypes));
         }
 
         Ok(CipherStates(initiator, responder))

@@ -19,6 +19,7 @@ travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
 arrayvec = "^0.3"
+error-chain = "^0.10"
 rust-crypto = "0.2.36"
 byteorder = "^1.0"
 rand = "^0.3"

@@ -1,7 +1,7 @@
 extern crate arrayvec;
 
 use params::HandshakePattern;
-use error::NoiseError;
+use error::{ErrorKind, Result, StateProblem};
 use cipherstate::CipherStates;
 use constants::{MAXMSGLEN, TAGLEN};
 
@@ -27,13 +27,13 @@ impl TransportState {
 
     pub fn write_transport_message(&mut self,
                                    payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize, NoiseError> {
+                                   message: &mut [u8]) -> Result<usize> {
         if !self.initiator && self.pattern.is_oneway() {
-            return Err(NoiseError::StateError("receiver in one-way pattern can't send"));
+            bail!(ErrorKind::State(StateProblem::OneWay));
         } else if payload.len() + TAGLEN > MAXMSGLEN {
-            return Err(NoiseError::InputError("message len exceeds Noise max"));
+            bail!(ErrorKind::Input);
         } else if payload.len() + TAGLEN > message.len() {
-            return Err(NoiseError::InputError("output buffer too small"));
+            bail!(ErrorKind::Input);
         }
 
         let cipher = if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
@@ -42,12 +42,12 @@ impl TransportState {
 
     pub fn read_transport_message(&mut self,
                                    payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize, NoiseError> {
+                                   message: &mut [u8]) -> Result<usize> {
         if self.initiator && self.pattern.is_oneway() {
-            return Err(NoiseError::StateError("sender in one-way pattern can't receive"));
+            bail!(ErrorKind::State(StateProblem::OneWay));
         }
         let cipher = if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
-        cipher.decrypt(payload, message).map_err(|_| NoiseError::DecryptError)
+        cipher.decrypt(payload, message).map_err(|_| ErrorKind::Decrypt.into())
     }
 
     pub fn rekey_initiator(&mut self, key: &[u8]) {

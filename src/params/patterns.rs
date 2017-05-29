@@ -2,7 +2,6 @@ use std::convert::TryFrom;
 use std::str::FromStr;
 use arrayvec::ArrayVec;
 
-#[macro_export]
 macro_rules! message_vec {
     ($($item:expr),*) => ({
         let tokies: &[&[Token]] = &[$($item),*];
@@ -24,7 +23,6 @@ macro_rules! message_vec {
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
 
-// TODO make the HandshakePattern name more consistent with the *Choice enums
 /// One of the patterns as defined in the
 /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section
 #[derive(Copy, Clone, PartialEq, Debug)]
