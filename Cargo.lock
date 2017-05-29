@@ -1,6 +1,6 @@
 [root]
 name = "snow"
-version = "0.1.2-preview"
+version = "0.1.3-preview"
 dependencies = [
  "arrayvec 0.3.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "blake2-rfc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
