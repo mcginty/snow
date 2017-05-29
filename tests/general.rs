@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
 #![allow(non_snake_case)]
 extern crate hex;
 extern crate snow;
@@ -95,12 +96,12 @@ fn test_protocol_name() {
     assert_eq!(protocol_spec.hash, HashChoice::Blake2s);
 
     let protocol_spec: Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_BLAKE2X".parse();
-    if let Ok(_) = protocol_spec {
+    if protocol_spec.is_ok() {
         panic!("invalid protocol was parsed inaccurately");
     }
 
     let protocol_spec: Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly".parse();
-    if let Ok(_) = protocol_spec {
+    if protocol_spec.is_ok() {
         panic!("invalid protocol was parsed inaccurately");
     }
 }
@@ -113,10 +114,10 @@ fn test_noise_session_transition_change() {
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
-    let len = h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
     h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
-    let len = h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
     h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
     assert!(h_i.is_handshake_finished());
@@ -133,18 +134,18 @@ fn test_sanity_session() {
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
-    let len = h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
     h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
-    let len = h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
     h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
-    let len = h_i.write_message("hack the planet".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-    assert!(&buffer_out[..len] == "hack the planet".as_bytes());
+    assert_eq!(&buffer_out[..len], b"hack the planet");
 }
 
 #[test]
@@ -160,13 +161,13 @@ fn test_Npsk0_expected_value() {
 
     let mut buf = [0u8; 200];
     let len = h_i.write_message(&[], &mut buf).unwrap();
-    assert!(len == 48);
+    assert_eq!(len, 48);
 
     let expected = Vec::<u8>::from_hex("358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662542044ae563929068930dcf04674526cb9").unwrap();
 
     println!("\nreality:  {}", (&buf[..len]).to_hex());
     println!("expected: {}", (&expected).to_hex());
-    assert!(&buf[..len] == &expected[..]);
+    assert_eq!(&buf[..len], &expected[..]);
 }
 
 #[test]
@@ -185,13 +186,13 @@ fn test_Xpsk0_expected_value() {
 
     let mut buf = [0u8; 200];
     let len = h_i.write_message(&[], &mut buf).unwrap();
-    assert!(len == 96);
+    assert_eq!(len, 96);
 
     let expected = Vec::<u8>::from_hex("79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad51eef529db0dd9127d4aa59a9183e118337d75a4e55e7e00f85c3d20ede536dd0112eec8c3b2a514018a90ab685b027dd24aa0c70b0c0f00524cc23785028b9").unwrap();
 
     println!("\nreality:  {}", (&buf[..len]).to_hex());
     println!("expected: {}", (&expected).to_hex());
-    assert!(&buf[..len] == &expected[..]);
+    assert_eq!(&buf[..len], &expected[..]);
 }
 
 #[test]
@@ -219,25 +220,25 @@ fn test_XXpsk0_expected_value() {
     let mut buf = [0u8; 1024];
     let mut buf2 = [0u8; 1024];
 
-    let len = h_i.write_message("abc".as_bytes(), &mut buf).unwrap();
-    assert!(len == 51);
+    let len = h_i.write_message(b"abc", &mut buf).unwrap();
+    assert_eq!(len, 51);
     let len = h_r.read_message(&buf[..len], &mut buf2).unwrap();
-    assert!(&buf2[..len] == "abc".as_bytes());
+    assert_eq!(&buf2[..len], b"abc");
 
-    let len = h_r.write_message("defg".as_bytes(), &mut buf).unwrap();
-    assert!(len == 100);
+    let len = h_r.write_message(b"defg", &mut buf).unwrap();
+    assert_eq!(len, 100);
     let len = h_i.read_message(&buf[..len], &mut buf2).unwrap();
-    assert!(&buf2[..len] == "defg".as_bytes());
+    assert_eq!(&buf2[..len], b"defg");
 
     let len = h_i.write_message(&[], &mut buf).unwrap();
-    assert!(len == 64);
+    assert_eq!(len, 64);
     let len = h_r.read_message(&buf[..len], &mut buf2).unwrap();
-    assert!(len == 0);
+    assert_eq!(len, 0);
 
     let expected = Vec::<u8>::from_hex("1b6d7cc3b13bd02217f9cdb98c50870db96281193dca4df570bf6230a603b686fd90d2914c7e797d9276ef8fb34b0c9d87faa048ce4bc7e7af21b6a450352275").unwrap();
     println!("\nreality:  {}", (&buf[..64]).to_hex());
     println!("expected: {}", (&expected).to_hex());
-    assert!(&buf[..64] == &expected[..]);
+    assert_eq!(&buf[..64], &expected[..]);
 }
 
 #[test]
@@ -254,18 +255,18 @@ fn test_NNpsk0_sanity_session() {
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
-    let len = h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
     h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
-    let len = h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
     h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
-    let len = h_i.write_message("hack the planet".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-    assert!(&buffer_out[..len] == "hack the planet".as_bytes());
+    assert_eq!(&buffer_out[..len], b"hack the planet");
 }
 
 #[test]
@@ -294,21 +295,21 @@ fn test_XXpsk1_sanity_session() {
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
-    let len = h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
     h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
-    let len = h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
     h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
-    let len = h_i.write_message("hij".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"hij", &mut buffer_msg).unwrap();
     h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
-    let len = h_i.write_message("hack the planet".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-    assert!(&buffer_out[..len] == "hack the planet".as_bytes());
+    assert_eq!(&buffer_out[..len], b"hack the planet");
 }
 
 #[test]
@@ -321,29 +322,29 @@ fn test_rekey() {
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
-    let len = h_i.write_message("abc".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
     h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
-    let len = h_r.write_message("defg".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
     h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
-    let len = h_i.write_message("hack the planet".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-    assert!(&buffer_out[..len] == "hack the planet".as_bytes());
+    assert_eq!(&buffer_out[..len], b"hack the planet");
 
     h_i.rekey(Some(&[1u8; 32]), Some(&[2u8; 32])).unwrap();
     h_r.rekey(Some(&[1u8; 32]), Some(&[2u8; 32])).unwrap();
 
-    let len = h_i.write_message("hack the planet".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-    assert!(&buffer_out[..len] == "hack the planet".as_bytes());
+    assert_eq!(&buffer_out[..len], b"hack the planet");
 
-    let len = h_r.write_message("hack the planet".as_bytes(), &mut buffer_msg).unwrap();
+    let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-    assert!(&buffer_out[..len] == "hack the planet".as_bytes());
+    assert_eq!(&buffer_out[..len], b"hack the planet");
 }
 
 #[test]
