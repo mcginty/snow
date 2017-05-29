@@ -1,6 +1,7 @@
 use constants::*;
 use types::*;
 use handshakestate::*;
+use wrappers;
 use wrappers::rand_wrapper::*;
 use wrappers::crypto_wrapper::*;
 use cipherstate::*;
@@ -76,8 +77,14 @@ pub struct NoiseBuilder<'builder> {
 
 impl<'builder> NoiseBuilder<'builder> {
     /// Create a NoiseBuilder with the default crypto resolver.
+    #[cfg(not(feature = "ring-accelerated"))]
     pub fn new(params: NoiseParams) -> Self {
         Self::with_resolver(params, Box::new(DefaultResolver))
+    }
+
+    #[cfg(feature = "ring-accelerated")]
+    pub fn new(params: NoiseParams) -> Self {
+        Self::with_resolver(params, Box::new(wrappers::ring_wrapper::RingAcceleratedResolver::new()))
     }
 
     /// Create a NoiseBuilder with a custom crypto resolver.

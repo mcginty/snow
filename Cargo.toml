@@ -13,6 +13,7 @@ keywords = ["noise", "protocol", "crypto"]
 [features]
 default = []
 ring-resolver = ["ring"]
+ring-accelerated = ["ring", "ring-resolver"]
 vector-tests = []
 
 [badges]
