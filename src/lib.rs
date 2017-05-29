@@ -33,6 +33,7 @@
 #[macro_use] extern crate static_slice;
 #[macro_use] extern crate error_chain;
 extern crate arrayvec;
+mod error;
 mod constants;
 mod utils;
 mod cipherstate;
@@ -42,11 +43,11 @@ mod noise;
 mod session;
 mod transportstate;
 
-pub mod error;
 pub mod params;
 pub mod types;
 pub mod wrappers;
 
+pub use error::*;
 pub use noise::{CryptoResolver, DefaultResolver};
 pub use noise::NoiseBuilder;
 pub use session::Session;

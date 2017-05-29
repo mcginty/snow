@@ -3,7 +3,7 @@ extern crate hex;
 extern crate snow;
 
 use hex::{FromHex, ToHex};
-use snow::*;
+use snow::{NoiseBuilder, CryptoResolver, DefaultResolver};
 use snow::params::*;
 use snow::types::*;
 use snow::wrappers::crypto_wrapper::Dh25519;

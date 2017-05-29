@@ -9,7 +9,7 @@ extern crate serde_json;
 use serde::de::{self, Deserialize, Deserializer, Visitor, Unexpected};
 use std::ops::Deref;
 use hex::{FromHex, ToHex};
-use snow::*;
+use snow::{NoiseBuilder, Session};
 use snow::params::*;
 use std::fmt;
 
@@ -96,7 +96,7 @@ struct TestVectors {
     vectors: Vec<TestVector>,
 }
 
-fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), snow::error::Error> {
+fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), snow::Error> {
     let params: NoiseParams = vector.name.parse().unwrap();
     let mut init_builder = NoiseBuilder::new(params.clone());
     let mut resp_builder = NoiseBuilder::new(params.clone());
