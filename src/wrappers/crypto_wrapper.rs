@@ -1,5 +1,4 @@
 extern crate crypto;
-extern crate byteorder;
 extern crate blake2_rfc;
 extern crate chacha20_poly1305_aead;
 
@@ -12,7 +11,7 @@ use self::crypto::curve25519::{curve25519, curve25519_base};
 use self::blake2_rfc::blake2b::Blake2b;
 use self::blake2_rfc::blake2s::Blake2s;
 
-use self::byteorder::{ByteOrder, BigEndian, LittleEndian};
+use byteorder::{ByteOrder, BigEndian, LittleEndian};
 
 use types::*;
 use constants::*;

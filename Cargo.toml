@@ -12,6 +12,7 @@ keywords = ["noise", "protocol", "crypto"]
 
 [features]
 default = []
+ring-resolver = ["ring"]
 vector-tests = []
 
 [badges]
@@ -24,6 +25,7 @@ rust-crypto = "0.2.36"
 byteorder = "^1.0"
 rand = "^0.3"
 static_slice = "0.0.3"
+ring = { version = "^0.9.4", optional = true }
 
 [dependencies.blake2-rfc]
 version = "^0.2.17"

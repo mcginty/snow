@@ -30,9 +30,13 @@
 
 #![recursion_limit = "1024"]
 #![feature(try_from)]
+
+extern crate arrayvec;
+extern crate byteorder;
 #[macro_use] extern crate static_slice;
 #[macro_use] extern crate error_chain;
-extern crate arrayvec;
+#[cfg(feature = "ring-resolver")] extern crate ring;
+
 mod error;
 mod constants;
 mod utils;
@@ -51,3 +55,5 @@ pub use error::*;
 pub use noise::{CryptoResolver, DefaultResolver};
 pub use noise::NoiseBuilder;
 pub use session::Session;
+
+#[cfg(feature = "ring-resolver")] pub use wrappers::ring_wrapper::RingAcceleratedResolver;

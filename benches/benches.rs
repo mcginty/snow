@@ -98,6 +98,35 @@ fn bench_write_throughput_aesgcm_sha256(b: &mut Bencher) {
     });
 }
 
+#[cfg(feature = "ring-resolver")]
+#[bench]
+fn bench_read_write_throughput_aesgcm_sha256_ring(b: &mut Bencher) {
+    b.bytes = (MSG_SIZE * 2) as u64;
+    static PATTERN: &'static str = "Noise_NN_25519_AESGCM_SHA256";
+
+    let mut h_i = NoiseBuilder::with_resolver(PATTERN.parse().unwrap(), Box::new(RingAcceleratedResolver::new()))
+        .build_initiator().unwrap();
+    let mut h_r = NoiseBuilder::with_resolver(PATTERN.parse().unwrap(), Box::new(RingAcceleratedResolver::new()))
+        .build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; MSG_SIZE * 2];
+    let mut buffer_out = [0u8; MSG_SIZE * 2];
+
+    // get the handshaking out of the way for even testing
+    let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let mut h_i = h_i.into_transport_mode().unwrap();
+    let mut h_r = h_r.into_transport_mode().unwrap();
+
+    b.iter(move || {
+        let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
+        let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
+    });
+}
+
 #[bench]
 fn bench_read_write_throughput_aesgcm_sha256(b: &mut Bencher) {
     b.bytes = (MSG_SIZE * 2) as u64;
