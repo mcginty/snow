@@ -96,7 +96,7 @@ struct TestVectors {
     vectors: Vec<TestVector>,
 }
 
-fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), NoiseError> {
+fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), snow::error::Error> {
     let params: NoiseParams = vector.name.parse().unwrap();
     let mut init_builder = NoiseBuilder::new(params.clone());
     let mut resp_builder = NoiseBuilder::new(params.clone());
