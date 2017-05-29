@@ -1,7 +1,6 @@
 use constants::*;
 use types::*;
 use handshakestate::*;
-use wrappers;
 use wrappers::rand_wrapper::*;
 use wrappers::crypto_wrapper::*;
 use cipherstate::*;
@@ -9,6 +8,8 @@ use session::*;
 use utils::*;
 use params::*;
 use error::{ErrorKind, Result, InitStage, Prerequisite};
+
+#[cfg(feature = "ring-resolver" )] use wrappers::ring_wrapper::RingAcceleratedResolver;
 
 /// An object that resolves the providers of Noise crypto choices
 pub trait CryptoResolver {
@@ -84,7 +85,7 @@ impl<'builder> NoiseBuilder<'builder> {
 
     #[cfg(feature = "ring-accelerated")]
     pub fn new(params: NoiseParams) -> Self {
-        Self::with_resolver(params, Box::new(wrappers::ring_wrapper::RingAcceleratedResolver::new()))
+        Self::with_resolver(params, Box::new(RingAcceleratedResolver::new()))
     }
 
     /// Create a NoiseBuilder with a custom crypto resolver.
