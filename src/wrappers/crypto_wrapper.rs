@@ -58,11 +58,11 @@ impl Dh for Dh25519 {
     }
 
     fn pub_len(&self) -> usize {
-        return 32;
+        32
     }
 
     fn priv_len(&self) -> usize {
-        return 32;
+        32
     }
 
     fn set(&mut self, privkey: &[u8]) {
@@ -148,7 +148,7 @@ impl Cipher for CipherChaChaPoly {
         let mut buf = Cursor::new(out);
         let tag = chacha20_poly1305_aead::encrypt(&self.key, &nonce_bytes, authtext, plaintext, &mut buf);
         let tag = tag.unwrap();
-        buf.write(&tag).unwrap();
+        buf.write_all(&tag).unwrap();
         if buf.position() > usize::max_value() as u64 {
             panic!("usize overflow");
         } else {
@@ -190,16 +190,15 @@ impl Default for HashSHA256 {
 impl Hash for HashSHA256 {
 
     fn block_len(&self) -> usize {
-        return 64;
+        64
     }
 
     fn hash_len(&self) -> usize {
-        return 32;
+        32
     }
 
     fn name(&self) -> &'static str {
-        static NAME: &'static str = "SHA256";
-        NAME
+        "SHA256"
     }
 
     fn reset(&mut self) {
@@ -224,16 +223,15 @@ impl Default for HashSHA512 {
 impl Hash for HashSHA512 {
 
     fn name(&self) -> &'static str {
-        static NAME: &'static str = "SHA512";
-        NAME
+        "SHA512"
     }
 
     fn block_len(&self) -> usize {
-        return 128;
+        128
     }
 
     fn hash_len(&self) -> usize {
-        return 64;
+        64
     }
 
     fn reset(&mut self) {
@@ -262,11 +260,11 @@ impl Hash for HashBLAKE2b {
     }
 
     fn block_len(&self) -> usize {
-        return 128;
+        128
     }
 
     fn hash_len(&self) -> usize {
-        return 64;
+        64
     }
 
     fn reset(&mut self) {
@@ -296,11 +294,11 @@ impl Hash for HashBLAKE2s {
     }
 
     fn block_len(&self) -> usize {
-        return 64;
+        64
     }
 
     fn hash_len(&self) -> usize {
-        return 32;
+        32
     }
 
     fn reset(&mut self) {

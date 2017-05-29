@@ -203,7 +203,7 @@ impl<'builder> NoiseBuilder<'builder> {
 
         let mut psks = [None::<[u8; PSKLEN]>; 10];
         for (i, psk) in self.psks.iter().enumerate() {
-            if let &Some(key) = psk {
+            if let Some(key) = *psk {
                 if key.len() != PSKLEN {
                     bail!(ErrorKind::Init(InitStage::ValidatePskLengths));
                 }
@@ -218,7 +218,7 @@ impl<'builder> NoiseBuilder<'builder> {
                                      initiator,
                                      self.params,
                                      psks,
-                                     &self.plog.unwrap_or_else(|| &[0u8; 0]),
+                                     self.plog.unwrap_or_else(|| &[0u8; 0]),
                                      cipherstates)?;
         Ok(hs.into())
     }

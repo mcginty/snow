@@ -8,7 +8,7 @@ mod patterns;
 
 pub use self::patterns::*;
 
-/// One of "Noise" or "NoisePSK", per the spec.
+/// One of `Noise` or `NoisePSK`, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum BaseChoice {
     Noise,
@@ -27,7 +27,7 @@ impl FromStr for BaseChoice {
     }
 }
 
-/// One of "25519" or "448", per the spec.
+/// One of `25519` or `448`, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum DHChoice {
     Curve25519,
@@ -46,7 +46,7 @@ impl FromStr for DHChoice {
     }
 }
 
-/// One of "ChaChaPoly" or "AESGCM", per the spec.
+/// One of `ChaChaPoly` or `AESGCM`, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum CipherChoice {
     ChaChaPoly,

@@ -51,7 +51,7 @@ impl CipherState {
     }
 
     pub fn rekey(&mut self, key: &[u8]) {
-        self.cipher.set(&key);
+        self.cipher.set(key);
     }
 }
 

@@ -50,7 +50,7 @@ impl<T> Deref for Toggle<T> {
 }
 
 impl<T> DerefMut for Toggle<T> {
-    fn deref_mut<'a>(&'a mut self) -> &'a mut T {
+    fn deref_mut(&mut self) -> &mut T {
         &mut self.inner
     }
 }

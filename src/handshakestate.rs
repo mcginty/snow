@@ -31,6 +31,7 @@ pub struct HandshakeState {
 }
 
 impl HandshakeState {
+    #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
     pub fn new(
         rng: Box<Random>,
         cipherstate: CipherState,
@@ -167,9 +168,9 @@ impl HandshakeState {
                         let pubkey = self.e.pubkey();
                         copy_memory(pubkey, &mut message[byte_index..]);
                         byte_index += self.s.pub_len();
-                        self.symmetricstate.mix_hash(&pubkey);
+                        self.symmetricstate.mix_hash(pubkey);
                         if self.params.handshake.is_psk() {
-                            self.symmetricstate.mix_key(&pubkey);
+                            self.symmetricstate.mix_key(pubkey);
                         }
                     }
                     self.e.enable();
@@ -182,15 +183,15 @@ impl HandshakeState {
                         bail!(ErrorKind::Input)
                     }
                     byte_index += self.symmetricstate.encrypt_and_mix_hash(
-                        &self.s.pubkey(),
+                        self.s.pubkey(),
                         &mut message[byte_index..]);
                 },
                 Token::Psk(n) => {
-                    match &self.psks[n as usize] {
-                        &Some(psk) => {
+                    match self.psks[n as usize] {
+                        Some(psk) => {
                             self.symmetricstate.mix_key_and_hash(&psk);
                         },
-                        &None => {
+                        None => {
                             bail!(ErrorKind::State(StateProblem::MissingPsk));
                         }
                     }
@@ -258,11 +259,11 @@ impl HandshakeState {
                         self.rs.enable();
                     },
                     Token::Psk(n) => {
-                        match &self.psks[n as usize] {
-                            &Some(psk) => {
+                        match self.psks[n as usize] {
+                            Some(psk) => {
                                 self.symmetricstate.mix_key_and_hash(&psk);
                             },
-                            &None => {
+                            None => {
                                 bail!(ErrorKind::State(StateProblem::MissingPsk));
                             }
                         }

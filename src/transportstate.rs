@@ -30,9 +30,7 @@ impl TransportState {
                                    message: &mut [u8]) -> Result<usize> {
         if !self.initiator && self.pattern.is_oneway() {
             bail!(ErrorKind::State(StateProblem::OneWay));
-        } else if payload.len() + TAGLEN > MAXMSGLEN {
-            bail!(ErrorKind::Input);
-        } else if payload.len() + TAGLEN > message.len() {
+        } else if payload.len() + TAGLEN > MAXMSGLEN || payload.len() + TAGLEN > message.len() {
             bail!(ErrorKind::Input);
         }
 

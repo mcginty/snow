@@ -1,4 +1,4 @@
-//! This is a barebones TCP Client/Server that establishes a Noise_NN session, and sends
+//! This is a barebones TCP Client/Server that establishes a `Noise_NN` session, and sends
 //! an important message across the wire.
 //!
 //! # Usage
@@ -73,12 +73,12 @@ fn run_client(params: NoiseParams) {
     println!("session established...");
 
     // Get to the important business of sending secured data.
-    let len = noise.write_message("HACK THE PLANET".as_bytes(), &mut buf).unwrap();
+    let len = noise.write_message(b"HACK THE PLANET", &mut buf).unwrap();
     send(&mut stream, &buf[..len]);
     println!("notified server of intent to hack planet.");
 }
 
-/// Hyper-basic stream transort receiver. 16-bit BE size followed by payload.
+/// Hyper-basic stream transport receiver. 16-bit BE size followed by payload.
 fn recv(stream: &mut TcpStream) -> Vec<u8> {
     let mut msg_len_buf = [0u8; 2];
     stream.read_exact(&mut msg_len_buf).unwrap();
@@ -88,7 +88,7 @@ fn recv(stream: &mut TcpStream) -> Vec<u8> {
     msg
 }
 
-/// Hyper-basic stream transort sender. 16-bit BE size followed by payload.
+/// Hyper-basic stream transport sender. 16-bit BE size followed by payload.
 fn send(stream: &mut TcpStream, buf: &[u8]) {
     let mut msg_len_buf = [0u8; 2];
     msg_len_buf[0] = (buf.len() >> 8) as u8;

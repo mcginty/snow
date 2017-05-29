@@ -7,6 +7,8 @@ use transportstate::*;
 ///
 /// Enums provide a convenient interface as it's how Rust implements union structs, meaning this is
 /// a sized object.
+// TODO: check up on memory usage, since this clippy warning seems like a legit perf issue.
+#[cfg_attr(feature = "cargo-clippy", allow(large_enum_variant))]
 pub enum Session {
     Handshake(HandshakeState),
     Transport(TransportState),

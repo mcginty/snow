@@ -119,7 +119,7 @@ pub struct HandshakeChoice {
 impl HandshakeChoice {
     pub fn is_psk(&self) -> bool {
         for modifier in &self.modifiers.list {
-            if let &HandshakeModifier::Psk(_) = modifier {
+            if let HandshakeModifier::Psk(_) = *modifier {
                 return true;
             }
         }
@@ -128,7 +128,7 @@ impl HandshakeChoice {
 
     pub fn is_fallback(&self) -> bool {
         for modifier in &self.modifiers.list {
-            if &HandshakeModifier::Fallback == modifier {
+            if HandshakeModifier::Fallback == *modifier {
                 return true;
             }
         }
@@ -308,19 +308,16 @@ impl TryFrom<HandshakeChoice> for HandshakeTokens {
         };
 
         for modifier in handshake.modifiers.list {
-            match modifier {
-                HandshakeModifier::Psk(n) => {
-                    match n {
-                        0 => { patterns.2[0].insert(0, Token::Psk(n)); },
-                        _ => {
-                            let i = (n as usize) - 1;
-                            if let Some(_) = patterns.2[i].push(Token::Psk(n)) {
-                                return Err("token incompatible with selected handshake");
-                            }
+            if let HandshakeModifier::Psk(n) = modifier {
+                match n {
+                    0 => { patterns.2[0].insert(0, Token::Psk(n)); },
+                    _ => {
+                        let i = (n as usize) - 1;
+                        if patterns.2[i].push(Token::Psk(n)).is_some() {
+                            return Err("token incompatible with selected handshake");
                         }
                     }
-                },
-                _ => {}
+                }
             }
         }
 
