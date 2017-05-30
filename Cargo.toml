@@ -12,6 +12,7 @@ keywords = ["noise", "protocol", "crypto"]
 
 [features]
 default = []
+nightly = ["blake2-rfc/simd_opt", "chacha20-poly1305-aead/simd_opt"]
 ring-resolver = ["ring"]
 ring-accelerated = ["ring", "ring-resolver"]
 vector-tests = []
@@ -26,15 +27,9 @@ rust-crypto = "0.2.36"
 byteorder = "^1.0"
 rand = "^0.3"
 static_slice = "0.0.3"
+blake2-rfc = "^0.2.17"
+chacha20-poly1305-aead = "^0.1.2"
 ring = { version = "^0.9.4", optional = true }
-
-[dependencies.blake2-rfc]
-version = "^0.2.17"
-features = ["simd_opt"]
-
-[dependencies.chacha20-poly1305-aead]
-version = "^0.1.2"
-features = ["simd_opt"]
 
 [dev-dependencies]
 clap = "^2.0"
@@ -42,3 +37,6 @@ serde = "^1.0"
 serde_json = "^1.0"
 serde_derive = "1.0"
 hex = "0.2.0"
+
+[build-dependencies]
+rustc_version = "^0.2"
