@@ -2,7 +2,13 @@
 //! patterns/names)
 
 #[allow(unused_imports)]
+#[cfg(feature = "nightly")]
 use std::convert::TryFrom;
+
+#[allow(unused_imports)]
+#[cfg(not(feature = "nightly"))]
+use utils::TryFrom;
+
 use std::str::FromStr;
 mod patterns;
 

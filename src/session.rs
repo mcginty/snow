@@ -1,6 +1,7 @@
 use error::{Error, ErrorKind, Result, StateProblem};
 use handshakestate::HandshakeState;
-use std::convert::{TryFrom, TryInto};
+#[cfg(feature = "nightly")] use std::convert::{TryFrom, TryInto};
+#[cfg(not(feature = "nightly"))] use utils::{TryFrom, TryInto};
 use transportstate::*;
 
 /// A state machine for the entire Noise session.

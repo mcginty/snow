@@ -28,8 +28,8 @@
 //!
 //! ```
 
+#![cfg_attr(feature = "nightly", feature(try_from))]
 #![recursion_limit = "1024"]
-#![feature(try_from)]
 
 extern crate arrayvec;
 extern crate byteorder;

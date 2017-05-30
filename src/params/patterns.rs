@@ -1,4 +1,5 @@
-use std::convert::TryFrom;
+#[cfg(feature = "nightly")] use std::convert::{TryFrom};
+#[cfg(not(feature = "nightly"))] use utils::{TryFrom};
 use std::str::FromStr;
 use arrayvec::ArrayVec;
 

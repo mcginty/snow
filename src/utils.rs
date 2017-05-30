@@ -54,3 +54,27 @@ impl<T> DerefMut for Toggle<T> {
         &mut self.inner
     }
 }
+
+#[cfg(not(feature = "nightly"))]
+pub trait TryInto<T>: Sized {
+    type Error;
+
+    fn try_into(self) -> Result<T, Self::Error>;
+}
+
+#[cfg(not(feature = "nightly"))]
+pub trait TryFrom<T>: Sized {
+    type Error;
+
+    fn try_from(value: T) -> Result<Self, Self::Error>;
+}
+
+#[cfg(not(feature = "nightly"))]
+impl<T, U> TryInto<U> for T where U: TryFrom<T>
+{
+    type Error = U::Error;
+
+    fn try_into(self) -> Result<U, U::Error> {
+        U::try_from(self)
+    }
+}
