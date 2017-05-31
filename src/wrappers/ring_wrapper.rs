@@ -1,4 +1,4 @@
-use byteorder::{ByteOrder, BigEndian};
+use byteorder::{ByteOrder, BigEndian, LittleEndian};
 use ring::aead;
 use ring::digest;
 use constants::TAGLEN;
@@ -116,7 +116,7 @@ impl Cipher for CipherChaChaPoly {
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
@@ -126,7 +126,7 @@ impl Cipher for CipherChaChaPoly {
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
         // Eh, ring API is ... weird.
         let mut in_out = ciphertext.to_vec();
