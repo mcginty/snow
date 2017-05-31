@@ -14,11 +14,10 @@ mod patterns;
 
 pub use self::patterns::*;
 
-/// One of `Noise` or `NoisePSK`, per the spec.
+/// I recommend you choose `Noise`.
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum BaseChoice {
     Noise,
-    NoisePSK,
 }
 
 impl FromStr for BaseChoice {
@@ -27,7 +26,6 @@ impl FromStr for BaseChoice {
         use self::BaseChoice::*;
         match s {
             "Noise"    => Ok(Noise),
-            "NoisePSK" => Ok(NoisePSK),
             _          => Err("base type unsupported"),
         }
     }
