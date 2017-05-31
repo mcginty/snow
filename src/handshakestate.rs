@@ -55,7 +55,6 @@ impl HandshakeState {
             bail!(ErrorKind::Init(InitStage::ValidateKeyLengths));
         }
 
-        // TODO support modifiers
         let tokens = HandshakeTokens::try_from(params.handshake.clone())?;
 
         let mut symmetricstate = SymmetricState::new(cipherstate, hasher);
