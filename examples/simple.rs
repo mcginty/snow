@@ -5,6 +5,7 @@
 //! Run the server a-like-a-so `cargo run --example simple -- -s`, then run the client
 //! as `cargo run --example simple` to see the magic happen.
 
+#[macro_use] extern crate lazy_static;
 extern crate clap;
 extern crate snow;
 
@@ -14,35 +15,42 @@ use snow::params::NoiseParams;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 
+lazy_static! {
+    static ref PARAMS: NoiseParams = "Noise_XX_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
+}
+
 fn main() {
     let matches = App::new("simple").args_from_usage("-s --server 'Server mode'").get_matches();
 
-    let params = "Noise_NN_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
-
     if matches.is_present("server") {
-        run_server(params);
+        run_server();
     } else {
-        run_client(params);
+        run_client();
     }
-    println!("all done!");
+    println!("all done.");
 }
 
-fn run_server(params: NoiseParams) {
+fn run_server() {
     let mut buf = vec![0u8; 65535];
 
     // Initialize our responder NoiseSession using a builder.
-    let mut noise = NoiseBuilder::new(params).build_responder().unwrap();
+    let builder: NoiseBuilder = NoiseBuilder::new(PARAMS.clone());
+    let static_key = builder.generate_private_key().unwrap();
+    let mut noise = builder.local_private_key(&static_key).build_responder().unwrap();
 
     // Wait on our client's arrival...
     println!("listening on 127.0.0.1:9999");
     let (mut stream, _) = TcpListener::bind("127.0.0.1:9999").unwrap().accept().unwrap();
 
-    // We're acting as the responder, so the first message is sent from the client.
+    // <- e
     noise.read_message(&recv(&mut stream).unwrap(), &mut buf).unwrap();
 
-    // Respond, thereby completing the handshake for NN, which is 1RTT.
+    // -> e, ee, s, es
     let len = noise.write_message(&[0u8; 0], &mut buf).unwrap();
     send(&mut stream, &buf[..len]);
+
+    // <- s, se
+    noise.read_message(&recv(&mut stream).unwrap(), &mut buf).unwrap();
 
     // Transition the state machine into transport mode now that the handshake is complete.
     let mut noise = noise.into_transport_mode().unwrap();
@@ -54,24 +62,29 @@ fn run_server(params: NoiseParams) {
     println!("connection closed.");
 }
 
-fn run_client(params: NoiseParams) {
+fn run_client() {
     let mut buf = vec![0u8; 65535];
 
     // Initialize our initiator NoiseSession using a builder.
-    let mut noise = NoiseBuilder::new(params).build_initiator().unwrap();
+    let builder: NoiseBuilder = NoiseBuilder::new(PARAMS.clone());
+    let static_key = builder.generate_private_key().unwrap();
+    let mut noise = builder.local_private_key(&static_key).build_initiator().unwrap();
 
     // Connect to our server, which is hopefully listening.
     let mut stream = TcpStream::connect("127.0.0.1:9999").unwrap();
     println!("connected...");
 
-    // We're the initiator, so we're responsible for sending the first message.
-    let len = noise.write_message(&[0u8; 0], &mut buf).unwrap();
+    // -> e
+    let len = noise.write_message(&[], &mut buf).unwrap();
     send(&mut stream, &buf[..len]);
 
-    // Receive response, thereby completing the handshake for NN
+    // <- e, ee, s, es
     noise.read_message(&recv(&mut stream).unwrap(), &mut buf).unwrap();
 
-    // Transition the state machine into transport mode now that the handshake is complete.
+    // -> s, se
+    let len = noise.write_message(&[], &mut buf).unwrap();
+    send(&mut stream, &buf[..len]);
+
     let mut noise = noise.into_transport_mode().unwrap();
     println!("session established...");
 
