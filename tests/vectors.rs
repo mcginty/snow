@@ -191,8 +191,12 @@ fn test_vectors_from_json(json: &str) {
     let mut ignored = 0;
 
     for vector in test_vectors.vectors {
+        if vector.name.starts_with("NoisePSK") {
+            ignored += 1;
+            continue;
+        }
         let params: NoiseParams = vector.name.parse().unwrap();
-        if params.dh == DHChoice::Ed448 || params.base == BaseChoice::NoisePSK {
+        if params.dh == DHChoice::Ed448 {
             ignored += 1;
             continue;
         }
