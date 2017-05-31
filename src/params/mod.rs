@@ -69,7 +69,7 @@ impl FromStr for CipherChoice {
     }
 }
 
-/// One of the support SHA-family or BLAKE-family hash choices, per the spec.
+/// One of the supported SHA-family or BLAKE-family hash choices, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum HashChoice {
     SHA256,
