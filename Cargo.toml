@@ -41,3 +41,8 @@ lazy_static = "^0.2"
 
 [build-dependencies]
 rustc_version = "^0.2"
+
+[package.metadata.docs.rs]
+features = [ "ring-resolver" ]
+all-features = false
+no-default-features = false
