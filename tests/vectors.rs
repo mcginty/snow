@@ -74,20 +74,22 @@ impl fmt::Debug for TestMessage {
 
 #[derive(Deserialize, Debug)]
 struct TestVector {
-    name: String,
-    pattern: String,
-    dh: String,
-    cipher: String,
-    hash: String,
-    preshared_key: Option<HexBytes>,
+    name: Option<String>,
+    protocol_name: String,
+    hybrid: Option<String>,
+    fail: Option<bool>,
+    fallback: Option<bool>,
+    fallback_pattern: Option<String>,
     init_prologue: HexBytes,
+    init_psk: Option<HexBytes>,
     init_static: Option<HexBytes>,
-    init_remote_static: Option<HexBytes>,
     init_ephemeral: Option<HexBytes>,
+    init_remote_static: Option<HexBytes>,
     resp_prologue: HexBytes,
+    resp_psk: Option<HexBytes>,
     resp_static: Option<HexBytes>,
-    resp_remote_static: Option<HexBytes>,
     resp_ephemeral: Option<HexBytes>,
+    resp_remote_static: Option<HexBytes>,
     messages: Vec<TestMessage>,
 }
 
@@ -97,15 +99,15 @@ struct TestVectors {
 }
 
 fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), snow::Error> {
-    let params: NoiseParams = vector.name.parse().unwrap();
+    let params: NoiseParams = vector.protocol_name.parse().unwrap();
     let mut init_builder = NoiseBuilder::new(params.clone());
     let mut resp_builder = NoiseBuilder::new(params.clone());
 
     if params.handshake.is_psk() {
-        match (params.handshake.modifiers.list[0], &vector.preshared_key) {
-            (HandshakeModifier::Psk(n), &Some(ref psk)) => {
-                init_builder = init_builder.psk(n, &*psk);
-                resp_builder = resp_builder.psk(n, &*psk);
+        match (params.handshake.modifiers.list[0], &vector.init_psk, &vector.resp_psk) {
+            (HandshakeModifier::Psk(n), &Some(ref ipsk), &Some(ref rpsk)) => {
+                init_builder = init_builder.psk(n, &*ipsk);
+                resp_builder = resp_builder.psk(n, &*rpsk);
             },
             _ => {
                 panic!("PSK handshake using weird modifiers I don't want to deal with")
@@ -191,11 +193,7 @@ fn test_vectors_from_json(json: &str) {
     let mut ignored = 0;
 
     for vector in test_vectors.vectors {
-        if vector.name.starts_with("NoisePSK") {
-            ignored += 1;
-            continue;
-        }
-        let params: NoiseParams = vector.name.parse().unwrap();
+        let params: NoiseParams = vector.protocol_name.parse().unwrap();
         if params.dh == DHChoice::Ed448 {
             ignored += 1;
             continue;
@@ -222,10 +220,11 @@ fn test_vectors_from_json(json: &str) {
     }
 }
 
-#[test]
-fn test_vectors_noise_c_basic() {
-    test_vectors_from_json(include_str!("vectors/noise-c-basic.txt"));
-}
+// ignore until noise-c updates the test vectors to new format.
+//#[test]
+//fn test_vectors_noise_c_basic() {
+//    test_vectors_from_json(include_str!("vectors/noise-c-basic.txt"));
+//}
 
 #[test]
 fn test_vectors_cacophony() {
