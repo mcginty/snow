@@ -248,12 +248,6 @@ fn test_vectors_from_json(json: &str) {
     }
 }
 
-// ignore until noise-c updates the test vectors to new format.
-//#[test]
-//fn test_vectors_noise_c_basic() {
-//    test_vectors_from_json(include_str!("vectors/noise-c-basic.txt"));
-//}
-
 fn random_vec(size: usize) -> Vec<u8> {
     let mut v = Vec::with_capacity(size);
     for _ in 0..size {
@@ -303,12 +297,23 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
             psk_index += 1;
         }
     }
-    init_b = init_b.local_private_key(&is.privkey());
     init_b = init_b.fixed_ephemeral_key_for_testing_only(&ie.privkey());
     init_b = init_b.prologue(&prologue);
-    resp_b = resp_b.local_private_key(&rs.privkey());
+    if params.handshake.pattern.needs_local_static_key(true) {
+        init_b = init_b.local_private_key(&is.privkey());
+    }
+    if params.handshake.pattern.need_known_remote_pubkey(true) {
+        init_b = init_b.remote_public_key(&rs.pubkey());
+    }
+
     resp_b = resp_b.fixed_ephemeral_key_for_testing_only(&re.privkey());
     resp_b = resp_b.prologue(&prologue);
+    if params.handshake.pattern.needs_local_static_key(false) {
+        resp_b = resp_b.local_private_key(&rs.privkey());
+    }
+    if params.handshake.pattern.need_known_remote_pubkey(false) {
+        resp_b = resp_b.remote_public_key(&is.pubkey());
+    }
 
     let mut init: Session = init_b.build_initiator().unwrap();
     let mut resp: Session = resp_b.build_responder().unwrap();
@@ -348,18 +353,27 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
         init_psks: Some(psks_hex.clone()),
         init_static: Some(is.privkey().to_vec().into()),
         init_ephemeral: Some(ie.privkey().to_vec().into()),
-        init_remote_static: None,
+        init_remote_static: Some(rs.pubkey().to_vec().into()),
         resp_prologue: prologue.clone().into(),
         resp_psks: Some(psks_hex.clone()),
         resp_static: Some(rs.privkey().to_vec().into()),
         resp_ephemeral: Some(re.privkey().to_vec().into()),
-        resp_remote_static: None,
+        resp_remote_static: Some(is.pubkey().to_vec().into()),
         messages: messages,
     }
 }
 
 fn generate_multipsk_vector_set() -> TestVectors {
-    let handshakes = vec!["XXpsk0+psk1", "XXpsk0+psk2", "XXpsk0+psk3", "XXpsk0+psk1+psk2+psk3"];
+    let handshakes = vec!["NNpsk0+psk2",
+                          "NXpsk0+psk1+psk2",
+                          "XNpsk1+psk3",
+                          "XKpsk0+psk3",
+                          "KNpsk1+psk2",
+                          "KKpsk0+psk2",
+                          "INpsk1+psk2",
+                          "IKpsk0+psk2",
+                          "IXpsk0+psk2",
+                          "XXpsk0+psk1", "XXpsk0+psk2", "XXpsk0+psk3", "XXpsk0+psk1+psk2+psk3"];
     let ciphers = vec!["ChaChaPoly", "AESGCM"];
     let hashes = vec!["BLAKE2s", "BLAKE2b", "SHA256", "SHA512"];
 
@@ -375,6 +389,12 @@ fn generate_multipsk_vector_set() -> TestVectors {
     }
     TestVectors { vectors }
 }
+
+// ignore until noise-c updates the test vectors to new format.
+//#[test]
+//fn test_vectors_noise_c_basic() {
+//    test_vectors_from_json(include_str!("vectors/noise-c-basic.txt"));
+//}
 
 #[test]
 fn test_vectors_cacophony() {
