@@ -81,12 +81,12 @@ struct TestVector {
     fallback: Option<bool>,
     fallback_pattern: Option<String>,
     init_prologue: HexBytes,
-    init_psk: Option<HexBytes>,
+    init_psks: Option<Vec<HexBytes>>,
     init_static: Option<HexBytes>,
     init_ephemeral: Option<HexBytes>,
     init_remote_static: Option<HexBytes>,
     resp_prologue: HexBytes,
-    resp_psk: Option<HexBytes>,
+    resp_psks: Option<Vec<HexBytes>>,
     resp_static: Option<HexBytes>,
     resp_ephemeral: Option<HexBytes>,
     resp_remote_static: Option<HexBytes>,
@@ -104,13 +104,17 @@ fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), snow::E
     let mut resp_builder = NoiseBuilder::new(params.clone());
 
     if params.handshake.is_psk() {
-        match (params.handshake.modifiers.list[0], &vector.init_psk, &vector.resp_psk) {
-            (HandshakeModifier::Psk(n), &Some(ref ipsk), &Some(ref rpsk)) => {
-                init_builder = init_builder.psk(n, &*ipsk);
-                resp_builder = resp_builder.psk(n, &*rpsk);
-            },
-            _ => {
-                panic!("PSK handshake using weird modifiers I don't want to deal with")
+        let mut psk_index = 0;
+        if let (&Some(ref ipsks), &Some(ref rpsks)) = (&vector.init_psks, &vector.resp_psks) {
+            for modifier in params.handshake.modifiers.list {
+                match modifier {
+                    HandshakeModifier::Psk(n) => {
+                        init_builder = init_builder.psk(n, &*ipsks[psk_index]);
+                        resp_builder = resp_builder.psk(n, &*rpsks[psk_index]);
+                        psk_index += 1;
+                    },
+                    _ => {}
+                }
             }
         }
     }
