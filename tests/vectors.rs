@@ -107,15 +107,14 @@ fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), snow::E
         let mut psk_index = 0;
         if let (&Some(ref ipsks), &Some(ref rpsks)) = (&vector.init_psks, &vector.resp_psks) {
             for modifier in params.handshake.modifiers.list {
-                match modifier {
-                    HandshakeModifier::Psk(n) => {
-                        init_builder = init_builder.psk(n, &*ipsks[psk_index]);
-                        resp_builder = resp_builder.psk(n, &*rpsks[psk_index]);
-                        psk_index += 1;
-                    },
-                    _ => {}
+                if let HandshakeModifier::Psk(n) = modifier {
+                    init_builder = init_builder.psk(n, &*ipsks[psk_index]);
+                    resp_builder = resp_builder.psk(n, &*rpsks[psk_index]);
+                    psk_index += 1;
                 }
             }
+        } else {
+            panic!("missing PSKs for a PSK-mode handshake");
         }
     }
 
