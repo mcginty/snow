@@ -6,7 +6,7 @@
 
 ![totally official snow logo](http://i.imgur.com/XVakFvn.jpg)
 
-An implementation of the [Noise Protocol](https://noiseprotocol.org/) by Trevor Perrin that is designed to be
+An implementation of Trevor Perrin's [Noise Protocol](https://noiseprotocol.org/) that is designed to be
 Hard To Fuck Up™.
 
 See the documentation at [https://docs.rs/snow](https://docs.rs/snow).
@@ -19,6 +19,7 @@ Snow is currently tracking and working on fully implementing the **revision 32**
 
 - [x] Rekey()
 - [x] `pskN` modifier
+- [ ] specifying PSKs after building `Session`
 - [ ] `fallback` modifier
 
 ## Crypto
@@ -35,21 +36,21 @@ If you enable the `ring-resolver` feature, Snow will include a ring_wrapper modu
 See `examples/simple.rs` for a more complete TCP client/server example.
 
 ```rust
-let noise = NoiseBuilder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse().unwrap())
+let mut noise = NoiseBuilder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse().unwrap())
                          .build_initiator()
                          .unwrap();
  
 let mut buf = [0u8; 65535];
  
 // write first handshake message
-noise.write_message(&[0u8; 0], &mut buf).unwrap();
+noise.write_message(&[], &mut buf).unwrap();
  
 // receive response message
 let incoming = receive_message_from_the_mysterious_ether();
 noise.read_message(&incoming, &mut buf).unwrap();
  
 // complete handshake, and transition the state machine into transport mode
-let noise = noise.into_transport_mode();
+let mut noise = noise.into_transport_mode();
 ```
 
 ## Status
