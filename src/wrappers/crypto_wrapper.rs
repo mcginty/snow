@@ -341,14 +341,14 @@ mod tests {
         let key = Vec::<u8>::from_hex("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
         let data = Vec::<u8>::from_hex("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd").unwrap();
         let mut output1 = [0u8; 32];
-        let mut hasher:HashSHA256 = Default::default();
+        let mut hasher: HashSHA256 = Default::default();
         hasher.hmac(&key, &data, &mut output1);
         assert!(output1.to_hex() == "773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe");
 
         let mut output2 = [0u8; 64];
-        let mut hasher:HashSHA512 = Default::default();
+        let mut hasher: HashSHA512 = Default::default();
         hasher.hmac(&key, &data, &mut output2);
-        assert!(output2.to_owned().to_hex() == "fa73b0089d56a284efb0f0756c890be9\
+        assert!(output2.to_vec().to_hex() == "fa73b0089d56a284efb0f0756c890be9\
                                      b1b5dbdd8ee81a3655f83e33b2279d39\
                                      bf3e848279a722c806b485a47e67c807\
                                      b946a337bee8942674278859e13292fb");
@@ -361,7 +361,7 @@ mod tests {
         let mut hasher:HashBLAKE2b = Default::default();
         hasher.input("abc".as_bytes());
         hasher.result(&mut output);
-        assert!(output.to_owned().to_hex() == "ba80a53f981c4d0d6a2797b69f12f6e9\
+        assert!(output.to_vec().to_hex() == "ba80a53f981c4d0d6a2797b69f12f6e9\
                                     4c212f14685ac4b74b12bb6fdbffa2d1\
                                     7d87c5392aab792dc252d5de4533cc95\
                                     18d38aa8dbf1925ab92386edd4009923");
@@ -480,7 +480,7 @@ mod tests {
         let mut cipher2 : CipherChaChaPoly = Default::default();
         cipher2.set(&key);
         cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
-        assert!(resulttext.to_owned().to_hex() == plaintext.to_owned().to_hex());
+        assert!(resulttext.to_vec().to_hex() == plaintext.to_vec().to_hex());
     }
 
     #[test]
