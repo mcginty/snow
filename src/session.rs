@@ -103,6 +103,42 @@ impl Session {
         }
     }
 
+    /// Get the forthcoming inbound nonce value.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `NoiseError::StateError` if not in transport mode.
+    pub fn receiving_nonce(&self) -> Result<u64> {
+        match *self {
+            Session::Handshake(_) => Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into()),
+            Session::Transport(ref state) => Ok(state.receiving_nonce())
+        }
+    }
+
+    /// Get the forthcoming outbound nonce value.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `NoiseError::StateError` if not in transport mode.
+    pub fn sending_nonce(&self) -> Result<u64> {
+        match *self {
+            Session::Handshake(_) => Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into()),
+            Session::Transport(ref state) => Ok(state.sending_nonce())
+        }
+    }
+
+    /// Set the forthcoming incoming nonce value.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `NoiseError::StateError` if not in transport mode.
+    pub fn set_receiving_nonce(&mut self, nonce: u64) -> Result<()> {
+        match *self {
+            Session::Handshake(_) => Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into()),
+            Session::Transport(ref mut state) => Ok(state.set_receiving_nonce(nonce))
+        }
+    }
+
     /// Transition the session into transport mode. This can only be done once the handshake
     /// has finished.
     ///

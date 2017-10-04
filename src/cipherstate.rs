@@ -53,6 +53,14 @@ impl CipherState {
     pub fn rekey(&mut self, key: &[u8]) {
         self.cipher.set(key);
     }
+
+    pub fn nonce(&self) -> u64 {
+        self.n
+    }
+
+    pub fn set_nonce(&mut self, nonce: u64) {
+        self.n = nonce;
+    }
 }
 
 pub struct CipherStates(pub CipherState, pub CipherState);

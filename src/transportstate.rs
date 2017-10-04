@@ -55,4 +55,30 @@ impl TransportState {
     pub fn rekey_responder(&mut self, key: &[u8]) {
         self.cipherstates.rekey_responder(key)
     }
+
+    /// Sets the *receiving* CipherState's nonce. Useful for using noise on lossy transports.
+    pub fn set_receiving_nonce(&mut self, nonce: u64) {
+        if self.initiator {
+            self.cipherstates.1.set_nonce(nonce);
+        } else {
+            self.cipherstates.0.set_nonce(nonce);
+        }
+    }
+
+    /// Gets the *receiving* CipherState's nonce. Useful for using noise on lossy transports.
+    pub fn receiving_nonce(&self) -> u64 {
+        if self.initiator {
+            self.cipherstates.1.nonce()
+        } else {
+            self.cipherstates.0.nonce()
+        }
+    }
+
+    pub fn sending_nonce(&self) -> u64 {
+        if self.initiator {
+            self.cipherstates.0.nonce()
+        } else {
+            self.cipherstates.1.nonce()
+        }
+    }
 }

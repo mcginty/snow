@@ -420,3 +420,32 @@ fn test_oneway_responder_enforcements() {
     assert!(resp.write_message(&[0u8; 1024], &mut buffer_resp).is_err());
 }
 
+#[test]
+fn test_set_nonce() {
+    let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
+    let resp_builder = NoiseBuilder::new(params.clone());
+    let rpk = resp_builder.generate_private_key().unwrap();
+    let mut rk: Dh25519 = Dh25519::default();
+    rk.set(&rpk);
+
+    let mut resp = resp_builder.local_private_key(&rpk).build_responder().unwrap();
+    let mut init = NoiseBuilder::new(params).remote_public_key(rk.pubkey()).build_initiator().unwrap();
+
+    let mut buffer_resp = [0u8; 65535];
+    let mut buffer_init = [0u8; 65535];
+    let len = init.write_message(&[0u8; 0], &mut buffer_init).unwrap();
+    resp.read_message(&buffer_init[..len], &mut buffer_resp).unwrap();
+    init = init.into_transport_mode().unwrap();
+    resp = resp.into_transport_mode().unwrap();
+
+    init.write_message(&[0u8; 1024], &mut buffer_init).unwrap(); // skip to bump the nonce up
+    init.write_message(&[0u8; 1024], &mut buffer_init).unwrap(); // skip to bump the nonce up
+    init.write_message(&[0u8; 1024], &mut buffer_init).unwrap(); // skip to bump the nonce up
+    let outbound_nonce = init.sending_nonce().unwrap();
+    let len = init.write_message(&[0u8; 1024], &mut buffer_init).unwrap();
+
+
+    resp.set_receiving_nonce(outbound_nonce).unwrap();
+    resp.read_message(&buffer_init[..len], &mut buffer_resp).unwrap();
+
+}
