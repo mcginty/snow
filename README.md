@@ -15,21 +15,20 @@ Hard To Fuck Up™.
 See `examples/simple.rs` for a more complete TCP client/server example.
 
 ```rust
-let mut noise = NoiseBuilder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse().unwrap())
-                         .build_initiator()
-                         .unwrap();
+let mut noise = NoiseBuilder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse()?)
+                    .build_initiator()?;
  
 let mut buf = [0u8; 65535];
  
 // write first handshake message
-noise.write_message(&[], &mut buf).unwrap();
+noise.write_message(&[], &mut buf)?;
  
 // receive response message
 let incoming = receive_message_from_the_mysterious_ether();
-noise.read_message(&incoming, &mut buf).unwrap();
+noise.read_message(&incoming, &mut buf)?;
  
 // complete handshake, and transition the state machine into transport mode
-let mut noise = noise.into_transport_mode();
+let mut noise = noise.into_transport_mode()?;
 ```
 
 See the full documentation at [https://docs.rs/snow](https://docs.rs/snow).
