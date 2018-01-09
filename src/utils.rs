@@ -39,6 +39,14 @@ impl<T> Toggle<T> {
     pub fn is_on(&self) -> bool {
         self.on
     }
+
+    pub fn as_option_ref(&self) -> Option<&T> {
+        if self.on {
+            Some(&self.inner)
+        } else {
+            None
+        }
+    }
 }
 
 impl<T> Deref for Toggle<T> {

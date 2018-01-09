@@ -284,6 +284,10 @@ impl HandshakeState {
         Ok(payload_len)
     }
 
+    pub fn get_remote_static(&self) -> Option<&[u8; MAXDHLEN]> {
+        self.rs.as_option_ref()
+    }
+
     pub fn finish(self) -> Result<(CipherStates, HandshakeChoice)> {
         if self.is_finished() {
             Ok((self.cipherstates, self.params.handshake))
