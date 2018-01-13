@@ -29,7 +29,7 @@ rand = "^0.3"
 static_slice = "0.0.3"
 blake2-rfc = "^0.2"
 chacha20-poly1305-aead = "^0.1"
-ring = { version = "^0.12", optional = true }
+ring = { version = "0.13.0-alpha", optional = true }
 
 [dev-dependencies]
 clap = "^2.0"
@@ -46,3 +46,4 @@ rustc_version = "^0.2"
 features = [ "ring-resolver" ]
 all-features = false
 no-default-features = false
+
