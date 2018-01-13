@@ -95,7 +95,7 @@ fn test_protocol_name() {
     assert_eq!(protocol_spec.cipher, CipherChoice::ChaChaPoly);
     assert_eq!(protocol_spec.hash, HashChoice::Blake2s);
 
-    let protocol_spec: Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_BLAKE2X".parse();
+    let protocol_spec: Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_FAKE2X".parse();
     if protocol_spec.is_ok() {
         panic!("invalid protocol was parsed inaccurately");
     }
@@ -447,5 +447,55 @@ fn test_set_nonce() {
 
     resp.set_receiving_nonce(outbound_nonce).unwrap();
     resp.read_message(&buffer_init[..len], &mut buffer_resp).unwrap();
+}
 
+#[test]
+fn test_buffer_issues() {
+    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let mut h_i = NoiseBuilder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = NoiseBuilder::new(params).build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 2];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    let res = h_r.read_message(&buffer_msg[..len], &mut buffer_out);
+
+    assert!(res.is_err());
+}
+
+#[test]
+fn test_buffer_issues_encrypted_handshake() {
+    let params: NoiseParams = "Noise_IKpsk2_25519_AESGCM_SHA256".parse().unwrap();
+
+    let b_i = NoiseBuilder::new(params.clone());
+    let b_r = NoiseBuilder::new(params);
+
+    let static_i = b_i.generate_private_key().unwrap();
+    let static_r = b_r.generate_private_key().unwrap();
+
+    let mut static_i_dh: Dh25519 = Default::default();
+    let mut static_r_dh: Dh25519 = Default::default();
+
+    static_i_dh.set(&static_i);
+    static_r_dh.set(&static_r);
+
+    let mut h_i = b_i
+        .psk(2, &[32u8; 32])
+        .local_private_key(&static_i)
+        .remote_public_key(static_r_dh.pubkey())
+        .build_initiator()
+        .unwrap();
+    let mut h_r = b_r
+        .psk(2, &[32u8; 32])
+        .local_private_key(&static_r)
+        .remote_public_key(static_i_dh.pubkey())
+        .build_responder()
+        .unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 2];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    let res = h_r.read_message(&buffer_msg[..len], &mut buffer_out);
+
+    assert!(res.is_err());
 }

@@ -1,3 +1,4 @@
+use constants::*;
 use error::{self, ErrorKind, InitStage};
 use types::Cipher;
 
@@ -34,9 +35,11 @@ impl CipherState {
         len
     }
 
-    // TODO: don't panic
     pub fn decrypt_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
-        assert!(self.has_key);
+        if (ciphertext.len() < TAGLEN) || (out.len() < (ciphertext.len() - TAGLEN) || !self.has_key) {
+            return Err(())
+        }
+
         let len = self.cipher.decrypt(self.n, authtext, ciphertext, out);
         self.n = self.n.checked_add(1).unwrap();
         len

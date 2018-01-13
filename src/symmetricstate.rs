@@ -108,6 +108,9 @@ impl SymmetricStateType for SymmetricState {
         let payload_len = if self.has_key {
             self.cipherstate.decrypt_ad(&self.h[..hash_len], data, out)?
         } else {
+            if out.len() < data.len() {
+                return Err(())
+            }
             copy_memory(data, out);
             data.len()
         };
