@@ -3,13 +3,13 @@ use error::{self, ErrorKind, InitStage};
 use types::Cipher;
 
 pub struct CipherState {
-    cipher : Box<Cipher>,
+    cipher : Box<Cipher + Send>,
     n : u64,
     has_key : bool,
 }
 
 impl CipherState {
-    pub fn new(cipher: Box<Cipher>) -> Self {
+    pub fn new(cipher: Box<Cipher + Send>) -> Self {
         Self {
             cipher: cipher,
             n: 0,

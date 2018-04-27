@@ -16,11 +16,11 @@ use error::{ErrorKind, Result, InitStage, StateProblem};
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct HandshakeState {
-    rng : Box<Random>,
+    rng : Box<Random + Send>,
     symmetricstate : SymmetricState,
     cipherstates: CipherStates,
-    s: Toggle<Box<Dh>>,
-    e: Toggle<Box<Dh>>,
+    s: Toggle<Box<Dh + Send>>,
+    e: Toggle<Box<Dh + Send>>,
     fixed_ephemeral: bool,
     rs: Toggle<[u8; MAXDHLEN]>,
     re: Toggle<[u8; MAXDHLEN]>,
@@ -34,11 +34,11 @@ pub struct HandshakeState {
 impl HandshakeState {
     #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
     pub fn new(
-        rng: Box<Random>,
+        rng: Box<Random + Send>,
         cipherstate: CipherState,
-        hasher: Box<Hash>,
-        s : Toggle<Box<Dh>>,
-        e : Toggle<Box<Dh>>,
+        hasher: Box<Hash + Send>,
+        s : Toggle<Box<Dh + Send>>,
+        e : Toggle<Box<Dh + Send>>,
         fixed_ephemeral: bool,
         rs: Toggle<[u8; MAXDHLEN]>,
         re: Toggle<[u8; MAXDHLEN]>,

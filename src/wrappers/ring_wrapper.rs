@@ -18,15 +18,15 @@ impl RingAcceleratedResolver {
 
 #[cfg(feature = "ring")]
 impl CryptoResolver for RingAcceleratedResolver {
-    fn resolve_rng(&self) -> Option<Box<Random>> {
+    fn resolve_rng(&self) -> Option<Box<Random + Send>> {
         self.parent.resolve_rng()
     }
 
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh>> {
+    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh + Send>> {
         self.parent.resolve_dh(choice)
     }
 
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash>> {
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>> {
         match *choice {
             HashChoice::SHA256 => Some(Box::new(HashSHA256::default())),
             HashChoice::SHA512 => Some(Box::new(HashSHA512::default())),
@@ -34,7 +34,7 @@ impl CryptoResolver for RingAcceleratedResolver {
         }
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
         match *choice {
             CipherChoice::AESGCM => Some(Box::new(CipherAESGCM::default())),
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
