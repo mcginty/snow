@@ -18,14 +18,14 @@ pub trait SymmetricStateType {
 
 pub struct SymmetricState {
     cipherstate : CipherState,
-    hasher: Box<Hash>,
+    hasher: Box<Hash + Send>,
     h : [u8; MAXHASHLEN],
     ck: [u8; MAXHASHLEN],
     has_key: bool,
 }
 
 impl SymmetricState {
-    pub fn new(cipherstate: CipherState, hasher: Box<Hash>) -> SymmetricState
+    pub fn new(cipherstate: CipherState, hasher: Box<Hash + Send>) -> SymmetricState
     {
         SymmetricState {
             cipherstate: cipherstate,
