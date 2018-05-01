@@ -499,3 +499,18 @@ fn test_buffer_issues_encrypted_handshake() {
 
     assert!(res.is_err());
 }
+
+#[test]
+fn test_send_trait() {
+    use std::thread;
+    use std::sync::mpsc::channel;
+
+
+    let (tx, rx) = channel();
+    thread::spawn(move|| {
+        let session = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
+                        .build_initiator().unwrap();
+        tx.send(session).unwrap();
+    });
+    let _session = rx.recv().expect("failed to receive noise session");
+}
