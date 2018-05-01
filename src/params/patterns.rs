@@ -314,7 +314,7 @@ impl TryFrom<HandshakeChoice> for HandshakeTokens {
                     0 => { patterns.2[0].insert(0, Token::Psk(n)); },
                     _ => {
                         let i = (n as usize) - 1;
-                        if patterns.2[i].push(Token::Psk(n)).is_some() {
+                        if patterns.2[i].try_push(Token::Psk(n)).is_err() {
                             return Err("token incompatible with selected handshake");
                         }
                     }

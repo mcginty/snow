@@ -148,7 +148,7 @@ impl HandshakeState {
         }
 
         let next_tokens = if !self.message_patterns.is_empty() {
-            self.message_patterns.remove(0).unwrap()
+            self.message_patterns.remove(0)
         } else {
             bail!(ErrorKind::State(StateProblem::HandshakeAlreadyFinished));
         };
@@ -225,7 +225,7 @@ impl HandshakeState {
         }
 
         let next_tokens = if self.message_patterns.len() > 0 {
-            self.message_patterns.remove(0)
+            Some(self.message_patterns.remove(0))
         } else {
             None
         };
