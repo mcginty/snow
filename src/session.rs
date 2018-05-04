@@ -1,7 +1,9 @@
 use error::{Error, ErrorKind, Result, StateProblem};
 use handshakestate::HandshakeState;
-#[cfg(feature = "nightly")] use std::convert::{TryFrom, TryInto};
-#[cfg(not(feature = "nightly"))] use utils::{TryFrom, TryInto};
+#[cfg(feature = "nightly")]
+use std::convert::{TryFrom, TryInto};
+#[cfg(not(feature = "nightly"))]
+use utils::{TryFrom, TryInto};
 use transportstate::*;
 
 /// A state machine for the entire Noise session.
@@ -90,7 +92,9 @@ impl Session {
     /// Will result in `NoiseError::StateError` if not in transport mode.
     pub fn rekey(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) -> Result<()> {
         match *self {
-            Session::Handshake(_) => Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into()),
+            Session::Handshake(_) => {
+                Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into())
+            }
             Session::Transport(ref mut state) => {
                 if let Some(key) = initiator {
                     state.rekey_initiator(key);
@@ -99,7 +103,7 @@ impl Session {
                     state.rekey_responder(key);
                 }
                 Ok(())
-            },
+            }
         }
     }
 
@@ -110,8 +114,10 @@ impl Session {
     /// Will result in `NoiseError::StateError` if not in transport mode.
     pub fn receiving_nonce(&self) -> Result<u64> {
         match *self {
-            Session::Handshake(_) => Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into()),
-            Session::Transport(ref state) => Ok(state.receiving_nonce())
+            Session::Handshake(_) => {
+                Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into())
+            }
+            Session::Transport(ref state) => Ok(state.receiving_nonce()),
         }
     }
 
@@ -122,8 +128,10 @@ impl Session {
     /// Will result in `NoiseError::StateError` if not in transport mode.
     pub fn sending_nonce(&self) -> Result<u64> {
         match *self {
-            Session::Handshake(_) => Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into()),
-            Session::Transport(ref state) => Ok(state.sending_nonce())
+            Session::Handshake(_) => {
+                Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into())
+            }
+            Session::Transport(ref state) => Ok(state.sending_nonce()),
         }
     }
 
@@ -134,8 +142,10 @@ impl Session {
     /// Will result in `NoiseError::StateError` if not in transport mode.
     pub fn set_receiving_nonce(&mut self, nonce: u64) -> Result<()> {
         match *self {
-            Session::Handshake(_) => Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into()),
-            Session::Transport(ref mut state) => Ok(state.set_receiving_nonce(nonce))
+            Session::Handshake(_) => {
+                Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into())
+            }
+            Session::Transport(ref mut state) => Ok(state.set_receiving_nonce(nonce)),
         }
     }
 
@@ -168,8 +178,8 @@ impl Session {
                 } else {
                     Ok(Session::Transport(state.try_into()?))
                 }
-            },
-            _ => Ok(self)
+            }
+            _ => Ok(self),
         }
     }
 }
@@ -186,7 +196,10 @@ impl TryFrom<HandshakeState> for TransportState {
     fn try_from(old: HandshakeState) -> Result<Self> {
         let initiator = old.is_initiator();
         let (cipherstates, handshake) = old.finish()?;
-        Ok(TransportState::new(cipherstates, handshake.pattern, initiator))
+        Ok(TransportState::new(
+            cipherstates,
+            handshake.pattern,
+            initiator,
+        ))
     }
 }
-

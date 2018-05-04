@@ -25,27 +25,33 @@ impl TransportState {
         }
     }
 
-    pub fn write_transport_message(&mut self,
-                                   payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize> {
+    pub fn write_transport_message(&mut self, payload: &[u8], message: &mut [u8]) -> Result<usize> {
         if !self.initiator && self.pattern.is_oneway() {
             bail!(ErrorKind::State(StateProblem::OneWay));
         } else if payload.len() + TAGLEN > MAXMSGLEN || payload.len() + TAGLEN > message.len() {
             bail!(ErrorKind::Input);
         }
 
-        let cipher = if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
+        let cipher = if self.initiator {
+            &mut self.cipherstates.0
+        } else {
+            &mut self.cipherstates.1
+        };
         Ok(cipher.encrypt(payload, message))
     }
 
-    pub fn read_transport_message(&mut self,
-                                   payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize> {
+    pub fn read_transport_message(&mut self, payload: &[u8], message: &mut [u8]) -> Result<usize> {
         if self.initiator && self.pattern.is_oneway() {
             bail!(ErrorKind::State(StateProblem::OneWay));
         }
-        let cipher = if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
-        cipher.decrypt(payload, message).map_err(|_| ErrorKind::Decrypt.into())
+        let cipher = if self.initiator {
+            &mut self.cipherstates.1
+        } else {
+            &mut self.cipherstates.0
+        };
+        cipher
+            .decrypt(payload, message)
+            .map_err(|_| ErrorKind::Decrypt.into())
     }
 
     pub fn rekey_initiator(&mut self, key: &[u8]) {

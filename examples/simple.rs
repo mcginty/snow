@@ -5,8 +5,9 @@
 //! Run the server a-like-a-so `cargo run --example simple -- -s`, then run the client
 //! as `cargo run --example simple` to see the magic happen.
 
-#[macro_use] extern crate lazy_static;
 extern crate clap;
+#[macro_use]
+extern crate lazy_static;
 extern crate snow;
 
 use clap::App;
@@ -21,7 +22,9 @@ lazy_static! {
 }
 
 fn main() {
-    let matches = App::new("simple").args_from_usage("-s --server 'Server mode'").get_matches();
+    let matches = App::new("simple")
+        .args_from_usage("-s --server 'Server mode'")
+        .get_matches();
 
     if matches.is_present("server") {
         run_server();
@@ -40,21 +43,29 @@ fn run_server() {
     let mut noise = builder
         .local_private_key(&static_key)
         .psk(3, SECRET)
-        .build_responder().unwrap();
+        .build_responder()
+        .unwrap();
 
     // Wait on our client's arrival...
     println!("listening on 127.0.0.1:9999");
-    let (mut stream, _) = TcpListener::bind("127.0.0.1:9999").unwrap().accept().unwrap();
+    let (mut stream, _) = TcpListener::bind("127.0.0.1:9999")
+        .unwrap()
+        .accept()
+        .unwrap();
 
     // <- e
-    noise.read_message(&recv(&mut stream).unwrap(), &mut buf).unwrap();
+    noise
+        .read_message(&recv(&mut stream).unwrap(), &mut buf)
+        .unwrap();
 
     // -> e, ee, s, es
     let len = noise.write_message(&[0u8; 0], &mut buf).unwrap();
     send(&mut stream, &buf[..len]);
 
     // <- s, se
-    noise.read_message(&recv(&mut stream).unwrap(), &mut buf).unwrap();
+    noise
+        .read_message(&recv(&mut stream).unwrap(), &mut buf)
+        .unwrap();
 
     // Transition the state machine into transport mode now that the handshake is complete.
     let mut noise = noise.into_transport_mode().unwrap();
@@ -75,7 +86,8 @@ fn run_client() {
     let mut noise = builder
         .local_private_key(&static_key)
         .psk(3, SECRET)
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
 
     // Connect to our server, which is hopefully listening.
     let mut stream = TcpStream::connect("127.0.0.1:9999").unwrap();
@@ -86,7 +98,9 @@ fn run_client() {
     send(&mut stream, &buf[..len]);
 
     // <- e, ee, s, es
-    noise.read_message(&recv(&mut stream).unwrap(), &mut buf).unwrap();
+    noise
+        .read_message(&recv(&mut stream).unwrap(), &mut buf)
+        .unwrap();
 
     // -> s, se
     let len = noise.write_message(&[], &mut buf).unwrap();

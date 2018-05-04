@@ -33,9 +33,12 @@
 
 extern crate arrayvec;
 extern crate byteorder;
-#[macro_use] extern crate static_slice;
-#[macro_use] extern crate error_chain;
-#[cfg(feature = "ring-resolver")] extern crate ring;
+#[macro_use]
+extern crate error_chain;
+#[cfg(feature = "ring-resolver")]
+extern crate ring;
+#[macro_use]
+extern crate static_slice;
 
 mod error;
 mod constants;
@@ -56,4 +59,5 @@ pub use noise::{CryptoResolver, DefaultResolver};
 pub use noise::NoiseBuilder;
 pub use session::Session;
 
-#[cfg(feature = "ring-resolver")] pub use wrappers::ring_wrapper::RingAcceleratedResolver;
+#[cfg(feature = "ring-resolver")]
+pub use wrappers::ring_wrapper::RingAcceleratedResolver;

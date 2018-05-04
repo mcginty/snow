@@ -4,17 +4,19 @@ use self::rand::{OsRng, Rng};
 use types::*;
 
 pub struct RandomOs {
-    rng : OsRng
+    rng: OsRng,
 }
 
 impl Default for RandomOs {
     fn default() -> RandomOs {
-        RandomOs {rng: OsRng::new().unwrap()}
+        RandomOs {
+            rng: OsRng::new().unwrap(),
+        }
     }
 }
 
 impl Random for RandomOs {
     fn fill_bytes(&mut self, out: &mut [u8]) {
-        self.rng.fill_bytes(out); 
+        self.rng.fill_bytes(out);
     }
 }

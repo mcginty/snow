@@ -4,31 +4,28 @@ extern crate hex;
 extern crate snow;
 
 use hex::{FromHex, ToHex};
-use snow::{NoiseBuilder, CryptoResolver, DefaultResolver};
+use snow::{CryptoResolver, DefaultResolver, NoiseBuilder};
 use snow::params::*;
 use snow::types::*;
 use snow::wrappers::crypto_wrapper::Dh25519;
 
 struct RandomInc {
-    next_byte: u8
+    next_byte: u8,
 }
 
 impl Default for RandomInc {
-
     fn default() -> RandomInc {
-        RandomInc {next_byte: 0}
+        RandomInc { next_byte: 0 }
     }
 }
 
 impl Random for RandomInc {
-
     fn fill_bytes(&mut self, out: &mut [u8]) {
         for count in 0..out.len() {
             out[count] = self.next_byte;
             if self.next_byte == 255 {
                 self.next_byte = 0;
-            }
-            else {
+            } else {
                 self.next_byte += 1;
             }
         }
@@ -52,7 +49,10 @@ struct TestResolver {
 #[allow(unused)]
 impl TestResolver {
     pub fn new(next_byte: u8) -> Self {
-        TestResolver{ next_byte: next_byte, parent: DefaultResolver }
+        TestResolver {
+            next_byte: next_byte,
+            parent: DefaultResolver,
+        }
     }
 
     pub fn next_byte(&mut self, next_byte: u8) {
@@ -81,13 +81,14 @@ impl CryptoResolver for TestResolver {
 }
 
 pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
-    for count in 0..data.len() {out[count] = data[count];}
+    for count in 0..data.len() {
+        out[count] = data[count];
+    }
     data.len()
 }
 
 #[test]
 fn test_protocol_name() {
-
     let protocol_spec: NoiseParams = "Noise_NK_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
 
     assert_eq!(protocol_spec.base, BaseChoice::Noise);
@@ -115,10 +116,12 @@ fn test_noise_session_transition_change() {
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     assert!(h_i.is_handshake_finished());
     assert!(h_r.is_handshake_finished());
@@ -135,16 +138,20 @@ fn test_sanity_session() {
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
-    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
-    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg)
+        .unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 }
 
@@ -157,7 +164,8 @@ fn test_Npsk0_expected_value() {
         .remote_public_key(static_r.pubkey())
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
 
     let mut buf = [0u8; 200];
     let len = h_i.write_message(&[], &mut buf).unwrap();
@@ -182,7 +190,8 @@ fn test_Xpsk0_expected_value() {
         .remote_public_key(static_r.pubkey())
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(64))
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
 
     let mut buf = [0u8; 200];
     let len = h_i.write_message(&[], &mut buf).unwrap();
@@ -208,14 +217,16 @@ fn test_XXpsk0_expected_value() {
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
     let mut h_r = NoiseBuilder::new(params)
         .local_private_key(static_r.privkey())
         .remote_public_key(static_i.pubkey())
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(33))
-        .build_responder().unwrap();
+        .build_responder()
+        .unwrap();
 
     let mut buf = [0u8; 1024];
     let mut buf2 = [0u8; 1024];
@@ -256,16 +267,20 @@ fn test_NNpsk0_sanity_session() {
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
-    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
-    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg)
+        .unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 }
 
@@ -280,14 +295,12 @@ fn test_XXpsk1_sanity_session() {
     let mut static_r_dh: Dh25519 = Default::default();
     static_i_dh.set(&static_i);
     static_r_dh.set(&static_r);
-    let mut h_i = b_i
-        .psk(1, &[32u8; 32])
+    let mut h_i = b_i.psk(1, &[32u8; 32])
         .local_private_key(&static_i)
         .remote_public_key(static_r_dh.pubkey())
         .build_initiator()
         .unwrap();
-    let mut h_r = b_r
-        .psk(1, &[32u8; 32])
+    let mut h_r = b_r.psk(1, &[32u8; 32])
         .local_private_key(&static_r)
         .remote_public_key(static_i_dh.pubkey())
         .build_responder()
@@ -296,19 +309,24 @@ fn test_XXpsk1_sanity_session() {
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let len = h_i.write_message(b"hij", &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
-    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
-    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg)
+        .unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 }
 
@@ -323,27 +341,35 @@ fn test_rekey() {
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
-    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
-    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg)
+        .unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 
     h_i.rekey(Some(&[1u8; 32]), Some(&[2u8; 32])).unwrap();
     h_r.rekey(Some(&[1u8; 32]), Some(&[2u8; 32])).unwrap();
 
-    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
-    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg)
+        .unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 
-    let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
-    let len = h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    let len = h_r.write_message(b"hack the planet", &mut buffer_msg)
+        .unwrap();
+    let len = h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 }
 
@@ -352,7 +378,7 @@ fn test_handshake_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
 
-    let mut buffer_out = [0u8; 65535*2];
+    let mut buffer_out = [0u8; 65535 * 2];
     assert!(h_i.write_message(&[0u8; 65530], &mut buffer_out).is_err());
 }
 
@@ -368,9 +394,12 @@ fn test_handshake_message_undersized_output_buffer() {
 #[test]
 fn test_transport_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
-    let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+    let mut noise = NoiseBuilder::new(params)
+        .remote_public_key(&[0u8; 32])
+        .build_initiator()
+        .unwrap();
 
-    let mut buffer_out = [0u8; 65535*2];
+    let mut buffer_out = [0u8; 65535 * 2];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
     noise = noise.into_transport_mode().unwrap();
     assert!(noise.write_message(&[0u8; 65534], &mut buffer_out).is_err());
@@ -379,7 +408,10 @@ fn test_transport_message_exceeds_max_len() {
 #[test]
 fn test_transport_message_undersized_output_buffer() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
-    let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+    let mut noise = NoiseBuilder::new(params)
+        .remote_public_key(&[0u8; 32])
+        .build_initiator()
+        .unwrap();
 
     let mut buffer_out = [0u8; 200];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
@@ -390,7 +422,10 @@ fn test_transport_message_undersized_output_buffer() {
 #[test]
 fn test_oneway_initiator_enforcements() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
-    let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+    let mut noise = NoiseBuilder::new(params)
+        .remote_public_key(&[0u8; 32])
+        .build_initiator()
+        .unwrap();
 
     let mut buffer_out = [0u8; 1024];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
@@ -406,13 +441,20 @@ fn test_oneway_responder_enforcements() {
     let mut rk: Dh25519 = Dh25519::default();
     rk.set(&rpk);
 
-    let mut resp = resp_builder.local_private_key(&rpk).build_responder().unwrap();
-    let mut init = NoiseBuilder::new(params).remote_public_key(rk.pubkey()).build_initiator().unwrap();
+    let mut resp = resp_builder
+        .local_private_key(&rpk)
+        .build_responder()
+        .unwrap();
+    let mut init = NoiseBuilder::new(params)
+        .remote_public_key(rk.pubkey())
+        .build_initiator()
+        .unwrap();
 
     let mut buffer_resp = [0u8; 65535];
     let mut buffer_init = [0u8; 65535];
     let len = init.write_message(&[0u8; 0], &mut buffer_init).unwrap();
-    resp.read_message(&buffer_init[..len], &mut buffer_resp).unwrap();
+    resp.read_message(&buffer_init[..len], &mut buffer_resp)
+        .unwrap();
     init = init.into_transport_mode().unwrap();
     resp = resp.into_transport_mode().unwrap();
 
@@ -428,13 +470,20 @@ fn test_set_nonce() {
     let mut rk: Dh25519 = Dh25519::default();
     rk.set(&rpk);
 
-    let mut resp = resp_builder.local_private_key(&rpk).build_responder().unwrap();
-    let mut init = NoiseBuilder::new(params).remote_public_key(rk.pubkey()).build_initiator().unwrap();
+    let mut resp = resp_builder
+        .local_private_key(&rpk)
+        .build_responder()
+        .unwrap();
+    let mut init = NoiseBuilder::new(params)
+        .remote_public_key(rk.pubkey())
+        .build_initiator()
+        .unwrap();
 
     let mut buffer_resp = [0u8; 65535];
     let mut buffer_init = [0u8; 65535];
     let len = init.write_message(&[0u8; 0], &mut buffer_init).unwrap();
-    resp.read_message(&buffer_init[..len], &mut buffer_resp).unwrap();
+    resp.read_message(&buffer_init[..len], &mut buffer_resp)
+        .unwrap();
     init = init.into_transport_mode().unwrap();
     resp = resp.into_transport_mode().unwrap();
 
@@ -444,9 +493,9 @@ fn test_set_nonce() {
     let outbound_nonce = init.sending_nonce().unwrap();
     let len = init.write_message(&[0u8; 1024], &mut buffer_init).unwrap();
 
-
     resp.set_receiving_nonce(outbound_nonce).unwrap();
-    resp.read_message(&buffer_init[..len], &mut buffer_resp).unwrap();
+    resp.read_message(&buffer_init[..len], &mut buffer_resp)
+        .unwrap();
 }
 
 #[test]
@@ -479,14 +528,12 @@ fn test_buffer_issues_encrypted_handshake() {
     static_i_dh.set(&static_i);
     static_r_dh.set(&static_r);
 
-    let mut h_i = b_i
-        .psk(2, &[32u8; 32])
+    let mut h_i = b_i.psk(2, &[32u8; 32])
         .local_private_key(&static_i)
         .remote_public_key(static_r_dh.pubkey())
         .build_initiator()
         .unwrap();
-    let mut h_r = b_r
-        .psk(2, &[32u8; 32])
+    let mut h_r = b_r.psk(2, &[32u8; 32])
         .local_private_key(&static_r)
         .remote_public_key(static_i_dh.pubkey())
         .build_responder()
@@ -505,11 +552,11 @@ fn test_send_trait() {
     use std::thread;
     use std::sync::mpsc::channel;
 
-
     let (tx, rx) = channel();
-    thread::spawn(move|| {
+    thread::spawn(move || {
         let session = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
-                        .build_initiator().unwrap();
+            .build_initiator()
+            .unwrap();
         tx.send(session).unwrap();
     });
     let _session = rx.recv().expect("failed to receive noise session");

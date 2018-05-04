@@ -23,20 +23,30 @@ error_chain!{
 /// the specific cause of an `Init` error.
 #[derive(Debug)]
 pub enum InitStage {
-    ValidateKeyLengths, ValidatePskLengths, ValidateCipherTypes,
-    GetRngImpl, GetDhImpl, GetCipherImpl, GetHashImpl
+    ValidateKeyLengths,
+    ValidatePskLengths,
+    ValidateCipherTypes,
+    GetRngImpl,
+    GetDhImpl,
+    GetCipherImpl,
+    GetHashImpl,
 }
 
 /// A prerequisite that may be missing.
 #[derive(Debug)]
 pub enum Prerequisite {
-    LocalPrivateKey, RemotePublicKey
+    LocalPrivateKey,
+    RemotePublicKey,
 }
 
 /// Specific errors in the state machine.
 #[derive(Debug)]
 pub enum StateProblem {
-    MissingKeyMaterial, MissingPsk, NotTurnToWrite, NotTurnToRead,
-    HandshakeNotFinished, HandshakeAlreadyFinished, OneWay
+    MissingKeyMaterial,
+    MissingPsk,
+    NotTurnToWrite,
+    NotTurnToRead,
+    HandshakeNotFinished,
+    HandshakeAlreadyFinished,
+    OneWay,
 }
-
