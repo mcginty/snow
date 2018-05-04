@@ -17,28 +17,26 @@ pub trait SymmetricStateType {
 }
 
 pub struct SymmetricState {
-    cipherstate : CipherState,
+    cipherstate: CipherState,
     hasher: Box<Hash + Send>,
-    h : [u8; MAXHASHLEN],
+    h: [u8; MAXHASHLEN],
     ck: [u8; MAXHASHLEN],
     has_key: bool,
 }
 
 impl SymmetricState {
-    pub fn new(cipherstate: CipherState, hasher: Box<Hash + Send>) -> SymmetricState
-    {
+    pub fn new(cipherstate: CipherState, hasher: Box<Hash + Send>) -> SymmetricState {
         SymmetricState {
             cipherstate: cipherstate,
             hasher: hasher,
             h: [0u8; MAXHASHLEN],
-            ck : [0u8; MAXHASHLEN],
+            ck: [0u8; MAXHASHLEN],
             has_key: false,
         }
     }
 }
 
 impl SymmetricStateType for SymmetricState {
-
     fn cipher_name(&self) -> &'static str {
         self.cipherstate.name()
     }
@@ -63,7 +61,14 @@ impl SymmetricStateType for SymmetricState {
     fn mix_key(&mut self, data: &[u8]) {
         let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(&self.ck[..hash_len], data, 2, &mut hkdf_output.0, &mut hkdf_output.1, &mut []);
+        self.hasher.hkdf(
+            &self.ck[..hash_len],
+            data,
+            2,
+            &mut hkdf_output.0,
+            &mut hkdf_output.1,
+            &mut [],
+        );
         copy_memory(&hkdf_output.0, &mut self.ck);
         self.cipherstate.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
         self.has_key = true;
@@ -80,7 +85,14 @@ impl SymmetricStateType for SymmetricState {
     fn mix_key_and_hash(&mut self, data: &[u8]) {
         let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(&self.ck[..hash_len], data, 3, &mut hkdf_output.0, &mut hkdf_output.1, &mut hkdf_output.2);
+        self.hasher.hkdf(
+            &self.ck[..hash_len],
+            data,
+            3,
+            &mut hkdf_output.0,
+            &mut hkdf_output.1,
+            &mut hkdf_output.2,
+        );
         copy_memory(&hkdf_output.0, &mut self.ck);
         self.mix_hash(&hkdf_output.1[..hash_len]);
         self.cipherstate.set(&hkdf_output.2[..CIPHERKEYLEN], 0);
@@ -94,7 +106,8 @@ impl SymmetricStateType for SymmetricState {
     fn encrypt_and_mix_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
         let hash_len = self.hasher.hash_len();
         let output_len = if self.has_key {
-            self.cipherstate.encrypt_ad(&self.h[..hash_len], plaintext, out)
+            self.cipherstate
+                .encrypt_ad(&self.h[..hash_len], plaintext, out)
         } else {
             copy_memory(plaintext, out);
             plaintext.len()
@@ -109,7 +122,7 @@ impl SymmetricStateType for SymmetricState {
             self.cipherstate.decrypt_ad(&self.h[..hash_len], data, out)?
         } else {
             if out.len() < data.len() {
-                return Err(())
+                return Err(());
             }
             copy_memory(data, out);
             data.len()
@@ -121,12 +134,15 @@ impl SymmetricStateType for SymmetricState {
     fn split(&mut self, child1: &mut CipherState, child2: &mut CipherState) {
         let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(&self.ck[..hash_len], &[0u8; 0], 2,
-                         &mut hkdf_output.0,
-                         &mut hkdf_output.1,
-                         &mut []);
+        self.hasher.hkdf(
+            &self.ck[..hash_len],
+            &[0u8; 0],
+            2,
+            &mut hkdf_output.0,
+            &mut hkdf_output.1,
+            &mut [],
+        );
         child1.set(&hkdf_output.0[..CIPHERKEYLEN], 0);
         child2.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
     }
-
 }

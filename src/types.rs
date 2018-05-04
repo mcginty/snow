@@ -26,8 +26,14 @@ pub trait Cipher {
     fn name(&self) -> &'static str;
 
     fn set(&mut self, key: &[u8]);
-    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize;
-    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()>;
+    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize;
+    fn decrypt(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ()>;
 }
 
 /// Provides hashing operations
@@ -65,7 +71,15 @@ pub trait Hash {
         self.result(out);
     }
 
-    fn hkdf(&mut self, chaining_key: &[u8], input_key_material: &[u8], outputs: usize, out1: &mut [u8], out2: &mut [u8], out3: &mut [u8]) {
+    fn hkdf(
+        &mut self,
+        chaining_key: &[u8],
+        input_key_material: &[u8],
+        outputs: usize,
+        out1: &mut [u8],
+        out2: &mut [u8],
+        out3: &mut [u8],
+    ) {
         let hash_len = self.hash_len();
         let mut temp_key = [0u8; MAXHASHLEN];
         self.hmac(chaining_key, input_key_material, &mut temp_key);
@@ -74,17 +88,17 @@ pub trait Hash {
             return;
         }
 
-        let mut in2 = [0u8; MAXHASHLEN+1];
+        let mut in2 = [0u8; MAXHASHLEN + 1];
         copy_memory(&out1[0..hash_len], &mut in2);
         in2[hash_len] = 2;
-        self.hmac(&temp_key, &in2[..hash_len+1], out2);
+        self.hmac(&temp_key, &in2[..hash_len + 1], out2);
         if outputs == 2 {
             return;
         }
 
-        let mut in3 = [0u8; MAXHASHLEN+1];
+        let mut in3 = [0u8; MAXHASHLEN + 1];
         copy_memory(&out2[0..hash_len], &mut in3);
         in3[hash_len] = 3;
-        self.hmac(&temp_key, &in3[..hash_len+1], out3);
+        self.hmac(&temp_key, &in3[..hash_len + 1], out3);
     }
 }

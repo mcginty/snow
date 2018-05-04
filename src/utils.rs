@@ -1,7 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
 pub fn copy_memory(input: &[u8], out: &mut [u8]) -> usize {
-    for count in 0..input.len() {out[count] = input[count];}
+    for count in 0..input.len() {
+        out[count] = input[count];
+    }
     input.len()
 }
 
@@ -17,14 +19,14 @@ impl<T> Toggle<T> {
     pub fn on(inner: T) -> Self {
         Self {
             inner: inner,
-            on: true
+            on: true,
         }
     }
 
     pub fn off(inner: T) -> Self {
         Self {
             inner: inner,
-            on: false
+            on: false,
         }
     }
 
@@ -78,7 +80,9 @@ pub trait TryFrom<T>: Sized {
 }
 
 #[cfg(not(feature = "nightly"))]
-impl<T, U> TryInto<U> for T where U: TryFrom<T>
+impl<T, U> TryInto<U> for T
+where
+    U: TryFrom<T>,
 {
     type Error = U::Error;
 

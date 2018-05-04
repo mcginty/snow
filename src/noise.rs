@@ -7,9 +7,10 @@ use cipherstate::*;
 use session::*;
 use utils::*;
 use params::*;
-use error::{ErrorKind, Result, InitStage, Prerequisite};
+use error::{ErrorKind, InitStage, Prerequisite, Result};
 
-#[cfg(feature = "ring-resolver" )] use wrappers::ring_wrapper::RingAcceleratedResolver;
+#[cfg(feature = "ring-resolver")]
+use wrappers::ring_wrapper::RingAcceleratedResolver;
 
 /// An object that resolves the providers of Noise crypto choices
 pub trait CryptoResolver {
@@ -29,14 +30,14 @@ impl CryptoResolver for DefaultResolver {
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh + Send>> {
         match *choice {
             DHChoice::Curve25519 => Some(Box::new(Dh25519::default())),
-            _                    => None,
+            _ => None,
         }
     }
 
     fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>> {
         match *choice {
-            HashChoice::SHA256  => Some(Box::new(HashSHA256::default())),
-            HashChoice::SHA512  => Some(Box::new(HashSHA512::default())),
+            HashChoice::SHA256 => Some(Box::new(HashSHA256::default())),
+            HashChoice::SHA512 => Some(Box::new(HashSHA512::default())),
             HashChoice::Blake2s => Some(Box::new(HashBLAKE2s::default())),
             HashChoice::Blake2b => Some(Box::new(HashBLAKE2b::default())),
         }
@@ -45,7 +46,7 @@ impl CryptoResolver for DefaultResolver {
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
         match *choice {
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
-            CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
+            CipherChoice::AESGCM => Some(Box::new(CipherAESGCM::default())),
         }
     }
 }
@@ -67,13 +68,13 @@ impl CryptoResolver for DefaultResolver {
 ///                          .unwrap();
 /// ```
 pub struct NoiseBuilder<'builder> {
-    params:   NoiseParams,
+    params: NoiseParams,
     resolver: Box<CryptoResolver>,
-    s:        Option<&'builder [u8]>,
-    e_fixed:  Option<&'builder [u8]>,
-    rs:       Option<&'builder [u8]>,
-    psks:     [Option<&'builder [u8]>; 10],
-    plog:     Option<&'builder [u8]>,
+    s: Option<&'builder [u8]>,
+    e_fixed: Option<&'builder [u8]>,
+    rs: Option<&'builder [u8]>,
+    psks: [Option<&'builder [u8]>; 10],
+    plog: Option<&'builder [u8]>,
 }
 
 impl<'builder> NoiseBuilder<'builder> {
@@ -89,8 +90,7 @@ impl<'builder> NoiseBuilder<'builder> {
     }
 
     /// Create a NoiseBuilder with a custom crypto resolver.
-    pub fn with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self
-    {
+    pub fn with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self {
         NoiseBuilder {
             params: params,
             resolver: resolver,
@@ -136,9 +136,11 @@ impl<'builder> NoiseBuilder<'builder> {
     // TODO also inefficient because it creates a new RNG and DH instance just for this.
     /// Generate a new private key. It's up to the user of this library how to store this.
     pub fn generate_private_key(&self) -> Result<Vec<u8>> {
-        let mut rng = self.resolver.resolve_rng()
+        let mut rng = self.resolver
+            .resolve_rng()
             .ok_or(ErrorKind::Init(InitStage::GetRngImpl))?;
-        let mut dh = self.resolver.resolve_dh(&self.params.dh)
+        let mut dh = self.resolver
+            .resolve_dh(&self.params.dh)
             .ok_or(ErrorKind::Init(InitStage::GetDhImpl))?;
         let mut private = vec![0u8; dh.priv_len()];
         dh.generate(&mut *rng);
@@ -157,21 +159,45 @@ impl<'builder> NoiseBuilder<'builder> {
     }
 
     fn build(self, initiator: bool) -> Result<Session> {
-        if !self.s.is_some() && self.params.handshake.pattern.needs_local_static_key(initiator) {
+        if !self.s.is_some()
+            && self.params
+                .handshake
+                .pattern
+                .needs_local_static_key(initiator)
+        {
             bail!(ErrorKind::Prereq(Prerequisite::LocalPrivateKey));
         }
 
-        if !self.rs.is_some() && self.params.handshake.pattern.need_known_remote_pubkey(initiator) {
+        if !self.rs.is_some()
+            && self.params
+                .handshake
+                .pattern
+                .need_known_remote_pubkey(initiator)
+        {
             bail!(ErrorKind::Prereq(Prerequisite::RemotePublicKey));
         }
 
-        let rng = self.resolver.resolve_rng().ok_or(ErrorKind::Init(InitStage::GetRngImpl))?;
-        let cipher = self.resolver.resolve_cipher(&self.params.cipher).ok_or(ErrorKind::Init(InitStage::GetCipherImpl))?;
-        let hash = self.resolver.resolve_hash(&self.params.hash).ok_or(ErrorKind::Init(InitStage::GetHashImpl))?;
-        let mut s_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(ErrorKind::Init(InitStage::GetDhImpl))?;
-        let mut e_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(ErrorKind::Init(InitStage::GetDhImpl))?;
-        let cipher1 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(ErrorKind::Init(InitStage::GetCipherImpl))?;
-        let cipher2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(ErrorKind::Init(InitStage::GetCipherImpl))?;
+        let rng = self.resolver
+            .resolve_rng()
+            .ok_or(ErrorKind::Init(InitStage::GetRngImpl))?;
+        let cipher = self.resolver
+            .resolve_cipher(&self.params.cipher)
+            .ok_or(ErrorKind::Init(InitStage::GetCipherImpl))?;
+        let hash = self.resolver
+            .resolve_hash(&self.params.hash)
+            .ok_or(ErrorKind::Init(InitStage::GetHashImpl))?;
+        let mut s_dh = self.resolver
+            .resolve_dh(&self.params.dh)
+            .ok_or(ErrorKind::Init(InitStage::GetDhImpl))?;
+        let mut e_dh = self.resolver
+            .resolve_dh(&self.params.dh)
+            .ok_or(ErrorKind::Init(InitStage::GetDhImpl))?;
+        let cipher1 = self.resolver
+            .resolve_cipher(&self.params.cipher)
+            .ok_or(ErrorKind::Init(InitStage::GetCipherImpl))?;
+        let cipher2 = self.resolver
+            .resolve_cipher(&self.params.cipher)
+            .ok_or(ErrorKind::Init(InitStage::GetCipherImpl))?;
         let handshake_cipherstate = CipherState::new(cipher);
         let cipherstates = CipherStates::new(CipherState::new(cipher1), CipherState::new(cipher2))?;
 
@@ -179,10 +205,8 @@ impl<'builder> NoiseBuilder<'builder> {
             Some(k) => {
                 (&mut *s_dh).set(k);
                 Toggle::on(s_dh)
-            },
-            None => {
-                Toggle::off(s_dh)
             }
+            None => Toggle::off(s_dh),
         };
 
         if let Some(fixed_k) = self.e_fixed {
@@ -195,7 +219,7 @@ impl<'builder> NoiseBuilder<'builder> {
             Some(v) => {
                 rs_buf[..v.len()].copy_from_slice(&v[..]);
                 Toggle::on(rs_buf)
-            },
+            }
             None => Toggle::off(rs_buf),
         };
 
@@ -213,13 +237,21 @@ impl<'builder> NoiseBuilder<'builder> {
             }
         }
 
-        let hs = HandshakeState::new(rng, handshake_cipherstate, hash,
-                                     s, e, self.e_fixed.is_some(), rs, re,
-                                     initiator,
-                                     self.params,
-                                     psks,
-                                     self.plog.unwrap_or_else(|| &[0u8; 0]),
-                                     cipherstates)?;
+        let hs = HandshakeState::new(
+            rng,
+            handshake_cipherstate,
+            hash,
+            s,
+            e,
+            self.e_fixed.is_some(),
+            rs,
+            re,
+            initiator,
+            self.params,
+            psks,
+            self.plog.unwrap_or_else(|| &[0u8; 0]),
+            cipherstates,
+        )?;
         Ok(hs.into())
     }
 }
@@ -231,9 +263,10 @@ mod tests {
     #[test]
     fn test_builder() {
         let _noise = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
-            .prologue(&[2,2,2,2,2,2,2,2])
+            .prologue(&[2, 2, 2, 2, 2, 2, 2, 2])
             .local_private_key(&[0u8; 32])
-            .build_initiator().unwrap();
+            .build_initiator()
+            .unwrap();
     }
 
     #[test]
@@ -246,7 +279,8 @@ mod tests {
 
     #[test]
     fn test_builder_bad_spec() {
-        let params: ::std::result::Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
+        let params: ::std::result::Result<NoiseParams, _> =
+            "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
 
         if let Ok(_) = params {
             panic!("NoiseParams should have failed");
@@ -256,7 +290,7 @@ mod tests {
     #[test]
     fn test_builder_missing_prereqs() {
         let noise = NoiseBuilder::new("Noise_NK_25519_ChaChaPoly_SHA256".parse().unwrap())
-            .prologue(&[2,2,2,2,2,2,2,2])
+            .prologue(&[2, 2, 2, 2, 2, 2, 2, 2])
             .local_private_key(&[0u8; 32])
             .build_initiator(); // missing remote key, should result in Err
 
@@ -265,4 +299,3 @@ mod tests {
         }
     }
 }
-
