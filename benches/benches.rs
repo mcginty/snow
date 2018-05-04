@@ -1,7 +1,7 @@
 #![feature(test)]
 
-extern crate test;
 extern crate snow;
+extern crate test;
 
 use snow::*;
 use snow::params::*;
@@ -13,10 +13,11 @@ use test::Bencher;
 const MSG_SIZE: usize = 4096;
 
 pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
-    for count in 0..data.len() {out[count] = data[count];}
+    for count in 0..data.len() {
+        out[count] = data[count];
+    }
     data.len()
 }
-
 
 #[bench]
 fn bench_handshake_xx(b: &mut Bencher) {
@@ -27,27 +28,31 @@ fn bench_handshake_xx(b: &mut Bencher) {
     static_i.generate(&mut rand);
     static_r.generate(&mut rand);
 
-
     b.bytes = MSG_SIZE as u64;
     b.iter(move || {
         let pattern: NoiseParams = "Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap();
         let mut h_i = NoiseBuilder::new(pattern.clone())
             .local_private_key(static_i.privkey())
-            .build_initiator().unwrap();
+            .build_initiator()
+            .unwrap();
         let mut h_r = NoiseBuilder::new(pattern)
             .local_private_key(static_r.privkey())
-            .build_responder().unwrap();
+            .build_responder()
+            .unwrap();
 
         let mut buffer_msg = [0u8; MSG_SIZE * 2];
         let mut buffer_out = [0u8; MSG_SIZE * 2];
 
         // get the handshaking out of the way for even testing
         let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-        h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+        h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+            .unwrap();
         let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-        h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-        let len = h_i.write_message(&[0u8;0], &mut buffer_msg).unwrap();
-        h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+        h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+            .unwrap();
+        let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+        h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+            .unwrap();
     });
 }
 
@@ -57,18 +62,22 @@ fn bench_handshake_nn(b: &mut Bencher) {
     b.iter(move || {
         let pattern = "Noise_NN_25519_ChaChaPoly_BLAKE2b";
         let mut h_i = NoiseBuilder::new(pattern.parse().unwrap())
-            .build_initiator().unwrap();
+            .build_initiator()
+            .unwrap();
         let mut h_r = NoiseBuilder::new(pattern.parse().unwrap())
-            .build_responder().unwrap();
+            .build_responder()
+            .unwrap();
 
         let mut buffer_msg = [0u8; MSG_SIZE * 2];
         let mut buffer_out = [0u8; MSG_SIZE * 2];
 
         // get the handshaking out of the way for even testing
         let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-        h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+        h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+            .unwrap();
         let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-        h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+        h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+            .unwrap();
     });
 }
 
@@ -78,23 +87,28 @@ fn bench_write_throughput_aesgcm_sha256(b: &mut Bencher) {
     static PATTERN: &'static str = "Noise_NN_25519_AESGCM_SHA256";
 
     let mut h_i = NoiseBuilder::new(PATTERN.parse().unwrap())
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
     let mut h_r = NoiseBuilder::new(PATTERN.parse().unwrap())
-        .build_responder().unwrap();
+        .build_responder()
+        .unwrap();
 
     let mut buffer_msg = [0u8; MSG_SIZE * 2];
     let mut buffer_out = [0u8; MSG_SIZE * 2];
 
     // get the handshaking out of the way for even testing
     let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
 
     b.iter(move || {
-        let _ = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
+        let _ = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out)
+            .unwrap();
     });
 }
 
@@ -104,26 +118,36 @@ fn bench_read_write_throughput_aesgcm_sha256_ring(b: &mut Bencher) {
     b.bytes = (MSG_SIZE * 2) as u64;
     static PATTERN: &'static str = "Noise_NN_25519_AESGCM_SHA256";
 
-    let mut h_i = NoiseBuilder::with_resolver(PATTERN.parse().unwrap(), Box::new(RingAcceleratedResolver::new()))
-        .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver(PATTERN.parse().unwrap(), Box::new(RingAcceleratedResolver::new()))
-        .build_responder().unwrap();
+    let mut h_i = NoiseBuilder::with_resolver(
+        PATTERN.parse().unwrap(),
+        Box::new(RingAcceleratedResolver::new()),
+    ).build_initiator()
+        .unwrap();
+    let mut h_r = NoiseBuilder::with_resolver(
+        PATTERN.parse().unwrap(),
+        Box::new(RingAcceleratedResolver::new()),
+    ).build_responder()
+        .unwrap();
 
     let mut buffer_msg = [0u8; MSG_SIZE * 2];
     let mut buffer_out = [0u8; MSG_SIZE * 2];
 
     // get the handshaking out of the way for even testing
     let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
     b.iter(move || {
-        let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
-        let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
+        let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out)
+            .unwrap();
+        let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg)
+            .unwrap();
     });
 }
 
@@ -133,26 +157,36 @@ fn bench_read_write_throughput_chachapoly_blake2s_ring(b: &mut Bencher) {
     b.bytes = (MSG_SIZE * 2) as u64;
     static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
 
-    let mut h_i = NoiseBuilder::with_resolver(PATTERN.parse().unwrap(), Box::new(RingAcceleratedResolver::new()))
-        .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver(PATTERN.parse().unwrap(), Box::new(RingAcceleratedResolver::new()))
-        .build_responder().unwrap();
+    let mut h_i = NoiseBuilder::with_resolver(
+        PATTERN.parse().unwrap(),
+        Box::new(RingAcceleratedResolver::new()),
+    ).build_initiator()
+        .unwrap();
+    let mut h_r = NoiseBuilder::with_resolver(
+        PATTERN.parse().unwrap(),
+        Box::new(RingAcceleratedResolver::new()),
+    ).build_responder()
+        .unwrap();
 
     let mut buffer_msg = [0u8; MSG_SIZE * 2];
     let mut buffer_out = [0u8; MSG_SIZE * 2];
 
     // get the handshaking out of the way for even testing
     let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
     b.iter(move || {
-        let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
-        let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
+        let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out)
+            .unwrap();
+        let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg)
+            .unwrap();
     });
 }
 
@@ -162,25 +196,31 @@ fn bench_read_write_throughput_aesgcm_sha256(b: &mut Bencher) {
     static PATTERN: &'static str = "Noise_NN_25519_AESGCM_SHA256";
 
     let mut h_i = NoiseBuilder::new(PATTERN.parse().unwrap())
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
     let mut h_r = NoiseBuilder::new(PATTERN.parse().unwrap())
-        .build_responder().unwrap();
+        .build_responder()
+        .unwrap();
 
     let mut buffer_msg = [0u8; MSG_SIZE * 2];
     let mut buffer_out = [0u8; MSG_SIZE * 2];
 
     // get the handshaking out of the way for even testing
     let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
     b.iter(move || {
-        let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
-        let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
+        let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out)
+            .unwrap();
+        let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg)
+            .unwrap();
     });
 }
 
@@ -190,24 +230,33 @@ fn bench_write_throughput_aesgcm_sha256_ring(b: &mut Bencher) {
     b.bytes = MSG_SIZE as u64;
     static PATTERN: &'static str = "Noise_NN_25519_AESGCM_SHA256";
 
-    let mut h_i = NoiseBuilder::with_resolver(PATTERN.parse().unwrap(), Box::new(RingAcceleratedResolver::new()))
-        .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver(PATTERN.parse().unwrap(), Box::new(RingAcceleratedResolver::new()))
-        .build_responder().unwrap();
+    let mut h_i = NoiseBuilder::with_resolver(
+        PATTERN.parse().unwrap(),
+        Box::new(RingAcceleratedResolver::new()),
+    ).build_initiator()
+        .unwrap();
+    let mut h_r = NoiseBuilder::with_resolver(
+        PATTERN.parse().unwrap(),
+        Box::new(RingAcceleratedResolver::new()),
+    ).build_responder()
+        .unwrap();
 
     let mut buffer_msg = [0u8; MSG_SIZE * 2];
     let mut buffer_out = [0u8; MSG_SIZE * 2];
 
     // get the handshaking out of the way for even testing
     let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
 
     b.iter(move || {
-        let _ = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
+        let _ = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out)
+            .unwrap();
     });
 }
 
@@ -217,23 +266,28 @@ fn bench_write_throughput_chachapoly_blake2s(b: &mut Bencher) {
     static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
 
     let mut h_i = NoiseBuilder::new(PATTERN.parse().unwrap())
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
     let mut h_r = NoiseBuilder::new(PATTERN.parse().unwrap())
-        .build_responder().unwrap();
+        .build_responder()
+        .unwrap();
 
     let mut buffer_msg = [0u8; MSG_SIZE * 2];
     let mut buffer_out = [0u8; MSG_SIZE * 2];
 
     // get the handshaking out of the way for even testing
     let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
 
     b.iter(move || {
-        let _ = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
+        let _ = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out)
+            .unwrap();
     });
 }
 
@@ -243,24 +297,33 @@ fn bench_write_throughput_chachapoly_blake2s_ring(b: &mut Bencher) {
     b.bytes = MSG_SIZE as u64;
     static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
 
-    let mut h_i = NoiseBuilder::with_resolver(PATTERN.parse().unwrap(), Box::new(RingAcceleratedResolver::new()))
-        .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::with_resolver(PATTERN.parse().unwrap(), Box::new(RingAcceleratedResolver::new()))
-        .build_responder().unwrap();
+    let mut h_i = NoiseBuilder::with_resolver(
+        PATTERN.parse().unwrap(),
+        Box::new(RingAcceleratedResolver::new()),
+    ).build_initiator()
+        .unwrap();
+    let mut h_r = NoiseBuilder::with_resolver(
+        PATTERN.parse().unwrap(),
+        Box::new(RingAcceleratedResolver::new()),
+    ).build_responder()
+        .unwrap();
 
     let mut buffer_msg = [0u8; MSG_SIZE * 2];
     let mut buffer_out = [0u8; MSG_SIZE * 2];
 
     // get the handshaking out of the way for even testing
     let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
 
     b.iter(move || {
-        let _ = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
+        let _ = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out)
+            .unwrap();
     });
 }
 
@@ -270,36 +333,43 @@ fn bench_read_write_throughput_chachapoly_blake2s(b: &mut Bencher) {
     static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
 
     let mut h_i = NoiseBuilder::new(PATTERN.parse().unwrap())
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
     let mut h_r = NoiseBuilder::new(PATTERN.parse().unwrap())
-        .build_responder().unwrap();
+        .build_responder()
+        .unwrap();
 
     let mut buffer_msg = [0u8; MSG_SIZE * 2];
     let mut buffer_out = [0u8; MSG_SIZE * 2];
 
     // get the handshaking out of the way for even testing
     let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
     let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)
+        .unwrap();
 
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
     b.iter(move || {
-        let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
-        let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
+        let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out)
+            .unwrap();
+        let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg)
+            .unwrap();
     });
 }
 
 #[bench]
 fn bench_builder_with_key(b: &mut Bencher) {
-    let static_i:Dh25519 = Default::default();
+    let static_i: Dh25519 = Default::default();
     let privkey = static_i.privkey();
     b.iter(move || {
         NoiseBuilder::new("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap())
-                .local_private_key(privkey)
-                .build_initiator().unwrap();
+            .local_private_key(privkey)
+            .build_initiator()
+            .unwrap();
     });
 }
 
@@ -307,6 +377,7 @@ fn bench_builder_with_key(b: &mut Bencher) {
 fn bench_builder_skeleton(b: &mut Bencher) {
     b.iter(move || {
         NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
-            .build_initiator().unwrap();
+            .build_initiator()
+            .unwrap();
     });
 }
