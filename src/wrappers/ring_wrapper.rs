@@ -1,10 +1,10 @@
-use byteorder::{ByteOrder, BigEndian, LittleEndian};
+use byteorder::{BigEndian, ByteOrder, LittleEndian};
 use ring::aead;
 use ring::digest;
 use constants::TAGLEN;
 use noise::{CryptoResolver, DefaultResolver};
-use params::{DHChoice, HashChoice, CipherChoice};
-use types::{Random, Dh, Hash, Cipher};
+use params::{CipherChoice, DHChoice, HashChoice};
+use types::{Cipher, Dh, Hash, Random};
 
 pub struct RingAcceleratedResolver {
     parent: DefaultResolver,
@@ -12,7 +12,9 @@ pub struct RingAcceleratedResolver {
 
 impl RingAcceleratedResolver {
     pub fn new() -> Self {
-        RingAcceleratedResolver { parent: DefaultResolver }
+        RingAcceleratedResolver {
+            parent: DefaultResolver,
+        }
     }
 }
 
@@ -72,18 +74,31 @@ impl Cipher for CipherAESGCM {
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
-        aead::seal_in_place(&self.sealing, &nonce_bytes, authtext, &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
+        aead::seal_in_place(
+            &self.sealing,
+            &nonce_bytes,
+            authtext,
+            &mut out[..plaintext.len() + TAGLEN],
+            16,
+        ).unwrap();
         return plaintext.len() + TAGLEN;
     }
 
-    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
+    fn decrypt(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
         BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
         // Eh, ring API is ... weird.
         let mut in_out = ciphertext.to_vec();
 
-        let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out).map_err(|_| ())?;
+        let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out)
+            .map_err(|_| ())?;
 
         out[..out0.len()].copy_from_slice(out0);
         Ok(out0.len())
@@ -120,18 +135,31 @@ impl Cipher for CipherChaChaPoly {
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
-        aead::seal_in_place(&self.sealing, &nonce_bytes, authtext, &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
+        aead::seal_in_place(
+            &self.sealing,
+            &nonce_bytes,
+            authtext,
+            &mut out[..plaintext.len() + TAGLEN],
+            16,
+        ).unwrap();
         return plaintext.len() + TAGLEN;
     }
 
-    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
+    fn decrypt(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
         LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
         // Eh, ring API is ... weird.
         let mut in_out = ciphertext.to_vec();
 
-        let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out).map_err(|_| ())?;
+        let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out)
+            .map_err(|_| ())?;
 
         out[..out0.len()].copy_from_slice(out0);
         Ok(out0.len())
@@ -143,7 +171,9 @@ pub struct HashSHA256 {
 
 impl Default for HashSHA256 {
     fn default() -> Self {
-        Self { context: digest::Context::new(&digest::SHA256) }
+        Self {
+            context: digest::Context::new(&digest::SHA256),
+        }
     }
 }
 
@@ -179,7 +209,9 @@ pub struct HashSHA512 {
 
 impl Default for HashSHA512 {
     fn default() -> Self {
-        Self { context: digest::Context::new(&digest::SHA512) }
+        Self {
+            context: digest::Context::new(&digest::SHA512),
+        }
     }
 }
 
@@ -208,5 +240,3 @@ impl Hash for HashSHA512 {
         out[..64].copy_from_slice(self.context.clone().finish().as_ref());
     }
 }
-
-
