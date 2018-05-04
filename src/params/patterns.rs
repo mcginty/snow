@@ -1,5 +1,7 @@
-#[cfg(feature = "nightly")] use std::convert::{TryFrom};
-#[cfg(not(feature = "nightly"))] use utils::{TryFrom};
+#[cfg(feature = "nightly")]
+use std::convert::TryFrom;
+#[cfg(not(feature = "nightly"))]
+use utils::TryFrom;
 use std::str::FromStr;
 use arrayvec::ArrayVec;
 
@@ -22,22 +24,45 @@ macro_rules! message_vec {
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
+pub enum Token {
+    E,
+    S,
+    Dhee,
+    Dhes,
+    Dhse,
+    Dhss,
+    Psk(u8),
+}
 
 /// One of the patterns as defined in the
 /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum HandshakePattern { N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX }
+pub enum HandshakePattern {
+    N,
+    X,
+    K,
+    NN,
+    NK,
+    NX,
+    XN,
+    XK,
+    XX,
+    KN,
+    KK,
+    KX,
+    IN,
+    IK,
+    IX,
+}
 
 impl HandshakePattern {
-
     /// If the protocol is one-way only
     ///
     /// See: http://noiseprotocol.org/noise.html#one-way-patterns
     pub fn is_oneway(&self) -> bool {
         match *self {
             N | X | K => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -46,12 +71,12 @@ impl HandshakePattern {
         if initiator {
             match *self {
                 N | NN | NK | NX => false,
-                _ => true
+                _ => true,
             }
         } else {
             match *self {
                 NN | XN | KN | IN => false,
-                _ => true
+                _ => true,
             }
         }
     }
@@ -61,7 +86,7 @@ impl HandshakePattern {
         if initiator {
             match *self {
                 N | K | X | NK | XK | KK | IK => true,
-                _ => false
+                _ => false,
             }
         } else {
             match *self {
@@ -73,14 +98,19 @@ impl HandshakePattern {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum HandshakeModifier { Psk(u8), Fallback }
+pub enum HandshakeModifier {
+    Psk(u8),
+    Fallback,
+}
 
 impl FromStr for HandshakeModifier {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("psk") {
-            Ok(HandshakeModifier::Psk((&s[3..]).parse().map_err(|_| "psk must have number parameter")?))
+            Ok(HandshakeModifier::Psk((&s[3..])
+                .parse()
+                .map_err(|_| "psk must have number parameter")?))
         } else if s == "fallback" {
             Ok(HandshakeModifier::Fallback)
         } else {
@@ -91,7 +121,7 @@ impl FromStr for HandshakeModifier {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct HandshakeModifierList {
-    pub list: Vec<HandshakeModifier>
+    pub list: Vec<HandshakeModifier>,
 }
 
 impl FromStr for HandshakeModifierList {
@@ -99,14 +129,14 @@ impl FromStr for HandshakeModifierList {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
-            Ok(HandshakeModifierList{ list: vec![] })
+            Ok(HandshakeModifierList { list: vec![] })
         } else {
             let modifier_names = s.split('+');
             let mut modifiers: Vec<HandshakeModifier> = Vec::new();
             for modifier_name in modifier_names {
                 modifiers.push(modifier_name.parse()?);
             }
-            Ok(HandshakeModifierList{ list: modifiers })
+            Ok(HandshakeModifierList { list: modifiers })
         }
     }
 }
@@ -156,7 +186,7 @@ impl FromStr for HandshakeChoice {
 
         Ok(HandshakeChoice {
             pattern: pattern,
-            modifiers: remainder.parse()?
+            modifiers: remainder.parse()?,
         })
     }
 }
@@ -181,7 +211,7 @@ impl FromStr for HandshakePattern {
             "IN" => Ok(IN),
             "IK" => Ok(IK),
             "IX" => Ok(IX),
-            _    => Err("handshake not recognized")
+            _ => Err("handshake not recognized"),
         }
     }
 }
@@ -231,45 +261,45 @@ impl TryFrom<HandshakeChoice> for HandshakeTokens {
 
     fn try_from(handshake: HandshakeChoice) -> Result<Self, Self::Error> {
         let mut patterns: Patterns = match handshake.pattern {
-            N  => (
+            N => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes]]
+                message_vec![&[E, Dhes]],
             ),
-            K  => (
+            K => (
                 static_slice![Token: S],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes, Dhss]]
+                message_vec![&[E, Dhes, Dhss]],
             ),
-            X  => (
+            X => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes, S, Dhss]]
+                message_vec![&[E, Dhes, S, Dhss]],
             ),
             NN => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee]]
+                message_vec![&[E], &[E, Dhee]],
             ),
             NK => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes], &[E, Dhee]]
+                message_vec![&[E, Dhes], &[E, Dhee]],
             ),
             NX => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, S, Dhse]]
+                message_vec![&[E], &[E, Dhee, S, Dhse]],
             ),
             XN => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee], &[S, Dhse]]
+                message_vec![&[E], &[E, Dhee], &[S, Dhse]],
             ),
             XK => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes], &[E, Dhee], &[S, Dhse]]
+                message_vec![&[E, Dhes], &[E, Dhee], &[S, Dhse]],
             ),
             XX => (
                 static_slice![Token: ],
@@ -311,7 +341,9 @@ impl TryFrom<HandshakeChoice> for HandshakeTokens {
         for modifier in handshake.modifiers.list {
             if let HandshakeModifier::Psk(n) = modifier {
                 match n {
-                    0 => { patterns.2[0].insert(0, Token::Psk(n)); },
+                    0 => {
+                        patterns.2[0].insert(0, Token::Psk(n));
+                    }
                     _ => {
                         let i = (n as usize) - 1;
                         if patterns.2[i].try_push(Token::Psk(n)).is_err() {
@@ -329,4 +361,3 @@ impl TryFrom<HandshakeChoice> for HandshakeTokens {
         })
     }
 }
-

@@ -25,8 +25,8 @@ impl FromStr for BaseChoice {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::BaseChoice::*;
         match s {
-            "Noise"    => Ok(Noise),
-            _          => Err("base type unsupported"),
+            "Noise" => Ok(Noise),
+            _ => Err("base type unsupported"),
         }
     }
 }
@@ -44,8 +44,8 @@ impl FromStr for DHChoice {
         use self::DHChoice::*;
         match s {
             "25519" => Ok(Curve25519),
-            "448"   => Ok(Ed448),
-            _       => Err("DH type unsupported")
+            "448" => Ok(Ed448),
+            _ => Err("DH type unsupported"),
         }
     }
 }
@@ -63,8 +63,8 @@ impl FromStr for CipherChoice {
         use self::CipherChoice::*;
         match s {
             "ChaChaPoly" => Ok(ChaChaPoly),
-            "AESGCM"     => Ok(AESGCM),
-            _            => Err("cipher type unsupported")
+            "AESGCM" => Ok(AESGCM),
+            _ => Err("cipher type unsupported"),
         }
     }
 }
@@ -83,11 +83,11 @@ impl FromStr for HashChoice {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::HashChoice::*;
         match s {
-            "SHA256"  => Ok(SHA256),
-            "SHA512"  => Ok(SHA512),
+            "SHA256" => Ok(SHA256),
+            "SHA512" => Ok(SHA512),
             "BLAKE2s" => Ok(Blake2s),
             "BLAKE2b" => Ok(Blake2b),
-            _         => Err("hash type unsupported")
+            _ => Err("hash type unsupported"),
         }
     }
 }
@@ -116,16 +116,23 @@ pub struct NoiseParams {
 }
 
 impl NoiseParams {
-
     /// Construct a new NoiseParams via specifying enums directly.
-    pub fn new(name: String,
-               base: BaseChoice,
-               handshake: HandshakeChoice,
-               dh: DHChoice,
-               cipher: CipherChoice,
-               hash: HashChoice) -> Self
-    {
-        NoiseParams { name, base, handshake, dh, cipher, hash }
+    pub fn new(
+        name: String,
+        base: BaseChoice,
+        handshake: HandshakeChoice,
+        dh: DHChoice,
+        cipher: CipherChoice,
+        hash: HashChoice,
+    ) -> Self {
+        NoiseParams {
+            name,
+            base,
+            handshake,
+            dh,
+            cipher,
+            hash,
+        }
     }
 }
 
@@ -134,12 +141,14 @@ impl FromStr for NoiseParams {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split('_');
         static TOO_FEW: &'static str = "too few parameters";
-        Ok(NoiseParams::new(s.to_owned(),
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?))
+        Ok(NoiseParams::new(
+            s.to_owned(),
+            split.next().ok_or(TOO_FEW)?.parse()?,
+            split.next().ok_or(TOO_FEW)?.parse()?,
+            split.next().ok_or(TOO_FEW)?.parse()?,
+            split.next().ok_or(TOO_FEW)?.parse()?,
+            split.next().ok_or(TOO_FEW)?.parse()?,
+        ))
     }
 }
 
@@ -174,8 +183,8 @@ mod tests {
     fn test_single_psk_mod() {
         let p: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
         match p.handshake.modifiers.list[0] {
-            HandshakeModifier::Psk(0) => {},
-            _ => panic!("modifier isn't as expected!")
+            HandshakeModifier::Psk(0) => {}
+            _ => panic!("modifier isn't as expected!"),
         }
     }
 
@@ -183,11 +192,13 @@ mod tests {
     fn test_multi_psk_mod() {
         use self::HandshakeModifier::*;
 
-        let p: NoiseParams = "Noise_XXpsk0+psk1+psk2_25519_AESGCM_SHA256".parse().unwrap();
+        let p: NoiseParams = "Noise_XXpsk0+psk1+psk2_25519_AESGCM_SHA256"
+            .parse()
+            .unwrap();
         let mods = p.handshake.modifiers.list;
         match (mods[0], mods[1], mods[2]) {
-            (Psk(0), Psk(1), Psk(2)) => {},
-            _ => panic!("modifiers weren't as expected! actual: {:?}", mods)
+            (Psk(0), Psk(1), Psk(2)) => {}
+            _ => panic!("modifiers weren't as expected! actual: {:?}", mods),
         }
     }
 
@@ -196,8 +207,8 @@ mod tests {
         let p: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
         let tokens = HandshakeTokens::try_from(p.handshake).unwrap();
         match tokens.msg_patterns[0][0] {
-            Token::Psk(_) => {},
-            _ => panic!("missing token!")
+            Token::Psk(_) => {}
+            _ => panic!("missing token!"),
         }
     }
 
@@ -208,14 +219,14 @@ mod tests {
         let tokens = HandshakeTokens::try_from(p.handshake).unwrap();
 
         match tokens.msg_patterns[0][0] {
-            Token::Psk(_) => {},
-            _ => panic!("missing token!")
+            Token::Psk(_) => {}
+            _ => panic!("missing token!"),
         }
 
         let second = &tokens.msg_patterns[1];
-        match second[second.len()-1] {
-            Token::Psk(_) => {},
-            _ => panic!("missing token!")
+        match second[second.len() - 1] {
+            Token::Psk(_) => {}
+            _ => panic!("missing token!"),
         }
     }
 }
