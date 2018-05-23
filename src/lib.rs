@@ -33,6 +33,7 @@
 
 extern crate arrayvec;
 extern crate byteorder;
+#[macro_use] extern crate arrayref;
 #[macro_use] extern crate static_slice;
 #[macro_use] extern crate error_chain;
 #[cfg(feature = "ring-resolver")] extern crate ring;

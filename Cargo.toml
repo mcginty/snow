@@ -22,13 +22,15 @@ travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
 arrayvec = "^0.4"
+arrayref = "0.3"
 error-chain = "^0.11"
 rust-crypto = "^0.2"
 byteorder = "^1.2"
-rand = "^0.4"
+rand = "^0.5"
 static_slice = "0.0.3"
 blake2-rfc = "^0.2"
 chacha20-poly1305-aead = "^0.1"
+hacl-star = "*"
 ring = { version = "0.13.0-alpha", optional = true }
 
 [dev-dependencies]
