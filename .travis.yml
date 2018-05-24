@@ -10,6 +10,7 @@ rust:
 cache: cargo
 
 script:
+  - cargo test --features "hacl-resolver vector-tests" --verbose
   - cargo test --features "ring-resolver vector-tests" --verbose
   - cargo test --features "ring-accelerated vector-tests" --verbose
 

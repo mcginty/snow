@@ -33,9 +33,9 @@
 
 extern crate arrayvec;
 extern crate byteorder;
-#[macro_use] extern crate arrayref;
 #[macro_use] extern crate static_slice;
 #[macro_use] extern crate error_chain;
+#[cfg(feature = "hacl-resolver")] #[macro_use] extern crate arrayref;
 #[cfg(feature = "ring-resolver")] extern crate ring;
 
 mod error;
