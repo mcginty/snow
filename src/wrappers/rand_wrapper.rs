@@ -1,6 +1,6 @@
 extern crate rand;
 
-use self::rand::{OsRng, Rng};
+use self::rand::{OsRng, RngCore};
 use types::*;
 
 pub struct RandomOs {
