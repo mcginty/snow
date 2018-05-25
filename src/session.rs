@@ -129,14 +129,10 @@ impl Session {
     }
 
     /// Get the remote static key that was possibly encrypted in the first payload
-    ///
-    /// # Caveat
-    ///
-    /// This currently does not work *after* transitioning into the transport state.
     pub fn get_remote_static(&self) -> Option<&[u8; MAXDHLEN]> {
         match *self {
             Session::Handshake(ref state) => state.get_remote_static(),
-            Session::Transport(_) => None
+            Session::Transport(ref state) => state.get_remote_static(),
         }
     }
 
@@ -198,8 +194,8 @@ impl TryFrom<HandshakeState> for TransportState {
 
     fn try_from(old: HandshakeState) -> Result<Self> {
         let initiator = old.is_initiator();
-        let (cipherstates, handshake) = old.finish()?;
-        Ok(TransportState::new(cipherstates, handshake.pattern, initiator))
+        let (cipherstates, handshake, rs) = old.finish()?;
+        Ok(TransportState::new(cipherstates, handshake.pattern, rs, initiator))
     }
 }
 

@@ -3,7 +3,8 @@ extern crate arrayvec;
 use params::HandshakePattern;
 use error::{ErrorKind, Result, StateProblem};
 use cipherstate::CipherStates;
-use constants::{MAXMSGLEN, TAGLEN};
+use constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
+use utils::Toggle;
 
 /// A state machine encompassing the transport phase of a Noise session, using the two
 /// `CipherState`s (for sending and receiving) that were spawned from the `SymmetricState`'s
@@ -13,16 +14,22 @@ use constants::{MAXMSGLEN, TAGLEN};
 pub struct TransportState {
     pub cipherstates: CipherStates,
     pattern: HandshakePattern,
+    rs: Toggle<[u8; MAXDHLEN]>,
     initiator: bool,
 }
 
 impl TransportState {
-    pub fn new(cipherstates: CipherStates, pattern: HandshakePattern, initiator: bool) -> Self {
+    pub fn new(cipherstates: CipherStates, pattern: HandshakePattern, rs: Toggle<[u8; MAXDHLEN]>, initiator: bool) -> Self {
         TransportState {
             cipherstates: cipherstates,
             pattern: pattern,
+            rs: rs,
             initiator: initiator,
         }
+    }
+
+    pub fn get_remote_static(&self) -> Option<&[u8; MAXDHLEN]> {
+        self.rs.as_option_ref()
     }
 
     pub fn write_transport_message(&mut self,

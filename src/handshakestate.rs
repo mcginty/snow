@@ -288,9 +288,9 @@ impl HandshakeState {
         self.rs.as_option_ref()
     }
 
-    pub fn finish(self) -> Result<(CipherStates, HandshakeChoice)> {
+    pub fn finish(self) -> Result<(CipherStates, HandshakeChoice, Toggle<[u8; MAXDHLEN]>)> {
         if self.is_finished() {
-            Ok((self.cipherstates, self.params.handshake))
+            Ok((self.cipherstates, self.params.handshake, self.rs))
         } else {
             bail!(ErrorKind::State(StateProblem::HandshakeNotFinished));
         }
