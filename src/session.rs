@@ -2,7 +2,6 @@ use error::{Error, ErrorKind, Result, StateProblem};
 use handshakestate::HandshakeState;
 #[cfg(feature = "nightly")] use std::convert::{TryFrom, TryInto};
 #[cfg(not(feature = "nightly"))] use utils::{TryFrom, TryInto};
-use constants::MAXDHLEN;
 use transportstate::*;
 
 /// A state machine for the entire Noise session.
@@ -128,15 +127,13 @@ impl Session {
         }
     }
 
-    /// Get the remote static key that was possibly encrypted in the first payload
+    /// Get the remote static key that was possibly encrypted in the first payload.
     ///
-    /// # Caveat
-    ///
-    /// This currently does not work *after* transitioning into the transport state.
-    pub fn get_remote_static(&self) -> Option<&[u8; MAXDHLEN]> {
+    /// Returns a slice of length `Dh.pub_len()` (i.e. DHLEN for the chosen DH function).
+    pub fn get_remote_static(&self) -> Option<&[u8]> {
         match *self {
             Session::Handshake(ref state) => state.get_remote_static(),
-            Session::Transport(_) => None
+            Session::Transport(ref state) => state.get_remote_static(),
         }
     }
 
@@ -198,8 +195,8 @@ impl TryFrom<HandshakeState> for TransportState {
 
     fn try_from(old: HandshakeState) -> Result<Self> {
         let initiator = old.is_initiator();
-        let (cipherstates, handshake) = old.finish()?;
-        Ok(TransportState::new(cipherstates, handshake.pattern, initiator))
+        let (cipherstates, handshake, dh_len, rs) = old.finish()?;
+        Ok(TransportState::new(cipherstates, handshake.pattern, dh_len, rs, initiator))
     }
 }
 
