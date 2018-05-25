@@ -2,6 +2,7 @@ use error::{Error, ErrorKind, Result, StateProblem};
 use handshakestate::HandshakeState;
 #[cfg(feature = "nightly")] use std::convert::{TryFrom, TryInto};
 #[cfg(not(feature = "nightly"))] use utils::{TryFrom, TryInto};
+use constants::MAXDHLEN;
 use transportstate::*;
 
 /// A state machine for the entire Noise session.
@@ -124,6 +125,18 @@ impl Session {
         match *self {
             Session::Handshake(_) => Err(ErrorKind::State(StateProblem::HandshakeNotFinished).into()),
             Session::Transport(ref state) => Ok(state.sending_nonce())
+        }
+    }
+
+    /// Get the remote static key that was possibly encrypted in the first payload
+    ///
+    /// # Caveat
+    ///
+    /// This currently does not work *after* transitioning into the transport state.
+    pub fn get_remote_static(&self) -> Option<&[u8; MAXDHLEN]> {
+        match *self {
+            Session::Handshake(ref state) => state.get_remote_static(),
+            Session::Transport(_) => None
         }
     }
 
