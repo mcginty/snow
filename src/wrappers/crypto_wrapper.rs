@@ -1,15 +1,16 @@
 extern crate crypto;
 extern crate blake2_rfc;
 extern crate chacha20_poly1305_aead;
+extern crate x25519_dalek;
 
 use self::crypto::digest::Digest;
 use self::crypto::sha2::{Sha256, Sha512};
 use self::crypto::aes::KeySize;
 use self::crypto::aes_gcm::AesGcm;
 use self::crypto::aead::{AeadEncryptor, AeadDecryptor};
-use self::crypto::curve25519::{curve25519, curve25519_base};
 use self::blake2_rfc::blake2b::Blake2b;
 use self::blake2_rfc::blake2s::Blake2s;
+use self::x25519_dalek as x25519;
 
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
 
@@ -66,18 +67,15 @@ impl Dh for Dh25519 {
     }
 
     fn set(&mut self, privkey: &[u8]) {
-        copy_memory(privkey, &mut self.privkey); /* RUSTSUCKS: Why can't I convert slice -> array? */
-        let pubkey = curve25519_base(&self.privkey);
-        copy_memory(&pubkey, &mut self.pubkey);
+        copy_memory(privkey, &mut self.privkey);
+        let pubkey = x25519::generate_public(&self.privkey);
+        copy_memory(pubkey.as_bytes(), &mut self.pubkey);
     }
 
     fn generate(&mut self, rng: &mut Random) {
         rng.fill_bytes(&mut self.privkey);
-        self.privkey[0]  &= 248;
-        self.privkey[31] &= 127;
-        self.privkey[31] |= 64;
-        let pubkey = curve25519_base(&self.privkey);
-        copy_memory(&pubkey, &mut self.pubkey);
+        let pubkey = x25519::generate_public(&self.privkey);
+        copy_memory(pubkey.as_bytes(), &mut self.pubkey);
     }
 
     fn pubkey(&self) -> &[u8] {
@@ -89,7 +87,7 @@ impl Dh for Dh25519 {
     }
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) {
-        let result = curve25519(&self.privkey, pubkey);
+        let result = x25519::diffie_hellman(&self.privkey, array_ref![pubkey, 0, 32]);
         copy_memory(&result, out);
     }
 

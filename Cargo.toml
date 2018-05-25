@@ -13,7 +13,7 @@ keywords = ["noise", "protocol", "crypto"]
 [features]
 default = []
 nightly = ["blake2-rfc/simd_opt", "chacha20-poly1305-aead/simd_opt"]
-hacl-resolver = ["hacl-star", "arrayref"]
+hacl-resolver = ["hacl-star"]
 hacl-accelerated = ["hacl-resolver"]
 ring-resolver = ["ring"]
 ring-accelerated = ["ring", "ring-resolver"]
@@ -24,7 +24,7 @@ travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
 arrayvec = "^0.4"
-arrayref = { version = "0.3", optional = true }
+arrayref = "^0.3"
 error-chain = "^0.11"
 rust-crypto = "^0.2"
 byteorder = "^1.2"
@@ -32,6 +32,7 @@ rand = "^0.5"
 static_slice = "0.0.3"
 blake2-rfc = "^0.2"
 chacha20-poly1305-aead = "^0.1"
+x25519-dalek = { git = "https://github.com/mcginty/x25519-dalek" }
 hacl-star = { version = "=0.0.11", optional = true }
 ring = { version = "0.13.0-alpha", optional = true }
 

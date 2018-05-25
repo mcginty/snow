@@ -31,12 +31,14 @@
 #![cfg_attr(feature = "nightly", feature(try_from))]
 #![recursion_limit = "1024"]
 
-extern crate arrayvec;
-extern crate byteorder;
+#[cfg(feature = "ring-resolver")] extern crate ring;
+
+#[macro_use] extern crate arrayref;
 #[macro_use] extern crate static_slice;
 #[macro_use] extern crate error_chain;
-#[cfg(feature = "hacl-resolver")] #[macro_use] extern crate arrayref;
-#[cfg(feature = "ring-resolver")] extern crate ring;
+
+extern crate arrayvec;
+extern crate byteorder;
 
 mod error;
 mod constants;
