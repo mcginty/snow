@@ -140,13 +140,15 @@ impl Cipher for CipherChaChaPoly {
         let mut nonce_bytes = [0u8; 12];
         LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
-        let (ciphertext, tag) = ciphertext.split_at(out.len());
+        let len = ciphertext.len();
+        let (ciphertext, tag) = ciphertext.split_at(len - chacha20poly1305::MAC_LENGTH);
         let tag = array_ref!(tag, 0, chacha20poly1305::MAC_LENGTH);
+        let len = ciphertext.len();
         copy_memory(ciphertext, out);
 
         if chacha20poly1305::Key(&self.key)
             .nonce(&nonce_bytes)
-            .decrypt(authtext, out, tag)
+            .decrypt(authtext, &mut out[..len], tag)
         {
             Ok(out.len())
         } else {
@@ -274,7 +276,6 @@ mod tests {
         assert!(output.to_hex() == "a8061dc1305136c6c22b8baf0c0127a9");
     }
 
-    #[should_panic]
     #[test]
     fn test_chachapoly_empty() {
     //ChaChaPoly round-trip test, empty plaintext
@@ -290,7 +291,6 @@ mod tests {
         let mut resulttext = [0u8; 1];
         let mut cipher2 : CipherChaChaPoly = Default::default();
         cipher2.set(&key);
-        // Now we require the correct length.
         cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
         assert!(resulttext[0] == 0);
         ciphertext[0] ^= 1;

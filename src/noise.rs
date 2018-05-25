@@ -78,7 +78,7 @@ pub struct NoiseBuilder<'builder> {
 
 impl<'builder> NoiseBuilder<'builder> {
     /// Create a NoiseBuilder with the default crypto resolver.
-    #[cfg(not(feature = "ring-accelerated"))]
+    #[cfg(not(any(feature = "ring-accelerated", feature = "hacl-accelerated")))]
     pub fn new(params: NoiseParams) -> Self {
         Self::with_resolver(params, Box::new(DefaultResolver))
     }
@@ -86,6 +86,13 @@ impl<'builder> NoiseBuilder<'builder> {
     #[cfg(feature = "ring-accelerated")]
     pub fn new(params: NoiseParams) -> Self {
         Self::with_resolver(params, Box::new(RingAcceleratedResolver::new()))
+    }
+
+    #[cfg(feature = "hacl-accelerated")]
+    pub fn new(params: NoiseParams) -> Self {
+        use ::wrappers::hacl_wrapper::HaclStarResolver;
+
+        Self::with_resolver(params, Box::new(HaclStarResolver::new()))
     }
 
     /// Create a NoiseBuilder with a custom crypto resolver.
