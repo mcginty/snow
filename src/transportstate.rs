@@ -14,22 +14,24 @@ use utils::Toggle;
 pub struct TransportState {
     pub cipherstates: CipherStates,
     pattern: HandshakePattern,
+    dh_len: usize,
     rs: Toggle<[u8; MAXDHLEN]>,
     initiator: bool,
 }
 
 impl TransportState {
-    pub fn new(cipherstates: CipherStates, pattern: HandshakePattern, rs: Toggle<[u8; MAXDHLEN]>, initiator: bool) -> Self {
+    pub fn new(cipherstates: CipherStates, pattern: HandshakePattern, dh_len: usize, rs: Toggle<[u8; MAXDHLEN]>, initiator: bool) -> Self {
         TransportState {
             cipherstates: cipherstates,
             pattern: pattern,
+            dh_len: dh_len,
             rs: rs,
             initiator: initiator,
         }
     }
 
-    pub fn get_remote_static(&self) -> Option<&[u8; MAXDHLEN]> {
-        self.rs.as_option_ref()
+    pub fn get_remote_static(&self) -> Option<&[u8]> {
+        self.rs.as_option_ref().map(|rs| &rs[..self.dh_len])
     }
 
     pub fn write_transport_message(&mut self,

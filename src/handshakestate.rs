@@ -284,13 +284,14 @@ impl HandshakeState {
         Ok(payload_len)
     }
 
-    pub fn get_remote_static(&self) -> Option<&[u8; MAXDHLEN]> {
-        self.rs.as_option_ref()
+    pub fn get_remote_static(&self) -> Option<&[u8]> {
+        self.rs.as_option_ref().map(|rs| &rs[..self.dh_len()])
     }
 
-    pub fn finish(self) -> Result<(CipherStates, HandshakeChoice, Toggle<[u8; MAXDHLEN]>)> {
+    pub fn finish(self) -> Result<(CipherStates, HandshakeChoice, usize, Toggle<[u8; MAXDHLEN]>)> {
         if self.is_finished() {
-            Ok((self.cipherstates, self.params.handshake, self.rs))
+            let dh_len = self.dh_len();
+            Ok((self.cipherstates, self.params.handshake, dh_len, self.rs))
         } else {
             bail!(ErrorKind::State(StateProblem::HandshakeNotFinished));
         }
