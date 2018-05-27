@@ -37,8 +37,7 @@ See the full documentation at [https://docs.rs/snow](https://docs.rs/snow).
 
 ## Implemented
 
-Snow is currently feature-frozen on its current rev32 implementation, since revision 33 will
-be releasing shortly.
+Snow is currently based off of Noise revision 32.
 
 - [x] Rekey()
 - [x] `pskN` modifier
@@ -49,9 +48,20 @@ be releasing shortly.
 Cryptographic providers are swappable through `NoiseBuilder::with_provider()`, but by default it chooses select, artisanal
 pure-Rust implementations (see `Cargo.toml` for a quick overview).
 
-### Acceleration
+### Providers
 
-If you enable the `ring-accelerated` feature, Snow will default to choosing `ring`'s *much* faster crypto implementations when supported.
+#### ring
 
-If you enable the `ring-resolver` feature, Snow will include a ring_wrapper module as well as a `RingAcceleratedResolver` available to be used with `NoiseBuilder::with_resolver()`.
+[ring](https://github.com/briansmith/ring) is a crypto library based off of BoringSSL and is significantly faster than most of the pure-Rust implementations.
 
+If you enable the `ring-resolver` feature, Snow will include a `ring_wrapper` module as well as a `RingAcceleratedResolver` available to be used with `NoiseBuilder::with_resolver()`.
+
+If you enable the `ring-accelerated` feature, Snow will default to choosing `ring`'s crypto implementations when available.
+
+#### HACL*
+
+[HACL*](https://github.com/mitls/hacl-star) is a formally verified cryptographic library, accessed via the [`rust-hacl-star`](https://github.com/quininer/rust-hacl-star) wrapper crate.
+
+If you enable the `hacl-resolver` feature, Snow will include a `hacl_wrapper` module as well as a `HaclStarResolver` available to be used with `NoiseBuilder::with_resolver()`.
+
+Similar to ring, if you enable the `hacl-accelerated` feature, Snow will default to choosing HACL* implementations when available.
