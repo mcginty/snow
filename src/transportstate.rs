@@ -1,7 +1,8 @@
 extern crate arrayvec;
 
 use params::HandshakePattern;
-use error::{ErrorKind, Result, StateProblem};
+use failure::Error;
+use error::{SnowError, StateProblem};
 use cipherstate::CipherStates;
 use constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
 use utils::Toggle;
@@ -36,11 +37,11 @@ impl TransportState {
 
     pub fn write_transport_message(&mut self,
                                    payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize> {
+                                   message: &mut [u8]) -> Result<usize, Error> {
         if !self.initiator && self.pattern.is_oneway() {
-            bail!(ErrorKind::State(StateProblem::OneWay));
+            bail!(SnowError::State { reason: StateProblem::OneWay });
         } else if payload.len() + TAGLEN > MAXMSGLEN || payload.len() + TAGLEN > message.len() {
-            bail!(ErrorKind::Input);
+            bail!(SnowError::Input);
         }
 
         let cipher = if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
@@ -49,12 +50,12 @@ impl TransportState {
 
     pub fn read_transport_message(&mut self,
                                    payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize> {
+                                   message: &mut [u8]) -> Result<usize, Error> {
         if self.initiator && self.pattern.is_oneway() {
-            bail!(ErrorKind::State(StateProblem::OneWay));
+            bail!(SnowError::State { reason: StateProblem::OneWay });
         }
         let cipher = if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
-        cipher.decrypt(payload, message).map_err(|_| ErrorKind::Decrypt.into())
+        cipher.decrypt(payload, message).map_err(|_| SnowError::Decrypt.into())
     }
 
     pub fn rekey_initiator(&mut self, key: &[u8]) {

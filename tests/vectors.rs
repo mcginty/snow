@@ -1,5 +1,6 @@
 #![cfg(feature = "vector-tests")]
 extern crate hex;
+extern crate failure;
 extern crate snow;
 
 #[macro_use] extern crate serde_derive;
@@ -10,6 +11,7 @@ extern crate rand;
 use serde::de::{self, Deserialize, Deserializer, Visitor, Unexpected};
 use serde::ser::{Serialize, Serializer};
 use std::ops::Deref;
+use failure::Error;
 use hex::{FromHex, ToHex};
 use snow::{NoiseBuilder, Session};
 use snow::params::*;
@@ -123,7 +125,7 @@ struct TestVectors {
     vectors: Vec<TestVector>,
 }
 
-fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), snow::Error> {
+fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), Error> {
     let params: NoiseParams = vector.protocol_name.parse().unwrap();
     let mut init_builder = NoiseBuilder::new(params.clone());
     let mut resp_builder = NoiseBuilder::new(params.clone());

@@ -6,7 +6,8 @@ use cipherstate::*;
 #[cfg(not(feature = "nightly"))] use utils::TryFrom;
 use symmetricstate::*;
 use params::*;
-use error::{ErrorKind, Result, InitStage, StateProblem};
+use failure::Error;
+use error::{SnowError, InitStage, StateProblem};
 
 
 /// A state machine encompassing the handshake phase of a Noise session.
@@ -46,13 +47,13 @@ impl HandshakeState {
         params: NoiseParams,
         psks: [Option<[u8; PSKLEN]>; 10],
         prologue: &[u8],
-        cipherstates: CipherStates) -> Result<HandshakeState> {
+        cipherstates: CipherStates) -> Result<HandshakeState, Error> {
 
         if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
         || (s.is_on() && rs.is_on() && s.pub_len() >  rs.len())
         || (s.is_on() && re.is_on() && s.pub_len() >  re.len())
         {
-            bail!(ErrorKind::Init(InitStage::ValidateKeyLengths));
+            bail!(SnowError::Init{reason: InitStage::ValidateKeyLengths});
         }
 
         let tokens = HandshakeTokens::try_from(params.handshake.clone())?;
@@ -116,13 +117,13 @@ impl HandshakeState {
         self.s.pub_len()
     }
 
-    fn dh(&mut self, local_s: bool, remote_s: bool) -> Result<()> {
+    fn dh(&mut self, local_s: bool, remote_s: bool) -> Result<(), Error> {
         if !((!local_s  || self.s.is_on())  &&
              ( local_s  || self.e.is_on())  &&
              (!remote_s || self.rs.is_on()) &&
              ( remote_s || self.re.is_on()))
         {
-            bail!(ErrorKind::State(StateProblem::MissingKeyMaterial));
+            bail!(SnowError::State{ reason: StateProblem::MissingKeyMaterial });
         }
         let dh_len = self.dh_len();
         let mut dh_out = [0u8; MAXDHLEN];
@@ -142,15 +143,15 @@ impl HandshakeState {
 
     pub fn write_handshake_message(&mut self,
                          payload: &[u8], 
-                         message: &mut [u8]) -> Result<usize> {
+                         message: &mut [u8]) -> Result<usize, Error> {
         if !self.my_turn {
-            bail!(ErrorKind::State(StateProblem::NotTurnToWrite));
+            bail!(SnowError::State{ reason: StateProblem::NotTurnToWrite });
         }
 
         let next_tokens = if !self.message_patterns.is_empty() {
             self.message_patterns.remove(0)
         } else {
-            bail!(ErrorKind::State(StateProblem::HandshakeAlreadyFinished));
+            bail!(SnowError::State{ reason: StateProblem::HandshakeAlreadyFinished });
         };
         let last = self.message_patterns.is_empty();
 
@@ -159,7 +160,7 @@ impl HandshakeState {
             match *token {
                 Token::E => {
                     if byte_index + self.e.pub_len() > message.len() {
-                        bail!(ErrorKind::Input)
+                        bail!(SnowError::Input)
                     }
                     if !self.fixed_ephemeral {
                         self.e.generate(&mut *self.rng);
@@ -177,10 +178,10 @@ impl HandshakeState {
                 },
                 Token::S => {
                     if !self.s.is_on() {
-                        bail!(ErrorKind::State(StateProblem::MissingKeyMaterial));
+                        bail!(SnowError::State { reason: StateProblem::MissingKeyMaterial });
                     }
                     if byte_index + self.s.pub_len() > message.len() {
-                        bail!(ErrorKind::Input)
+                        bail!(SnowError::Input)
                     }
                     byte_index += self.symmetricstate.encrypt_and_mix_hash(
                         self.s.pubkey(),
@@ -192,7 +193,7 @@ impl HandshakeState {
                             self.symmetricstate.mix_key_and_hash(&psk);
                         },
                         None => {
-                            bail!(ErrorKind::State(StateProblem::MissingPsk));
+                            bail!(SnowError::State { reason: StateProblem::MissingPsk });
                         }
                     }
                 },
@@ -205,11 +206,11 @@ impl HandshakeState {
 
         self.my_turn = false;
         if byte_index + payload.len() + TAGLEN > message.len() {
-            bail!(ErrorKind::Input);
+            bail!(SnowError::Input);
         }
         byte_index += self.symmetricstate.encrypt_and_mix_hash(payload, &mut message[byte_index..]);
         if byte_index > MAXMSGLEN {
-            bail!(ErrorKind::Input);
+            bail!(SnowError::Input);
         }
         if last {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
@@ -219,13 +220,13 @@ impl HandshakeState {
 
     pub fn read_handshake_message(&mut self,
                         message: &[u8], 
-                        payload: &mut [u8]) -> Result<usize> {
+                        payload: &mut [u8]) -> Result<usize, Error> {
         if message.len() > MAXMSGLEN {
-            bail!(ErrorKind::Input);
+            bail!(SnowError::Input);
         }
 
         let next_tokens = if self.message_patterns.len() > 0 {
-            Some(self.message_patterns.remove(0))
+            self.message_patterns.pop_at(0)
         } else {
             None
         };
@@ -255,7 +256,7 @@ impl HandshakeState {
                             ptr = &ptr[dh_len..];
                             temp
                         };
-                        self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| ErrorKind::Decrypt)?;
+                        self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| SnowError::Decrypt)?;
                         self.rs.enable();
                     },
                     Token::Psk(n) => {
@@ -264,7 +265,7 @@ impl HandshakeState {
                                 self.symmetricstate.mix_key_and_hash(&psk);
                             },
                             None => {
-                                bail!(ErrorKind::State(StateProblem::MissingPsk));
+                                bail!(SnowError::State { reason: StateProblem::MissingPsk });
                             }
                         }
                     },
@@ -275,7 +276,7 @@ impl HandshakeState {
                 }
             }
         }
-        self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| ErrorKind::Decrypt)?;
+        self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| SnowError::Decrypt)?;
         self.my_turn = true;
         if last {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
@@ -288,12 +289,12 @@ impl HandshakeState {
         self.rs.as_option_ref().map(|rs| &rs[..self.dh_len()])
     }
 
-    pub fn finish(self) -> Result<(CipherStates, HandshakeChoice, usize, Toggle<[u8; MAXDHLEN]>)> {
+    pub fn finish(self) -> Result<(CipherStates, HandshakeChoice, usize, Toggle<[u8; MAXDHLEN]>), Error> {
         if self.is_finished() {
             let dh_len = self.dh_len();
             Ok((self.cipherstates, self.params.handshake, dh_len, self.rs))
         } else {
-            bail!(ErrorKind::State(StateProblem::HandshakeNotFinished));
+            bail!(SnowError::State { reason: StateProblem::HandshakeNotFinished });
         }
     }
 

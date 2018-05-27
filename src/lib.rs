@@ -35,7 +35,7 @@
 
 #[macro_use] extern crate arrayref;
 #[macro_use] extern crate static_slice;
-#[macro_use] extern crate error_chain;
+#[macro_use] extern crate failure;
 
 extern crate arrayvec;
 extern crate byteorder;

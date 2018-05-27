@@ -1,22 +1,21 @@
 //! All error types used by Snow operations.
 
-error_chain!{
-    errors {
-        Init(stage: InitStage) {
-            description("an error occurred during initialization")
-            display("initialization failed at {:?} stage", stage)
-        }
-        Prereq(prereq: Prerequisite) {
-            description("a required argument was not provided to the builder")
-            display("missing prerequisite: {:?}", prereq)
-        }
-        State(state_problem: StateProblem) {
-            description("invalid state error")
-            display("state error of type {:?}", state_problem)
-        }
-        Input
-        Decrypt
-    }
+#[derive(Fail, Debug)]
+pub enum SnowError {
+    #[fail(display = "initialization failed at {:?}", reason)]
+    Init { reason: InitStage },
+
+    #[fail(display = "missing prerequisite: {:?}", reason)]
+    Prereq { reason: Prerequisite },
+
+    #[fail(display = "state error of type: {:?}", reason)]
+    State { reason: StateProblem },
+
+    #[fail(display = "invalid input")]
+    Input,
+
+    #[fail(display = "decryption failed")]
+    Decrypt,
 }
 
 /// The various stages of initialization used to help identify
@@ -24,7 +23,7 @@ error_chain!{
 #[derive(Debug)]
 pub enum InitStage {
     ValidateKeyLengths, ValidatePskLengths, ValidateCipherTypes,
-    GetRngImpl, GetDhImpl, GetCipherImpl, GetHashImpl
+    GetRngImpl, GetDhImpl, GetCipherImpl, GetHashImpl, ValidatePskPosition
 }
 
 /// A prerequisite that may be missing.

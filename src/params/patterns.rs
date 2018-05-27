@@ -2,6 +2,8 @@
 #[cfg(not(feature = "nightly"))] use utils::{TryFrom};
 use std::str::FromStr;
 use arrayvec::ArrayVec;
+use failure::Error;
+use error::{SnowError, InitStage};
 
 macro_rules! message_vec {
     ($($item:expr),*) => ({
@@ -227,7 +229,7 @@ use self::HandshakePattern::*;
 type Patterns = (PremessagePatterns, PremessagePatterns, MessagePatterns);
 
 impl TryFrom<HandshakeChoice> for HandshakeTokens {
-    type Error = &'static str;
+    type Error = Error;
 
     fn try_from(handshake: HandshakeChoice) -> Result<Self, Self::Error> {
         let mut patterns: Patterns = match handshake.pattern {
@@ -315,7 +317,7 @@ impl TryFrom<HandshakeChoice> for HandshakeTokens {
                     _ => {
                         let i = (n as usize) - 1;
                         if patterns.2[i].try_push(Token::Psk(n)).is_err() {
-                            return Err("token incompatible with selected handshake");
+                            bail!(SnowError::Init{ reason: InitStage::ValidatePskPosition });
                         }
                     }
                 }
