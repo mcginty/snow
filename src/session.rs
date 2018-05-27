@@ -127,6 +127,16 @@ impl Session {
         }
     }
 
+    /// Get the remote static key that was possibly encrypted in the first payload.
+    ///
+    /// Returns a slice of length `Dh.pub_len()` (i.e. DHLEN for the chosen DH function).
+    pub fn get_remote_static(&self) -> Option<&[u8]> {
+        match *self {
+            Session::Handshake(ref state) => state.get_remote_static(),
+            Session::Transport(ref state) => state.get_remote_static(),
+        }
+    }
+
     /// Set the forthcoming incoming nonce value.
     ///
     /// # Errors
@@ -185,8 +195,8 @@ impl TryFrom<HandshakeState> for TransportState {
 
     fn try_from(old: HandshakeState) -> Result<Self> {
         let initiator = old.is_initiator();
-        let (cipherstates, handshake) = old.finish()?;
-        Ok(TransportState::new(cipherstates, handshake.pattern, initiator))
+        let (cipherstates, handshake, dh_len, rs) = old.finish()?;
+        Ok(TransportState::new(cipherstates, handshake.pattern, dh_len, rs, initiator))
     }
 }
 
