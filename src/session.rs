@@ -63,7 +63,7 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// Will result in `NoiseError::InputError` if the size of the output exceeds the max message
+    /// Will result in `SnowError::Input` if the size of the output exceeds the max message
     /// length in the Noise Protocol (65535 bytes).
     pub fn write_message(&mut self, payload: &[u8], output: &mut [u8]) -> Result<usize, Error> {
         match *self {
@@ -78,7 +78,7 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// Will result in `NoiseError::DecryptError` if the contents couldn't be decrypted and/or the
+    /// Will result in `SnowError::Decrypt` if the contents couldn't be decrypted and/or the
     /// authentication tag didn't verify.
     ///
     /// # Panics
@@ -95,7 +95,7 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// Will result in `NoiseError::StateError` if not in transport mode.
+    /// Will result in `SnowError::State` if not in transport mode.
     pub fn rekey(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) -> Result<(), Error> {
         match *self {
             Session::Handshake(_) => Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into()),
@@ -115,7 +115,7 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// Will result in `NoiseError::StateError` if not in transport mode.
+    /// Will result in `SnowError::State` if not in transport mode.
     pub fn receiving_nonce(&self) -> Result<u64, Error> {
         match *self {
             Session::Handshake(_) => Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into()),
@@ -127,7 +127,7 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// Will result in `NoiseError::StateError` if not in transport mode.
+    /// Will result in `SnowError::State` if not in transport mode.
     pub fn sending_nonce(&self) -> Result<u64, Error> {
         match *self {
             Session::Handshake(_) => Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into()),
@@ -180,7 +180,7 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// Will result in `NoiseError::StateError` if the handshake is not finished.
+    /// Will result in `SnowError::State` if the handshake is not finished.
     ///
     /// # Examples
     ///
