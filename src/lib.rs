@@ -17,7 +17,7 @@
 //! let mut buf = [0u8; 65535];
 //!
 //! // write first handshake message
-//! noise.write_message(&[0u8; 0], &mut buf).unwrap();
+//! noise.write_message(&[], &mut buf).unwrap();
 //!
 //! // receive response message
 //! let incoming = receive_message_from_the_mysterious_ether();
