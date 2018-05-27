@@ -49,6 +49,13 @@ impl Session {
         }
     }
 
+    pub fn is_initiator(&self) -> bool {
+        match *self {
+            Session::Handshake(ref state) => state.is_initiator(),
+            Session::Transport(ref state) => state.is_initiator(),
+        }
+    }
+
     /// Construct a message from `payload` (and pending handshake tokens if in handshake state),
     /// and writes it to the `output` buffer.
     ///
@@ -142,11 +149,26 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// Will result in `NoiseError::StateError` if not in transport mode.
+    /// Will result in `SnowError::State` if not in transport mode.
     pub fn set_receiving_nonce(&mut self, nonce: u64) -> Result<(), Error> {
         match *self {
-            Session::Handshake(_) => Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into()),
+            Session::Handshake(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeNotFinished }),
             Session::Transport(ref mut state) => Ok(state.set_receiving_nonce(nonce))
+        }
+    }
+
+    /// Set the preshared key at the specified location. It is up to the caller
+    /// to correctly set the location based on the specified handshake - Snow
+    /// won't stop you from placing a PSK in an unused slot.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `SnowError::Input` if the PSK is not the right length or the location is out of bounds.
+    /// Will result in `SnowError::State` if in transport mode.
+    pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
+        match *self {
+            Session::Handshake(ref mut state) => state.set_psk(location, key),
+            Session::Transport(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeAlreadyFinished })
         }
     }
 

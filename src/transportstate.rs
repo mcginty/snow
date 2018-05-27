@@ -91,4 +91,8 @@ impl TransportState {
             self.cipherstates.1.nonce()
         }
     }
+
+    pub fn is_initiator(&self) -> bool {
+        self.initiator
+    }
 }

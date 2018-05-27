@@ -285,6 +285,17 @@ impl HandshakeState {
         Ok(payload_len)
     }
 
+    /// Set the PSK at the specified position.
+    pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
+        ensure!(key.len() == PSKLEN, SnowError::Input);
+        ensure!(self.psks.len() > location, SnowError::Input);
+        let mut new_psk = [0u8; PSKLEN];
+        new_psk.copy_from_slice(&key[..]);
+        self.psks[location as usize] = Some(new_psk);
+
+        Ok(())
+    }
+ 
     pub fn get_remote_static(&self) -> Option<&[u8]> {
         self.rs.as_option_ref().map(|rs| &rs[..self.dh_len()])
     }
