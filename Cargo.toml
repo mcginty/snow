@@ -3,7 +3,7 @@ name = "snow"
 description = "A pure-rust implementation of the Noise Protocol Framework"
 homepage = "https://github.com/mcginty/snow"
 repository = "https://github.com/mcginty/snow"
-version = "0.1.9"
+version = "0.1.10"
 authors = ["Jake McGinty <me@jake.su>", "trevp"]
 license = "Unlicense"
 categories = ["cryptography"]
@@ -28,11 +28,11 @@ arrayref = "^0.3"
 error-chain = "^0.11"
 rust-crypto = "^0.2"
 byteorder = "^1.2"
-rand = "^0.5"
+rand = "0.5.0-pre.2"
 static_slice = "0.0.3"
 blake2-rfc = "^0.2"
 chacha20-poly1305-aead = "^0.1"
-x25519-dalek = { git = "https://github.com/mcginty/x25519-dalek", default-features = false, features = ["std", "u64_backend"] }
+x25519-dalek = { version = "^0.2", default-features = false, features = ["std", "u64_backend"] }
 hacl-star = { version = "=0.0.11", optional = true }
 ring = { version = "0.13.0-alpha", optional = true }
 
