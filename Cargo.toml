@@ -48,7 +48,7 @@ lazy_static = "^0.2"
 rustc_version = "^0.2"
 
 [package.metadata.docs.rs]
-features = [ "ring-resolver" ]
+features = [ "ring-resolver", "hacl-resolver" ]
 all-features = false
 no-default-features = false
 
