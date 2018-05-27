@@ -19,6 +19,10 @@ ring-resolver = ["ring"]
 ring-accelerated = ["ring", "ring-resolver"]
 vector-tests = []
 
+[[bench]]
+name = "benches"
+harness = false
+
 [badges]
 travis-ci = { repository = "mcginty/snow", branch = "master" }
 
@@ -38,6 +42,7 @@ ring = { version = "0.13.0-alpha", optional = true }
 
 [dev-dependencies]
 clap = "^2.0"
+criterion = "0.2"
 serde = "^1.0"
 serde_json = "^1.0"
 serde_derive = "^1.0"
