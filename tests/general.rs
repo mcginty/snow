@@ -514,3 +514,46 @@ fn test_send_trait() {
     });
     let _session = rx.recv().expect("failed to receive noise session");
 }
+
+#[test]
+fn test_get_remote_static() {
+    let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
+    let mut static_i: Dh25519 = Default::default();
+    let mut static_r: Dh25519 = Default::default();
+    static_i.set(&get_inc_key(0));
+    static_r.set(&get_inc_key(1));
+    let mut h_i = NoiseBuilder::new(params.clone())
+        .local_private_key(static_i.privkey())
+        .build_initiator().unwrap();
+    let mut h_r = NoiseBuilder::new(params)
+        .local_private_key(static_r.privkey())
+        .build_responder().unwrap();
+
+    let mut buf  = [0u8; 1024];
+    let mut buf2 = [0u8; 1024];
+
+    // XX(s, rs):
+    assert!(h_i.get_remote_static().is_none());
+    assert!(h_r.get_remote_static().is_none());
+
+    // -> e
+    let len = h_i.write_message(&[], &mut buf).unwrap();
+    let _   = h_r.read_message(&buf[..len], &mut buf2).unwrap();
+
+    assert!(h_i.get_remote_static().is_none());
+    assert!(h_r.get_remote_static().is_none());
+
+    // <- e, ee s, es
+    let len = h_r.write_message(&[], &mut buf).unwrap();
+    let _   = h_i.read_message(&buf[..len], &mut buf2).unwrap();
+
+    assert_eq!(h_i.get_remote_static().unwrap(), static_r.pubkey());
+    assert!(h_r.get_remote_static().is_none());
+
+    // -> s, se
+    let len = h_i.write_message(&[], &mut buf).unwrap();
+    let _   = h_r.read_message(&buf[..len], &mut buf2).unwrap();
+
+    assert_eq!(h_i.get_remote_static().unwrap(), static_r.pubkey());
+    assert_eq!(h_r.get_remote_static().unwrap(), static_i.pubkey());
+}
