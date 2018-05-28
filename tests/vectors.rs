@@ -353,6 +353,18 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
         let _ = init.read_message(&ibuf[..len], &mut obuf).unwrap();
     }
 
+    let init_static = if params.handshake.pattern.needs_local_static_key(true) {
+        Some(is.privkey().to_vec().into())
+    } else {
+        None
+    };
+
+    let resp_static = if params.handshake.pattern.needs_local_static_key(false) {
+        Some(rs.privkey().to_vec().into())
+    } else {
+        None
+    };
+
     let init_remote_static = if params.handshake.pattern.need_known_remote_pubkey(true) {
         Some(rs.pubkey().to_vec().into())
     } else {
@@ -374,12 +386,12 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
         fallback_pattern: None,
         init_prologue: prologue.clone().into(),
         init_psks: Some(psks_hex.clone()),
-        init_static: Some(is.privkey().to_vec().into()),
+        init_static,
         init_ephemeral: Some(ie.privkey().to_vec().into()),
         init_remote_static,
         resp_prologue: prologue.clone().into(),
         resp_psks: Some(psks_hex.clone()),
-        resp_static: Some(rs.privkey().to_vec().into()),
+        resp_static,
         resp_ephemeral: Some(re.privkey().to_vec().into()),
         resp_remote_static,
         messages,
