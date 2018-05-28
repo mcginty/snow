@@ -41,7 +41,7 @@ Snow is currently based off of Noise revision 32.
 
 - [x] Rekey()
 - [x] `pskN` modifier
-- [ ] specifying PSKs after building `Session`
+- [x] specifying PSKs after building `Session`
 - [ ] `fallback` modifier
 
 ## Crypto
