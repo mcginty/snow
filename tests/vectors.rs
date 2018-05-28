@@ -1,9 +1,9 @@
 #![cfg(feature = "vector-tests")]
-extern crate hex;
-extern crate failure;
-extern crate snow;
-
 #[macro_use] extern crate serde_derive;
+#[macro_use] extern crate failure;
+
+extern crate hex;
+extern crate snow;
 extern crate serde;
 extern crate serde_json;
 extern crate rand;
@@ -141,7 +141,7 @@ fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), Error> 
                 }
             }
         } else {
-            panic!("missing PSKs for a PSK-mode handshake");
+            bail!("missing PSKs for a PSK-mode handshake");
         }
     }
 
@@ -228,7 +228,16 @@ fn test_vectors_from_json(json: &str) {
             ignored += 1;
             continue;
         }
-        let (init, resp) = build_session_pair(&vector).unwrap();
+        let (init, resp) = match build_session_pair(&vector) {
+            Ok((init, resp)) => (init, resp),
+            Err(s) => {
+                fails += 1;
+                println!("FAIL");
+                println!("{}", s);
+                println!("{:?}", vector);
+                continue;
+            }
+        };
 
         match confirm_message_vectors(init, resp, &vector.messages, params.handshake.pattern.is_oneway()) {
             Ok(_) => {
@@ -344,6 +353,18 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
         let _ = init.read_message(&ibuf[..len], &mut obuf).unwrap();
     }
 
+    let init_remote_static = if params.handshake.pattern.need_known_remote_pubkey(true) {
+        Some(rs.pubkey().to_vec().into())
+    } else {
+        None
+    };
+
+    let resp_remote_static = if params.handshake.pattern.need_known_remote_pubkey(false) {
+        Some(is.pubkey().to_vec().into())
+    } else {
+        None
+    };
+
     TestVector {
         name: None,
         protocol_name: params.name,
@@ -355,13 +376,13 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
         init_psks: Some(psks_hex.clone()),
         init_static: Some(is.privkey().to_vec().into()),
         init_ephemeral: Some(ie.privkey().to_vec().into()),
-        init_remote_static: Some(rs.pubkey().to_vec().into()),
+        init_remote_static,
         resp_prologue: prologue.clone().into(),
         resp_psks: Some(psks_hex.clone()),
         resp_static: Some(rs.privkey().to_vec().into()),
         resp_ephemeral: Some(re.privkey().to_vec().into()),
-        resp_remote_static: Some(is.pubkey().to_vec().into()),
-        messages: messages,
+        resp_remote_static,
+        messages,
     }
 }
 
