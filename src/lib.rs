@@ -60,3 +60,4 @@ pub use noise::NoiseBuilder;
 pub use session::Session;
 
 #[cfg(feature = "ring-resolver")] pub use wrappers::ring_wrapper::RingAcceleratedResolver;
+#[cfg(feature = "hacl-resolver")] pub use wrappers::hacl_wrapper::HaclStarResolver;
