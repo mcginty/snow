@@ -90,7 +90,6 @@ impl Dh for Dh25519 {
         let result = x25519::diffie_hellman(&self.privkey, array_ref![pubkey, 0, 32]);
         copy_memory(&result, out);
     }
-
 }
 
 impl Cipher for CipherAESGCM {

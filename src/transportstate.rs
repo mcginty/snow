@@ -12,6 +12,7 @@ use utils::Toggle;
 /// `Split()` method, called after a handshake has been finished.
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
+#[derive(Clone)]
 pub struct TransportState {
     pub cipherstates: CipherStates,
     pattern: HandshakePattern,
