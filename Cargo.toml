@@ -2,9 +2,9 @@
 name = "snow"
 description = "A pure-rust implementation of the Noise Protocol Framework"
 homepage = "https://snow.rs"
-documentation = "https://snow.rs"
+documentation = "https://snow.rs/doc/snow"
 repository = "https://github.com/mcginty/snow"
-version = "0.1.11"
+version = "0.1.12"
 authors = ["Jake McGinty <me@jake.su>", "trevp"]
 license = "Unlicense"
 categories = ["cryptography"]
