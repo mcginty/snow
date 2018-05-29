@@ -26,6 +26,7 @@ harness = false
 
 [badges]
 travis-ci = { repository = "mcginty/snow", branch = "master" }
+appveyor = { repository = "mcginty/snow", branch = "master", service = "github" }
 
 [dependencies]
 arrayvec = "^0.4"
