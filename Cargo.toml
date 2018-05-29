@@ -1,7 +1,7 @@
 [package]
 name = "snow"
 description = "A pure-rust implementation of the Noise Protocol Framework"
-homepage = "https://github.com/mcginty/snow"
+homepage = "https://snow.rs"
 repository = "https://github.com/mcginty/snow"
 version = "0.1.11"
 authors = ["Jake McGinty <me@jake.su>", "trevp"]
