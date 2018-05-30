@@ -205,6 +205,13 @@ impl Session {
             _ => Ok(self)
         }
     }
+
+    pub fn get_transport_state(&mut self) -> Result<&mut TransportState, Error> {
+        match *self {
+            Session::Handshake(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeNotFinished }),
+            Session::Transport(ref mut state) => Ok(state),
+        }
+    }
 }
 
 impl Into<Session> for HandshakeState {

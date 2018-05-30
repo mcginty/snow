@@ -58,6 +58,7 @@ pub use error::*;
 pub use noise::{CryptoResolver, DefaultResolver};
 pub use noise::NoiseBuilder;
 pub use session::Session;
+pub use transportstate::TransportState;
 
 #[cfg(feature = "ring-resolver")] pub use wrappers::ring_wrapper::RingAcceleratedResolver;
 #[cfg(feature = "hacl-resolver")] pub use wrappers::hacl_wrapper::HaclStarResolver;
