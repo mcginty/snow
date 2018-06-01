@@ -25,12 +25,12 @@ pub struct Dh25519 {
     pubkey:  [u8; 32],
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct CipherAESGCM {
     key: [u8; 32],
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct CipherChaChaPoly {
     key: [u8; 32],
 }

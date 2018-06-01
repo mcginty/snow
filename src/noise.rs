@@ -1,6 +1,7 @@
 use constants::*;
 use types::*;
 use handshakestate::*;
+use wrappers;
 use wrappers::rand_wrapper::*;
 use wrappers::crypto_wrapper::*;
 use cipherstate::*;
@@ -89,13 +90,6 @@ impl<'builder> NoiseBuilder<'builder> {
         Self::with_resolver(params, Box::new(RingAcceleratedResolver::new()))
     }
 
-    #[cfg(feature = "hacl-accelerated")]
-    pub fn new(params: NoiseParams) -> Self {
-        use ::wrappers::hacl_wrapper::HaclStarResolver;
-
-        Self::with_resolver(params, Box::new(HaclStarResolver::new()))
-    }
-
     /// Create a NoiseBuilder with a custom crypto resolver.
     pub fn with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self
     {
@@ -174,12 +168,12 @@ impl<'builder> NoiseBuilder<'builder> {
         }
 
         let rng = self.resolver.resolve_rng().ok_or(SnowError::Init { reason: InitStage::GetRngImpl })?;
-        let cipher = self.resolver.resolve_cipher(&self.params.cipher).ok_or(SnowError::Init { reason: InitStage::GetCipherImpl})?;
         let hash = self.resolver.resolve_hash(&self.params.hash).ok_or(SnowError::Init { reason: InitStage::GetHashImpl })?;
         let mut s_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(SnowError::Init { reason: InitStage::GetDhImpl })?;
         let mut e_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(SnowError::Init { reason: InitStage::GetDhImpl })?;
-        let cipher1 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(SnowError::Init { reason: InitStage::GetCipherImpl })?;
-        let cipher2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(SnowError::Init { reason: InitStage::GetCipherImpl })?;
+        let cipher = wrappers::ring_wrapper::CipherChaChaPoly::default();
+        let cipher1 = wrappers::ring_wrapper::CipherChaChaPoly::default();
+        let cipher2 = wrappers::ring_wrapper::CipherChaChaPoly::default();
         let handshake_cipherstate = CipherState::new(cipher);
         let cipherstates = CipherStates::new(CipherState::new(cipher1), CipherState::new(cipher2))?;
 

@@ -2,30 +2,30 @@ use constants::*;
 use failure::Error;
 use error::{SnowError, InitStage};
 use types::Cipher;
-use std::sync::{Arc, Mutex};
+use wrappers::ring_wrapper::CipherChaChaPoly;
 
 #[derive(Clone)]
 pub struct CipherState {
-    cipher : Arc<Mutex<Box<Cipher + Send>>>,
+    cipher : CipherChaChaPoly,
     n : u64,
     has_key : bool,
 }
 
 impl CipherState {
-    pub fn new(cipher: Box<Cipher + Send>) -> Self {
+    pub fn new(cipher: CipherChaChaPoly) -> Self {
         Self {
-            cipher: Arc::new(Mutex::new(cipher)),
+            cipher: cipher,
             n: 0,
             has_key: false
         }
     }
 
     pub fn name(&self) -> &'static str {
-        self.cipher.lock().unwrap().name()
+        self.cipher.name()
     }
 
     pub fn set(&mut self, key: &[u8], n: u64) {
-        self.cipher.lock().unwrap().set(key);
+        self.cipher.set(key);
         self.n = n;
         self.has_key = true;
     }
@@ -33,7 +33,7 @@ impl CipherState {
     // TODO: don't panic
     pub fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
         assert!(self.has_key);
-        let len = self.cipher.lock().unwrap().encrypt(self.n, authtext, plaintext, out);
+        let len = self.cipher.encrypt(self.n, authtext, plaintext, out);
         self.n = self.n.checked_add(1).unwrap();
         len
     }
@@ -43,7 +43,7 @@ impl CipherState {
             return Err(())
         }
 
-        let len = self.cipher.lock().unwrap().decrypt(self.n, authtext, ciphertext, out);
+        let len = self.cipher.decrypt(self.n, authtext, ciphertext, out);
         self.n = self.n.checked_add(1).unwrap();
         len
     }
@@ -57,7 +57,7 @@ impl CipherState {
     }
 
     pub fn rekey(&mut self, key: &[u8]) {
-        self.cipher.lock().unwrap().set(key);
+        self.cipher.set(key);
     }
 
     pub fn nonce(&self) -> u64 {
