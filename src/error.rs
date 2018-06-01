@@ -36,6 +36,7 @@ pub enum Prerequisite {
 #[derive(Debug)]
 pub enum StateProblem {
     MissingKeyMaterial, MissingPsk, NotTurnToWrite, NotTurnToRead,
-    HandshakeNotFinished, HandshakeAlreadyFinished, OneWay
+    HandshakeNotFinished, HandshakeAlreadyFinished, OneWay,
+    AsyncTransportMode
 }
 

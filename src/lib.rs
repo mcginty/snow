@@ -49,6 +49,7 @@ mod handshakestate;
 mod noise;
 mod session;
 mod transportstate;
+mod async_transportstate;
 
 pub mod params;
 pub mod types;

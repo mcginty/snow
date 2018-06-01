@@ -4,6 +4,7 @@ use handshakestate::HandshakeState;
 #[cfg(feature = "nightly")] use std::convert::{TryFrom, TryInto};
 #[cfg(not(feature = "nightly"))] use utils::{TryFrom, TryInto};
 use transportstate::*;
+use async_transportstate::*;
 
 /// A state machine for the entire Noise session.
 ///
@@ -14,6 +15,7 @@ use transportstate::*;
 pub enum Session {
     Handshake(HandshakeState),
     Transport(TransportState),
+    AsyncTransport(AsyncTransportState),
 }
 
 impl Session {
@@ -26,6 +28,7 @@ impl Session {
         match *self {
             Session::Handshake(ref state) => state.is_write_encrypted(),
             Session::Transport(_) => true,
+            Session::AsyncTransport(_) => true,
         }
     }
 
@@ -46,6 +49,7 @@ impl Session {
         match *self {
             Session::Handshake(ref state) => state.is_finished(),
             Session::Transport(_) => true,
+            Session::AsyncTransport(_) => true,
         }
     }
 
@@ -53,6 +57,7 @@ impl Session {
         match *self {
             Session::Handshake(ref state) => state.is_initiator(),
             Session::Transport(ref state) => state.is_initiator(),
+            Session::AsyncTransport(ref state) => state.is_initiator(),
         }
     }
 
@@ -69,6 +74,14 @@ impl Session {
         match *self {
             Session::Handshake(ref mut state) => state.write_handshake_message(payload, output),
             Session::Transport(ref mut state) => state.write_transport_message(payload, output),
+            Session::AsyncTransport(_)        => bail!(SnowError::State { reason: StateProblem::AsyncTransportMode }),
+        }
+    }
+
+    pub fn write_async_message(&mut self, nonce: u64, payload: &[u8], output: &mut [u8]) -> Result<usize, Error> {
+        match *self {
+            Session::AsyncTransport(ref mut state) => state.write_transport_message(nonce, payload, output),
+            _ => bail!(SnowError::State { reason: StateProblem::AsyncTransportMode }),
         }
     }
 
@@ -88,6 +101,14 @@ impl Session {
         match *self {
             Session::Handshake(ref mut state) => state.read_handshake_message(input, payload),
             Session::Transport(ref mut state) => state.read_transport_message(input, payload),
+            Session::AsyncTransport(_)        => bail!(SnowError::State { reason: StateProblem::AsyncTransportMode }),
+        }
+    }
+
+    pub fn read_async_message(&mut self, nonce: u64, payload: &[u8], output: &mut [u8]) -> Result<usize, Error> {
+        match *self {
+            Session::AsyncTransport(ref mut state) => state.read_transport_message(nonce, payload, output),
+            _ => bail!(SnowError::State { reason: StateProblem::AsyncTransportMode }),
         }
     }
 
@@ -108,6 +129,15 @@ impl Session {
                 }
                 Ok(())
             },
+            Session::AsyncTransport(ref mut state) => {
+                if let Some(key) = initiator {
+                    state.rekey_initiator(key);
+                }
+                if let Some(key) = responder {
+                    state.rekey_responder(key);
+                }
+                Ok(())
+            },
         }
     }
 
@@ -119,7 +149,8 @@ impl Session {
     pub fn receiving_nonce(&self) -> Result<u64, Error> {
         match *self {
             Session::Handshake(_) => Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into()),
-            Session::Transport(ref state) => Ok(state.receiving_nonce())
+            Session::Transport(ref state) => Ok(state.receiving_nonce()),
+            Session::AsyncTransport(_) => bail!(SnowError::State { reason: StateProblem::AsyncTransportMode }),
         }
     }
 
@@ -131,7 +162,8 @@ impl Session {
     pub fn sending_nonce(&self) -> Result<u64, Error> {
         match *self {
             Session::Handshake(_) => Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into()),
-            Session::Transport(ref state) => Ok(state.sending_nonce())
+            Session::Transport(ref state) => Ok(state.sending_nonce()),
+            Session::AsyncTransport(_) => bail!(SnowError::State { reason: StateProblem::AsyncTransportMode }),
         }
     }
 
@@ -142,6 +174,7 @@ impl Session {
         match *self {
             Session::Handshake(ref state) => state.get_remote_static(),
             Session::Transport(ref state) => state.get_remote_static(),
+            Session::AsyncTransport(ref state) => state.get_remote_static(),
         }
     }
 
@@ -153,7 +186,8 @@ impl Session {
     pub fn set_receiving_nonce(&mut self, nonce: u64) -> Result<(), Error> {
         match *self {
             Session::Handshake(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeNotFinished }),
-            Session::Transport(ref mut state) => Ok(state.set_receiving_nonce(nonce))
+            Session::Transport(ref mut state) => Ok(state.set_receiving_nonce(nonce)),
+            Session::AsyncTransport(_)        => bail!(SnowError::State { reason: StateProblem::AsyncTransportMode }),
         }
     }
 
@@ -168,7 +202,8 @@ impl Session {
     pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
         match *self {
             Session::Handshake(ref mut state) => state.set_psk(location, key),
-            Session::Transport(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeAlreadyFinished })
+            Session::Transport(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeAlreadyFinished }),
+            Session::AsyncTransport(_)        => bail!(SnowError::State { reason: StateProblem::AsyncTransportMode }),
         }
     }
 
@@ -206,10 +241,32 @@ impl Session {
         }
     }
 
+    pub fn into_async_transport_mode(self) -> Result<Self, Error> {
+        match self {
+            Session::Handshake(state) => {
+                if !state.is_finished() {
+                    Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into())
+                } else {
+                    Ok(Session::AsyncTransport(state.try_into()?))
+                }
+            },
+            _ => Ok(self)
+        }
+    }
+
     pub fn get_transport_state(&mut self) -> Result<&mut TransportState, Error> {
         match *self {
             Session::Handshake(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeNotFinished }),
             Session::Transport(ref mut state) => Ok(state),
+            Session::AsyncTransport(_)        => bail!(SnowError::State { reason: StateProblem::AsyncTransportMode }),
+        }
+    }
+
+    pub fn get_async_transport_state(&mut self) -> Result<&mut AsyncTransportState, Error> {
+        match *self {
+            Session::AsyncTransport(ref mut state) => Ok(state),
+            Session::Handshake(_)                  => bail!(SnowError::State { reason: StateProblem::HandshakeNotFinished }),
+            Session::Transport(_)                  => bail!(SnowError::State { reason: StateProblem::AsyncTransportMode }),
         }
     }
 }
@@ -227,6 +284,16 @@ impl TryFrom<HandshakeState> for TransportState {
         let initiator = old.is_initiator();
         let (cipherstates, handshake, dh_len, rs) = old.finish()?;
         Ok(TransportState::new(cipherstates, handshake.pattern, dh_len, rs, initiator))
+    }
+}
+
+impl TryFrom<HandshakeState> for AsyncTransportState {
+    type Error = Error;
+
+    fn try_from(old: HandshakeState) -> Result<Self, Error> {
+        let initiator = old.is_initiator();
+        let (cipherstates, handshake, dh_len, rs) = old.finish()?;
+        Ok(AsyncTransportState::new(cipherstates.into(), handshake.pattern, dh_len, rs, initiator))
     }
 }
 
