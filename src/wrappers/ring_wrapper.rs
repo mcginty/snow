@@ -34,7 +34,7 @@ impl CryptoResolver for RingAcceleratedResolver {
         }
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send + Sync>> {
         match *choice {
             CipherChoice::AESGCM => Some(Box::new(CipherAESGCM::default())),
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),

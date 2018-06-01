@@ -6,13 +6,13 @@ use std::sync::{Arc, RwLock};
 
 #[derive(Clone)]
 pub struct CipherState {
-    cipher : Arc<RwLock<Box<Cipher + Send>>>,
+    cipher : Arc<RwLock<Box<Cipher + Send + Sync>>>,
     n : u64,
     has_key : bool,
 }
 
 impl CipherState {
-    pub fn new(cipher: Box<Cipher + Send>) -> Self {
+    pub fn new(cipher: Box<Cipher + Send + Sync>) -> Self {
         Self {
             cipher: Arc::new(RwLock::new(cipher)),
             n: 0,

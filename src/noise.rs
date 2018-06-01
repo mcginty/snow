@@ -17,7 +17,7 @@ pub trait CryptoResolver {
     fn resolve_rng(&self) -> Option<Box<Random + Send>>;
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh + Send>>;
     fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>>;
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>>;
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send + Sync>>;
 }
 
 /// The default pure-rust crypto implementation resolver.
@@ -43,7 +43,7 @@ impl CryptoResolver for DefaultResolver {
         }
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send + Sync>> {
         match *choice {
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
             CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
