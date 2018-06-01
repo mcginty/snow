@@ -99,25 +99,13 @@ impl Cipher for CipherAESGCM {
 }
 
 pub struct CipherChaChaPoly {
-    key: [u8; 32],
     sealing: aead::SealingKey,
     opening: aead::OpeningKey,
-}
-
-impl Clone for CipherChaChaPoly {
-    fn clone(&self) -> Self {
-        Self {
-            key: self.key.clone(),
-            sealing: aead::SealingKey::new(&aead::CHACHA20_POLY1305, &self.key).unwrap(),
-            opening: aead::OpeningKey::new(&aead::CHACHA20_POLY1305, &self.key).unwrap(),
-        }
-    }
 }
 
 impl Default for CipherChaChaPoly {
     fn default() -> Self {
         Self {
-            key: [0u8; 32],
             sealing: aead::SealingKey::new(&aead::CHACHA20_POLY1305, &[0u8; 32]).unwrap(),
             opening: aead::OpeningKey::new(&aead::CHACHA20_POLY1305, &[0u8; 32]).unwrap(),
         }
@@ -130,7 +118,6 @@ impl Cipher for CipherChaChaPoly {
     }
 
     fn set(&mut self, key: &[u8]) {
-        self.key.copy_from_slice(key);
         self.sealing = aead::SealingKey::new(&aead::CHACHA20_POLY1305, key).unwrap();
         self.opening = aead::OpeningKey::new(&aead::CHACHA20_POLY1305, key).unwrap();
     }

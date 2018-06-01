@@ -12,7 +12,7 @@ readme = "README.md"
 keywords = ["noise", "protocol", "crypto"]
 
 [features]
-default = ["ring-accelerated"]
+default = []
 nightly = ["blake2-rfc/simd_opt", "chacha20-poly1305-aead/simd_opt", "x25519-dalek/nightly"]
 hacl-resolver = ["hacl-star"]
 hacl-accelerated = ["hacl-resolver"]
