@@ -80,13 +80,21 @@ impl Cipher for CipherAESGCM {
         let mut nonce_bytes = [0u8; 12];
         BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
-        // Eh, ring API is ... weird.
-        let mut in_out = ciphertext.to_vec();
+        if out.len() >= ciphertext.len() {
+            let in_out = &mut out[..ciphertext.len()];
+            in_out.copy_from_slice(ciphertext);
 
-        let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out).map_err(|_| ())?;
+            let len = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, in_out).map_err(|_| ())?
+                .len();
 
-        out[..out0.len()].copy_from_slice(out0);
-        Ok(out0.len())
+            Ok(len)
+        } else {
+            let mut in_out = ciphertext.to_vec();
+
+            let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out).map_err(|_| ())?;
+            out[..out0.len()].copy_from_slice(out0);
+            Ok(out0.len())
+        }
     }
 }
 
@@ -128,13 +136,21 @@ impl Cipher for CipherChaChaPoly {
         let mut nonce_bytes = [0u8; 12];
         LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
-        // Eh, ring API is ... weird.
-        let mut in_out = ciphertext.to_vec();
+        if out.len() >= ciphertext.len() {
+            let in_out = &mut out[..ciphertext.len()];
+            in_out.copy_from_slice(ciphertext);
 
-        let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out).map_err(|_| ())?;
+            let len = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, in_out).map_err(|_| ())?
+                .len();
 
-        out[..out0.len()].copy_from_slice(out0);
-        Ok(out0.len())
+            Ok(len)
+        } else {
+            let mut in_out = ciphertext.to_vec();
+
+            let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out).map_err(|_| ())?;
+            out[..out0.len()].copy_from_slice(out0);
+            Ok(out0.len())
+        }
     }
 }
 pub struct HashSHA256 {
