@@ -55,6 +55,7 @@ pub mod params;
 pub mod types;
 pub mod wrappers;
 
+pub use async_transportstate::AsyncTransportState;
 pub use error::*;
 pub use noise::{CryptoResolver, DefaultResolver};
 pub use noise::NoiseBuilder;

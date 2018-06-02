@@ -50,14 +50,14 @@ impl AsyncTransportState {
         Ok(cipher.encrypt(nonce, payload, message))
     }
 
-    pub fn read_transport_message(&mut self,
+    pub fn read_transport_message(&self,
                                   nonce: u64,
                                   payload: &[u8],
                                   message: &mut [u8]) -> Result<usize, Error> {
         if self.initiator && self.pattern.is_oneway() {
             bail!(SnowError::State { reason: StateProblem::OneWay });
         }
-        let cipher = if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
+        let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
         cipher.decrypt(nonce, payload, message).map_err(|_| SnowError::Decrypt.into())
     }
 

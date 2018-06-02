@@ -113,13 +113,13 @@ impl AsyncCipherState {
     }
 
     // TODO: don't panic
-    pub fn encrypt_ad(&mut self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
+    pub fn encrypt_ad(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
         assert!(self.has_key);
         let len = self.cipher.read().unwrap().encrypt(nonce, authtext, plaintext, out);
         len
     }
 
-    pub fn decrypt_ad(&mut self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
+    pub fn decrypt_ad(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
         if (ciphertext.len() < TAGLEN) || (out.len() < (ciphertext.len() - TAGLEN) || !self.has_key) {
             return Err(())
         }
@@ -128,11 +128,11 @@ impl AsyncCipherState {
         len
     }
 
-    pub fn encrypt(&mut self, nonce: u64, plaintext: &[u8], out: &mut[u8]) -> usize {
+    pub fn encrypt(&self, nonce: u64, plaintext: &[u8], out: &mut[u8]) -> usize {
         self.encrypt_ad(nonce, &[], plaintext, out)
     }
 
-    pub fn decrypt(&mut self, nonce: u64, ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
+    pub fn decrypt(&self, nonce: u64, ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
         self.decrypt_ad(nonce, &[], ciphertext, out)
     }
 
