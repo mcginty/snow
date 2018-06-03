@@ -39,6 +39,7 @@
 
 extern crate arrayvec;
 extern crate byteorder;
+extern crate parking_lot;
 
 mod error;
 mod constants;

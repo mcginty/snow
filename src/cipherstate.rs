@@ -2,7 +2,8 @@ use constants::*;
 use failure::Error;
 use error::{SnowError, InitStage};
 use types::Cipher;
-use std::sync::{Arc, RwLock};
+use parking_lot::RwLock;
+use std::sync::Arc;
 
 pub struct CipherState {
     cipher : Box<Cipher + Send + Sync>,
@@ -104,18 +105,18 @@ impl AsyncCipherState {
     }
 
     pub fn name(&self) -> &'static str {
-        self.cipher.read().unwrap().name()
+        self.cipher.read().name()
     }
 
     pub fn set(&mut self, key: &[u8]) {
-        self.cipher.write().unwrap().set(key);
+        self.cipher.write().set(key);
         self.has_key = true;
     }
 
     // TODO: don't panic
     pub fn encrypt_ad(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
         assert!(self.has_key);
-        let len = self.cipher.read().unwrap().encrypt(nonce, authtext, plaintext, out);
+        let len = self.cipher.read().encrypt(nonce, authtext, plaintext, out);
         len
     }
 
@@ -124,7 +125,7 @@ impl AsyncCipherState {
             return Err(())
         }
 
-        let len = self.cipher.read().unwrap().decrypt(nonce, authtext, ciphertext, out);
+        let len = self.cipher.read().decrypt(nonce, authtext, ciphertext, out);
         len
     }
 
@@ -137,7 +138,7 @@ impl AsyncCipherState {
     }
 
     pub fn rekey(&mut self, key: &[u8]) {
-        self.cipher.write().unwrap().set(key);
+        self.cipher.write().set(key);
     }
 }
 
