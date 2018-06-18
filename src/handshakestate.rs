@@ -97,19 +97,19 @@ impl HandshakeState {
         }
 
         Ok(HandshakeState {
-            rng: rng,  
-            symmetricstate: symmetricstate,
-            cipherstates: cipherstates,
-            s: s,
-            e: e,
-            fixed_ephemeral: fixed_ephemeral,
-            rs: rs, 
-            re: re,
-            initiator: initiator,
-            params: params,
-            psks: psks,
-            my_turn: initiator,
-            message_patterns: tokens.msg_patterns.into(),
+            rng,  
+            symmetricstate,
+            cipherstates,
+            s,
+            e,
+            fixed_ephemeral,
+            rs, 
+            re,
+            initiator,
+            params,
+            psks,
+            my_turn : initiator,
+            message_patterns : tokens.msg_patterns,
         })
     }
 

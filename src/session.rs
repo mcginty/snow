@@ -153,7 +153,7 @@ impl Session {
     pub fn set_receiving_nonce(&mut self, nonce: u64) -> Result<(), Error> {
         match *self {
             Session::Handshake(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeNotFinished }),
-            Session::Transport(ref mut state) => Ok(state.set_receiving_nonce(nonce))
+            Session::Transport(ref mut state) => { state.set_receiving_nonce(nonce); Ok(()) }
         }
     }
 

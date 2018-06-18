@@ -28,8 +28,8 @@ impl SymmetricState {
     pub fn new(cipherstate: CipherState, hasher: Box<Hash + Send>) -> SymmetricState
     {
         SymmetricState {
-            cipherstate: cipherstate,
-            hasher: hasher,
+            cipherstate,
+            hasher,
             h: [0u8; MAXHASHLEN],
             ck : [0u8; MAXHASHLEN],
             has_key: false,

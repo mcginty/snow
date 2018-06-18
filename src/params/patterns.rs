@@ -36,22 +36,22 @@ impl HandshakePattern {
     /// If the protocol is one-way only
     ///
     /// See: http://noiseprotocol.org/noise.html#one-way-patterns
-    pub fn is_oneway(&self) -> bool {
-        match *self {
+    pub fn is_oneway(self) -> bool {
+        match self {
             N | X | K => true,
             _ => false
         }
     }
 
     /// Whether this pattern requires a long-term static key.
-    pub fn needs_local_static_key(&self, initiator: bool) -> bool {
+    pub fn needs_local_static_key(self, initiator: bool) -> bool {
         if initiator {
-            match *self {
+            match self {
                 N | NN | NK | NX => false,
                 _ => true
             }
         } else {
-            match *self {
+            match self {
                 NN | XN | KN | IN => false,
                 _ => true
             }
@@ -59,14 +59,14 @@ impl HandshakePattern {
     }
 
     /// Whether this pattern demands a remote public key pre-message.
-    pub fn need_known_remote_pubkey(&self, initiator: bool) -> bool {
+    pub fn need_known_remote_pubkey(self, initiator: bool) -> bool {
         if initiator {
-            match *self {
+            match self {
                 N | K | X | NK | XK | KK | IK => true,
                 _ => false
             }
         } else {
-            match *self {
+            match self {
                 K | KN | KK | KX => true,
                 _ => false,
             }
@@ -157,7 +157,7 @@ impl FromStr for HandshakeChoice {
         }
 
         Ok(HandshakeChoice {
-            pattern: pattern,
+            pattern,
             modifiers: remainder.parse()?
         })
     }
@@ -189,9 +189,9 @@ impl FromStr for HandshakePattern {
 }
 
 impl HandshakePattern {
-    pub fn as_str(&self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         use self::HandshakePattern::*;
-        match *self {
+        match self {
             N => "N",
             X => "X",
             K => "K",

@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 pub fn copy_memory(input: &[u8], out: &mut [u8]) -> usize {
-    for count in 0..input.len() {out[count] = input[count];}
+    out[..input.len()].clone_from_slice(&input[..]);
     input.len()
 }
 
@@ -16,14 +16,14 @@ pub struct Toggle<T> {
 impl<T> Toggle<T> {
     pub fn on(inner: T) -> Self {
         Self {
-            inner: inner,
+            inner,
             on: true
         }
     }
 
     pub fn off(inner: T) -> Self {
         Self {
-            inner: inner,
+            inner,
             on: false
         }
     }

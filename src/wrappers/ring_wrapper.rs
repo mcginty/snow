@@ -73,7 +73,7 @@ impl Cipher for CipherAESGCM {
         out[..plaintext.len()].copy_from_slice(plaintext);
 
         aead::seal_in_place(&self.sealing, &nonce_bytes, authtext, &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
-        return plaintext.len() + TAGLEN;
+        plaintext.len() + TAGLEN
     }
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
@@ -129,7 +129,7 @@ impl Cipher for CipherChaChaPoly {
         out[..plaintext.len()].copy_from_slice(plaintext);
 
         aead::seal_in_place(&self.sealing, &nonce_bytes, authtext, &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
-        return plaintext.len() + TAGLEN;
+        plaintext.len() + TAGLEN
     }
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {

@@ -23,11 +23,11 @@ pub struct TransportState {
 impl TransportState {
     pub fn new(cipherstates: CipherStates, pattern: HandshakePattern, dh_len: usize, rs: Toggle<[u8; MAXDHLEN]>, initiator: bool) -> Self {
         TransportState {
-            cipherstates: cipherstates,
-            pattern: pattern,
-            dh_len: dh_len,
-            rs: rs,
-            initiator: initiator,
+            cipherstates,
+            pattern,
+            dh_len,
+            rs,
+            initiator,
         }
     }
 

@@ -100,8 +100,8 @@ impl<'builder> NoiseBuilder<'builder> {
     pub fn with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self
     {
         NoiseBuilder {
-            params: params,
-            resolver: resolver,
+            params,
+            resolver,
             s: None,
             e_fixed: None,
             rs: None,
@@ -165,11 +165,11 @@ impl<'builder> NoiseBuilder<'builder> {
     }
 
     fn build(self, initiator: bool) -> Result<Session, Error> {
-        if !self.s.is_some() && self.params.handshake.pattern.needs_local_static_key(initiator) {
+        if self.s.is_none() && self.params.handshake.pattern.needs_local_static_key(initiator) {
             bail!(SnowError::Prereq { reason: Prerequisite::LocalPrivateKey });
         }
 
-        if !self.rs.is_some() && self.params.handshake.pattern.need_known_remote_pubkey(initiator) {
+        if self.rs.is_none() && self.params.handshake.pattern.need_known_remote_pubkey(initiator) {
             bail!(SnowError::Prereq { reason: Prerequisite::RemotePublicKey });
         }
 

@@ -12,7 +12,7 @@ pub struct CipherState {
 impl CipherState {
     pub fn new(cipher: Box<Cipher + Send>) -> Self {
         Self {
-            cipher: cipher,
+            cipher,
             n: 0,
             has_key: false
         }
