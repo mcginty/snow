@@ -17,37 +17,37 @@ use error::{SnowError, InitStage, StateProblem};
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct HandshakeState {
-    rng : Box<Random + Send>,
-    symmetricstate : SymmetricState,
-    cipherstates: CipherStates,
-    s: Toggle<Box<Dh + Send>>,
-    e: Toggle<Box<Dh + Send>>,
-    fixed_ephemeral: bool,
-    rs: Toggle<[u8; MAXDHLEN]>,
-    re: Toggle<[u8; MAXDHLEN]>,
-    initiator: bool,
-    params: NoiseParams,
-    psks: [Option<[u8; PSKLEN]>; 10],
-    my_turn: bool,
-    message_patterns: MessagePatterns,
+    rng              : Box<Random + Send>,
+    symmetricstate   : SymmetricState,
+    cipherstates     : CipherStates,
+    s                : Toggle<Box<Dh + Send>>,
+    e                : Toggle<Box<Dh + Send>>,
+    fixed_ephemeral  : bool,
+    rs               : Toggle<[u8; MAXDHLEN]>,
+    re               : Toggle<[u8; MAXDHLEN]>,
+    initiator        : bool,
+    params           : NoiseParams,
+    psks             : [Option<[u8; PSKLEN]>; 10],
+    my_turn          : bool,
+    message_patterns : MessagePatterns,
 }
 
 impl HandshakeState {
     #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
     pub fn new(
-        rng: Box<Random + Send>,
-        cipherstate: CipherState,
-        hasher: Box<Hash + Send>,
-        s : Toggle<Box<Dh + Send>>,
-        e : Toggle<Box<Dh + Send>>,
-        fixed_ephemeral: bool,
-        rs: Toggle<[u8; MAXDHLEN]>,
-        re: Toggle<[u8; MAXDHLEN]>,
-        initiator: bool,
-        params: NoiseParams,
-        psks: [Option<[u8; PSKLEN]>; 10],
-        prologue: &[u8],
-        cipherstates: CipherStates) -> Result<HandshakeState, Error> {
+        rng             : Box<Random + Send>,
+        cipherstate     : CipherState,
+        hasher          : Box<Hash + Send>,
+        s               : Toggle<Box<Dh + Send>>,
+        e               : Toggle<Box<Dh + Send>>,
+        fixed_ephemeral : bool,
+        rs              : Toggle<[u8; MAXDHLEN]>,
+        re              : Toggle<[u8; MAXDHLEN]>,
+        initiator       : bool,
+        params          : NoiseParams,
+        psks            : [Option<[u8; PSKLEN]>; 10],
+        prologue        : &[u8],
+        cipherstates    : CipherStates) -> Result<HandshakeState, Error> {
 
         if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
         || (s.is_on() && rs.is_on() && s.pub_len() >  rs.len())
@@ -97,13 +97,13 @@ impl HandshakeState {
         }
 
         Ok(HandshakeState {
-            rng,  
+            rng,
             symmetricstate,
             cipherstates,
             s,
             e,
             fixed_ephemeral,
-            rs, 
+            rs,
             re,
             initiator,
             params,
@@ -156,8 +156,8 @@ impl HandshakeState {
         let last = self.message_patterns.is_empty();
 
         let mut byte_index = 0;
-        for token in next_tokens.iter() {
-            match *token {
+        for token in next_tokens.into_iter() {
+            match token {
                 Token::E => {
                     if byte_index + self.e.pub_len() > message.len() {
                         bail!(SnowError::Input)
@@ -226,7 +226,7 @@ impl HandshakeState {
         }
 
         let next_tokens = if self.message_patterns.len() > 0 {
-            self.message_patterns.pop_at(0)
+            Some(self.message_patterns.remove(0))
         } else {
             None
         };

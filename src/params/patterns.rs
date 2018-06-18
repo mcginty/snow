@@ -1,19 +1,16 @@
 #[cfg(feature = "nightly")] use std::convert::{TryFrom};
 #[cfg(not(feature = "nightly"))] use utils::{TryFrom};
 use std::str::FromStr;
-use arrayvec::ArrayVec;
+use smallvec::SmallVec;
 use failure::Error;
-use error::{SnowError, InitStage};
 
 macro_rules! message_vec {
     ($($item:expr),*) => ({
-        let tokies: &[&[Token]] = &[$($item),*];
-        let mut vec = ArrayVec::<[ArrayVec<[Token; 10]>; 10]>::new();
-        for i in tokies {
-            let mut inner = ArrayVec::<[Token; 10]>::new();
-            for j in *i {
-                inner.push(*j);
-            }
+        let token_groups: &[&[Token]] = &[$($item),*];
+        let mut vec: MessagePatterns = SmallVec::new();
+        for group in token_groups {
+            let mut inner: SmallVec<[_; 10]> = SmallVec::new();
+            inner.extend_from_slice(group);
             vec.push(inner);
         }
         vec
@@ -32,7 +29,6 @@ pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
 pub enum HandshakePattern { N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX }
 
 impl HandshakePattern {
-
     /// If the protocol is one-way only
     ///
     /// See: http://noiseprotocol.org/noise.html#one-way-patterns
@@ -212,11 +208,12 @@ impl HandshakePattern {
 }
 
 type PremessagePatterns = &'static [Token];
-pub type MessagePatterns = ArrayVec<[ArrayVec<[Token; 10]>; 10]>;
+pub type MessagePatterns = SmallVec<[SmallVec<[Token; 10]>; 10]>;
 
 /// The defined token patterns for a given handshake.
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
+#[derive(Debug)]
 pub struct HandshakeTokens {
     pub premsg_pattern_i: PremessagePatterns,
     pub premsg_pattern_r: PremessagePatterns,
@@ -316,9 +313,7 @@ impl TryFrom<HandshakeChoice> for HandshakeTokens {
                     0 => { patterns.2[0].insert(0, Token::Psk(n)); },
                     _ => {
                         let i = (n as usize) - 1;
-                        if patterns.2[i].try_push(Token::Psk(n)).is_err() {
-                            bail!(SnowError::Init{ reason: InitStage::ValidatePskPosition });
-                        }
+                        patterns.2[i].push(Token::Psk(n));
                     }
                 }
             }

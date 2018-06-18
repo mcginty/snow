@@ -37,8 +37,8 @@
 #[macro_use] extern crate static_slice;
 #[macro_use] extern crate failure;
 
-extern crate arrayvec;
 extern crate byteorder;
+extern crate smallvec;
 
 mod error;
 mod constants;

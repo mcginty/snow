@@ -270,8 +270,8 @@ fn test_NNpsk0_sanity_session() {
 }
 
 #[test]
-fn test_XXpsk1_sanity_session() {
-    let params: NoiseParams = "Noise_XXpsk1_25519_AESGCM_SHA256".parse().unwrap();
+fn test_XXpsk3_sanity_session() {
+    let params: NoiseParams = "Noise_XXpsk3_25519_AESGCM_SHA256".parse().unwrap();
     let b_i = NoiseBuilder::new(params.clone());
     let b_r = NoiseBuilder::new(params);
     let static_i = b_i.generate_private_key().unwrap();
@@ -281,13 +281,13 @@ fn test_XXpsk1_sanity_session() {
     static_i_dh.set(&static_i);
     static_r_dh.set(&static_r);
     let mut h_i = b_i
-        .psk(1, &[32u8; 32])
+        .psk(3, &[32u8; 32])
         .local_private_key(&static_i)
         .remote_public_key(static_r_dh.pubkey())
         .build_initiator()
         .unwrap();
     let mut h_r = b_r
-        .psk(1, &[32u8; 32])
+        .psk(3, &[32u8; 32])
         .local_private_key(&static_r)
         .remote_public_key(static_i_dh.pubkey())
         .build_responder()

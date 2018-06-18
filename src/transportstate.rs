@@ -1,5 +1,3 @@
-extern crate arrayvec;
-
 use params::HandshakePattern;
 use failure::Error;
 use error::{SnowError, StateProblem};
