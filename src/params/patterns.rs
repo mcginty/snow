@@ -89,7 +89,7 @@ impl FromStr for HandshakeModifier {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct HandshakeModifierList {
-    pub list: Vec<HandshakeModifier>
+    pub list: SmallVec<[HandshakeModifier; 10]>
 }
 
 impl FromStr for HandshakeModifierList {
@@ -97,10 +97,10 @@ impl FromStr for HandshakeModifierList {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
-            Ok(HandshakeModifierList{ list: vec![] })
+            Ok(HandshakeModifierList{ list: SmallVec::new() })
         } else {
             let modifier_names = s.split('+');
-            let mut modifiers: Vec<HandshakeModifier> = Vec::new();
+            let mut modifiers = SmallVec::new();
             for modifier_name in modifier_names {
                 modifiers.push(modifier_name.parse()?);
             }
@@ -140,15 +140,15 @@ impl FromStr for HandshakeChoice {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (pattern, remainder);
         if s.len() > 1 {
-            if let Ok(p) = (&s[..2]).parse::<HandshakePattern>() {
+            if let Ok(p) = (&s[..2]).parse() {
                 pattern = p;
                 remainder = &s[2..];
             } else {
-                pattern = (&s[..1]).parse::<HandshakePattern>()?;
+                pattern = (&s[..1]).parse()?;
                 remainder = &s[1..];
             }
         } else {
-            pattern = (&s[..1]).parse::<HandshakePattern>()?;
+            pattern = (&s[..1]).parse()?;
             remainder = &s[1..];
         }
 
