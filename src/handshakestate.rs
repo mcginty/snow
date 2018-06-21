@@ -32,6 +32,8 @@ pub struct HandshakeState {
     message_patterns : MessagePatterns,
 }
 
+pub type TransferredState = (CipherStates, HandshakeChoice, usize, Toggle<[u8; MAXDHLEN]>);
+
 impl HandshakeState {
     #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
     pub fn new(
@@ -156,7 +158,7 @@ impl HandshakeState {
         let last = self.message_patterns.is_empty();
 
         let mut byte_index = 0;
-        for token in next_tokens.into_iter() {
+        for token in next_tokens {
             match token {
                 Token::E => {
                     if byte_index + self.e.pub_len() > message.len() {
@@ -225,7 +227,7 @@ impl HandshakeState {
             bail!(SnowError::Input);
         }
 
-        let next_tokens = if self.message_patterns.len() > 0 {
+        let next_tokens = if !self.message_patterns.is_empty() {
             Some(self.message_patterns.remove(0))
         } else {
             None
@@ -300,7 +302,7 @@ impl HandshakeState {
         self.rs.as_option_ref().map(|rs| &rs[..self.dh_len()])
     }
 
-    pub fn finish(self) -> Result<(CipherStates, HandshakeChoice, usize, Toggle<[u8; MAXDHLEN]>), Error> {
+    pub fn finish(self) -> Result<TransferredState, Error> {
         if self.is_finished() {
             let dh_len = self.dh_len();
             Ok((self.cipherstates, self.params.handshake, dh_len, self.rs))
