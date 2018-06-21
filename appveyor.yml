@@ -25,4 +25,6 @@ build: false
 test_script:
   - cargo test --verbose --target %TARGET% --features "ring-resolver vector-tests"
   - cargo test --verbose --target %TARGET% --features "ring-accelerated vector-tests"
+  - cargo test --verbose --target %TARGET% --features "hacl-star-resolver vector-tests"
+  - cargo test --verbose --target %TARGET% --features "hacl-star-accelerated vector-tests"
 

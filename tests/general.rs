@@ -7,7 +7,7 @@ use hex::{FromHex, ToHex};
 use snow::{NoiseBuilder, CryptoResolver, DefaultResolver};
 use snow::params::*;
 use snow::types::*;
-use snow::wrappers::crypto_wrapper::Dh25519;
+use snow::resolvers::default::Dh25519;
 
 struct RandomInc {
     next_byte: u8

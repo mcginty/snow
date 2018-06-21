@@ -1,42 +1,37 @@
+extern crate ring;
+
+use super::CryptoResolver;
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
-use ring::aead;
-use ring::digest;
+use self::ring::aead;
+use self::ring::digest;
 use constants::TAGLEN;
-use noise::{CryptoResolver, DefaultResolver};
 use params::{DHChoice, HashChoice, CipherChoice};
 use types::{Random, Dh, Hash, Cipher};
 
-pub struct RingAcceleratedResolver {
-    parent: DefaultResolver,
-}
-
-impl RingAcceleratedResolver {
-    pub fn new() -> Self {
-        RingAcceleratedResolver { parent: DefaultResolver }
-    }
-}
+#[derive(Default)]
+pub struct RingResolver;
 
 #[cfg(feature = "ring")]
-impl CryptoResolver for RingAcceleratedResolver {
+impl CryptoResolver for RingResolver {
     fn resolve_rng(&self) -> Option<Box<Random + Send>> {
-        self.parent.resolve_rng()
+        None
     }
 
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh + Send>> {
-        self.parent.resolve_dh(choice)
+    fn resolve_dh(&self, _choice: &DHChoice) -> Option<Box<Dh + Send>> {
+        None
     }
 
     fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>> {
         match *choice {
             HashChoice::SHA256 => Some(Box::new(HashSHA256::default())),
             HashChoice::SHA512 => Some(Box::new(HashSHA512::default())),
-            _ => self.parent.resolve_hash(choice),
+            _                  => None,
         }
     }
 
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
         match *choice {
-            CipherChoice::AESGCM => Some(Box::new(CipherAESGCM::default())),
+            CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
         }
     }

@@ -1,55 +1,14 @@
 use constants::*;
-use types::*;
 use handshakestate::*;
-use wrappers::rand_wrapper::*;
-use wrappers::crypto_wrapper::*;
 use cipherstate::*;
 use session::*;
 use utils::*;
 use params::*;
 use failure::Error;
+use resolvers::CryptoResolver;
 use error::{SnowError, InitStage, Prerequisite};
 
-#[cfg(feature = "ring-resolver" )] use wrappers::ring_wrapper::RingAcceleratedResolver;
-
-/// An object that resolves the providers of Noise crypto choices
-pub trait CryptoResolver {
-    fn resolve_rng(&self) -> Option<Box<Random + Send>>;
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh + Send>>;
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>>;
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>>;
-}
-
 /// The default pure-rust crypto implementation resolver.
-pub struct DefaultResolver;
-impl CryptoResolver for DefaultResolver {
-    fn resolve_rng(&self) -> Option<Box<Random + Send>> {
-        Some(Box::new(RandomOs::default()))
-    }
-
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh + Send>> {
-        match *choice {
-            DHChoice::Curve25519 => Some(Box::new(Dh25519::default())),
-            _                    => None,
-        }
-    }
-
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>> {
-        match *choice {
-            HashChoice::SHA256  => Some(Box::new(HashSHA256::default())),
-            HashChoice::SHA512  => Some(Box::new(HashSHA512::default())),
-            HashChoice::Blake2s => Some(Box::new(HashBLAKE2s::default())),
-            HashChoice::Blake2b => Some(Box::new(HashBLAKE2b::default())),
-        }
-    }
-
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
-        match *choice {
-            CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
-            CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
-        }
-    }
-}
 
 /// Generates a `NoiseSession` and also validate that all the prerequisites for
 /// the given parameters are satisfied.
@@ -79,21 +38,25 @@ pub struct NoiseBuilder<'builder> {
 
 impl<'builder> NoiseBuilder<'builder> {
     /// Create a NoiseBuilder with the default crypto resolver.
-    #[cfg(not(any(feature = "ring-accelerated", feature = "hacl-accelerated")))]
+    #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated", feature = "hacl-star-accelerated"))))]
     pub fn new(params: NoiseParams) -> Self {
-        Self::with_resolver(params, Box::new(DefaultResolver))
+        use ::resolvers::default::DefaultResolver;
+
+        Self::with_resolver(params, Box::new(DefaultResolver::default()))
     }
 
     #[cfg(feature = "ring-accelerated")]
     pub fn new(params: NoiseParams) -> Self {
-        Self::with_resolver(params, Box::new(RingAcceleratedResolver::new()))
+        use ::resolvers::{FallbackResolver, default:: DefaultResolver, ring::RingResolver};
+
+        Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(RingResolver), Box::new(DefaultResolver))))
     }
 
-    #[cfg(feature = "hacl-accelerated")]
+    #[cfg(feature = "hacl-star-accelerated")]
     pub fn new(params: NoiseParams) -> Self {
-        use ::wrappers::hacl_wrapper::HaclStarResolver;
+        use ::resolvers::{FallbackResolver, default::DefaultResolver, hacl_star::HaclStarResolver};
 
-        Self::with_resolver(params, Box::new(HaclStarResolver::new()))
+        Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(HaclStarResolver), Box::new(DefaultResolver))))
     }
 
     /// Create a NoiseBuilder with a custom crypto resolver.
@@ -101,7 +64,7 @@ impl<'builder> NoiseBuilder<'builder> {
     {
         NoiseBuilder {
             params,
-            resolver,
+            resolver: resolver.into(),
             s: None,
             e_fixed: None,
             rs: None,

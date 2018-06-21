@@ -1,58 +1,70 @@
-extern crate crypto;
-extern crate blake2_rfc;
-extern crate chacha20_poly1305_aead;
-extern crate x25519_dalek;
+extern crate hacl_star;
 
-use self::crypto::digest::Digest;
-use self::crypto::sha2::{Sha256, Sha512};
-use self::crypto::aes::KeySize;
-use self::crypto::aes_gcm::AesGcm;
-use self::crypto::aead::{AeadEncryptor, AeadDecryptor};
-use self::blake2_rfc::blake2b::Blake2b;
-use self::blake2_rfc::blake2s::Blake2s;
-use self::x25519_dalek as x25519;
+use std::mem;
+use super::CryptoResolver;
+use params::{DHChoice, HashChoice, CipherChoice};
+use types::{Random, Dh, Hash, Cipher};
+use self::hacl_star::curve25519::{self, SecretKey, PublicKey};
+use self::hacl_star::sha2::{Sha256, Sha512};
+use self::hacl_star::chacha20poly1305;
 
-use byteorder::{ByteOrder, BigEndian, LittleEndian};
-
-use types::*;
-use constants::*;
+use byteorder::{ByteOrder, LittleEndian};
 use utils::copy_memory;
-use std::io::{Cursor, Write};
 
 #[derive(Default)]
-pub struct Dh25519 {
-    privkey: [u8; 32],
-    pubkey:  [u8; 32],
+pub struct HaclStarResolver;
+
+impl CryptoResolver for HaclStarResolver {
+    fn resolve_rng(&self) -> Option<Box<Random + Send>> {
+        None
+    }
+
+    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh + Send>> {
+        if let DHChoice::Curve25519 = choice {
+            Some(Box::new(Dh25519::default()))
+        } else {
+            None
+        }
+    }
+
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>> {
+        match *choice {
+            HashChoice::SHA256 => Some(Box::new(HashSHA256::default())),
+            HashChoice::SHA512 => Some(Box::new(HashSHA512::default())),
+            _                  => None,
+        }
+    }
+
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
+        match *choice {
+            CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
+            _                        => None,
+        }
+    }
 }
 
 #[derive(Default)]
-pub struct CipherAESGCM {
-    key: [u8; 32],
+pub struct Dh25519 {
+    privkey: SecretKey,
+    pubkey:  PublicKey,
 }
 
 #[derive(Default)]
 pub struct CipherChaChaPoly {
-    key: [u8; 32],
+    key: [u8; chacha20poly1305::KEY_LENGTH],
 }
 
+#[derive(Default)]
 pub struct HashSHA256 {
     hasher: Sha256
 }
 
+#[derive(Default)]
 pub struct HashSHA512 {
     hasher: Sha512
 }
 
-pub struct HashBLAKE2b {
-    hasher: Blake2b
-}
-
-pub struct HashBLAKE2s {
-    hasher: Blake2s
-}
-
 impl Dh for Dh25519 {
-
     fn name(&self) -> &'static str {
         static NAME: &'static str = "25519";
         NAME
@@ -67,70 +79,32 @@ impl Dh for Dh25519 {
     }
 
     fn set(&mut self, privkey: &[u8]) {
-        copy_memory(privkey, &mut self.privkey);
-        let pubkey = x25519::generate_public(&self.privkey);
-        copy_memory(pubkey.as_bytes(), &mut self.pubkey);
+        copy_memory(privkey, &mut self.privkey.0); /* RUSTSUCKS: Why can't I convert slice -> array? */
+        self.pubkey = self.privkey.get_public();
     }
 
     fn generate(&mut self, rng: &mut Random) {
-        rng.fill_bytes(&mut self.privkey);
-        let pubkey = x25519::generate_public(&self.privkey);
-        copy_memory(pubkey.as_bytes(), &mut self.pubkey);
+        rng.fill_bytes(&mut self.privkey.0);
+        self.pubkey = self.privkey.get_public();
     }
 
     fn pubkey(&self) -> &[u8] {
-        &self.pubkey
+        &self.pubkey.0
     }
 
     fn privkey(&self) -> &[u8] {
-        &self.privkey
+        &self.privkey.0
     }
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) {
-        let result = x25519::diffie_hellman(&self.privkey, array_ref![pubkey, 0, 32]);
-        copy_memory(&result, out);
+        let out = array_mut_ref!(out, 0, 32);
+        let pubkey = array_ref!(pubkey, 0, 32);
+        curve25519::scalarmult(out, &self.privkey.0, pubkey);
     }
 
-}
-
-impl Cipher for CipherAESGCM {
-
-    fn name(&self) -> &'static str {
-        static NAME: &'static str = "AESGCM";
-        NAME
-    }
-
-    fn set(&mut self, key: &[u8]) {
-        copy_memory(key, &mut self.key);
-    }
-
-    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
-        let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
-        let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
-        let mut tag = [0u8; TAGLEN];
-        cipher.encrypt(plaintext, &mut out[..plaintext.len()], &mut tag);
-        copy_memory(&tag, &mut out[plaintext.len()..]);
-        plaintext.len() + TAGLEN
-    } 
-
-    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
-        let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
-        let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
-        let text_len = ciphertext.len() - TAGLEN;
-        let mut tag = [0u8; TAGLEN];
-        copy_memory(&ciphertext[text_len..], &mut tag);
-        if cipher.decrypt(&ciphertext[..text_len], &mut out[..text_len], &tag) {
-            Ok(text_len)
-        } else {
-            Err(())
-        }
-    }
 }
 
 impl Cipher for CipherChaChaPoly {
-
     fn name(&self) -> &'static str {
         "ChaChaPoly"
     }
@@ -143,56 +117,45 @@ impl Cipher for CipherChaChaPoly {
         let mut nonce_bytes = [0u8; 12];
         LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
-        let mut buf = Cursor::new(out);
-        let tag = chacha20_poly1305_aead::encrypt(&self.key, &nonce_bytes, authtext, plaintext, &mut buf);
-        let tag = tag.unwrap();
-        buf.write_all(&tag).unwrap();
-        if buf.position() > usize::max_value() as u64 {
-            panic!("usize overflow");
-        } else {
-            buf.position() as usize
-        }
+        let (out, tag) = out.split_at_mut(plaintext.len());
+        let tag = array_mut_ref!(tag, 0, chacha20poly1305::MAC_LENGTH);
+        copy_memory(plaintext, out);
+
+        chacha20poly1305::Key(&self.key)
+            .nonce(&nonce_bytes)
+            .encrypt(authtext, out, tag);
+
+        out.len() + tag.len()
     }
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
         LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
 
-        let mut buf = Cursor::new(out);
-        let result = chacha20_poly1305_aead::decrypt(
-            &self.key,
-            &nonce_bytes,
-            authtext,
-            &ciphertext[..ciphertext.len()-TAGLEN],
-            &ciphertext[ciphertext.len()-TAGLEN..],
-            &mut buf);
-        match result {
-            Ok(_) => {
-                if buf.position() > usize::max_value() as u64 {
-                    panic!("usize overflow");
-                } else {
-                    Ok(buf.position() as usize)
-                }
-            }
-            Err(_) => Err(()),
+        let len = ciphertext.len();
+        let (ciphertext, tag) = ciphertext.split_at(len - chacha20poly1305::MAC_LENGTH);
+        let tag = array_ref!(tag, 0, chacha20poly1305::MAC_LENGTH);
+        let len = ciphertext.len();
+        copy_memory(ciphertext, out);
+
+        if chacha20poly1305::Key(&self.key)
+            .nonce(&nonce_bytes)
+            .decrypt(authtext, &mut out[..len], tag)
+        {
+            Ok(out.len())
+        } else {
+            Err(())
         }
     }
 }
 
-impl Default for HashSHA256 {
-    fn default() -> HashSHA256 {
-        HashSHA256{hasher: Sha256::new()}
-    }
-}
-
 impl Hash for HashSHA256 {
-
     fn block_len(&self) -> usize {
-        64
+        Sha256::BLOCK_LENGTH
     }
 
     fn hash_len(&self) -> usize {
-        32
+        Sha256::HASH_LENGTH
     }
 
     fn name(&self) -> &'static str {
@@ -200,107 +163,34 @@ impl Hash for HashSHA256 {
     }
 
     fn reset(&mut self) {
-        self.hasher = Sha256::new();
-    }   
+        self.hasher = Sha256::default();
+    }
 
     fn input(&mut self, data: &[u8]) {
-        self.hasher.input(data);
+        self.hasher.update(data);
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        self.hasher.result(out);
-    }
-}
-
-impl Default for HashSHA512 {
-    fn default() -> HashSHA512 {
-        HashSHA512{hasher:Sha512::new()}
+        let out = array_mut_ref!(out, 0, 32);
+        mem::replace(&mut self.hasher, Default::default()).finish(out);
     }
 }
 
 impl Hash for HashSHA512 {
-
     fn name(&self) -> &'static str {
         "SHA512"
     }
 
     fn block_len(&self) -> usize {
-        128
+        Sha512::BLOCK_LENGTH
     }
 
     fn hash_len(&self) -> usize {
-        64
+        Sha512::HASH_LENGTH
     }
 
     fn reset(&mut self) {
-        self.hasher = Sha512::new();
-    }   
-
-    fn input(&mut self, data: &[u8]) {
-        self.hasher.input(data);
-    }
-
-    fn result(&mut self, out: &mut [u8]) {
-        self.hasher.result(out);
-    }
-}
-
-impl Default for HashBLAKE2b {
-    fn default() -> HashBLAKE2b {
-        HashBLAKE2b { hasher: Blake2b::new(64) }
-    }
-}
-
-impl Hash for HashBLAKE2b {
-
-    fn name(&self) -> &'static str {
-        "BLAKE2b"
-    }
-
-    fn block_len(&self) -> usize {
-        128
-    }
-
-    fn hash_len(&self) -> usize {
-        64
-    }
-
-    fn reset(&mut self) {
-        self.hasher = Blake2b::new(64);
-    }   
-
-    fn input(&mut self, data: &[u8]) {
-        self.hasher.update(data);
-    }
-
-    fn result(&mut self, out: &mut [u8]) {
-        let hash = self.hasher.clone().finalize();
-        out[..64].copy_from_slice(hash.as_bytes());
-    }
-}
-
-impl Default for HashBLAKE2s {
-    fn default() -> HashBLAKE2s {
-        HashBLAKE2s { hasher: Blake2s::new(32) }
-    }
-}
-
-impl Hash for HashBLAKE2s {
-
-    fn name(&self) -> &'static str {
-        "BLAKE2s"
-    }
-
-    fn block_len(&self) -> usize {
-        64
-    }
-
-    fn hash_len(&self) -> usize {
-        32
-    }
-
-    fn reset(&mut self) {
-        self.hasher = Blake2s::new(32);
+        self.hasher = Sha512::default();
     }
 
     fn input(&mut self, data: &[u8]) {
@@ -308,8 +198,8 @@ impl Hash for HashBLAKE2s {
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        let hash = self.hasher.clone().finalize();
-        out[..32].copy_from_slice(hash.as_bytes());
+        let out = array_mut_ref!(out, 0, 64);
+        mem::replace(&mut self.hasher, Default::default()).finish(out);
     }
 }
 
@@ -322,8 +212,7 @@ mod tests {
     use types::*;
     use super::*;
     use self::hex::{FromHex, ToHex};
-    use super::crypto::poly1305::Poly1305;
-    use super::crypto::mac::Mac;
+    use super::hacl_star::poly1305::Poly1305;
 
     #[test]
     fn test_sha256() {
@@ -353,78 +242,15 @@ mod tests {
     }
 
     #[test]
-    fn test_blake2b() {
-        // BLAKE2b test - draft-saarinen-blake2-06
-        let mut output = [0u8; 64];
-        let mut hasher:HashBLAKE2b = Default::default();
-        hasher.input("abc".as_bytes());
-        hasher.result(&mut output);
-        assert!(output.to_vec().to_hex() == "ba80a53f981c4d0d6a2797b69f12f6e9\
-                                    4c212f14685ac4b74b12bb6fdbffa2d1\
-                                    7d87c5392aab792dc252d5de4533cc95\
-                                    18d38aa8dbf1925ab92386edd4009923");
-    }
-
-    #[test]
-    fn test_blake2s() {
-        // BLAKE2s test - draft-saarinen-blake2-06
-        let mut output = [0u8; 32];
-        let mut hasher:HashBLAKE2s = Default::default();
-        hasher.input("abc".as_bytes());
-        hasher.result(&mut output);
-        assert!(output.to_hex() == "508c5e8c327c14e2e1a72ba34eeb452f\
-                    37458b209ed63a294d999b4c86675982");
-    }
-
-    #[test]
     fn test_curve25519() {
     // Curve25519 test - draft-curves-10
         let mut keypair:Dh25519 = Default::default();
         let scalar = Vec::<u8>::from_hex("a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4").unwrap();
-        copy_memory(&scalar, &mut keypair.privkey);
+        copy_memory(&scalar, &mut keypair.privkey.0);
         let public = Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c").unwrap();
         let mut output = [0u8; 32];
         keypair.dh(&public, &mut output);
         assert!(output.to_hex() == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
-    }
-
-    #[test]
-    fn test_aes256_gcm() {
-    //AES256-GCM tests - gcm-spec.pdf
-        // Test Case 13
-        let key = [0u8; 32];
-        let nonce = 0u64;
-        let plaintext = [0u8; 0];
-        let authtext = [0u8; 0];
-        let mut ciphertext = [0u8; 16];
-        let mut cipher1: CipherAESGCM = Default::default();
-        cipher1.set(&key);
-        cipher1.encrypt(nonce, &authtext, &plaintext, &mut ciphertext);
-        assert!(ciphertext.to_hex() == "530f8afbc74536b9a963b4f1c4cb738b");
-
-        let mut resulttext = [0u8; 1];
-        let mut cipher2: CipherAESGCM = Default::default();
-        cipher2.set(&key);
-        cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
-        assert!(resulttext[0] == 0);
-        ciphertext[0] ^= 1;
-        assert!(cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).is_err());
-
-        // Test Case 14
-        let plaintext2 = [0u8; 16];
-        let mut ciphertext2 = [0u8; 32];
-        let mut cipher3: CipherAESGCM = Default::default();
-        cipher3.set(&key);
-        cipher3.encrypt(nonce, &authtext, &plaintext2, &mut ciphertext2);
-        assert!(ciphertext2.to_hex() == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919");
-
-        let mut resulttext2 = [1u8; 16];
-        let mut cipher4: CipherAESGCM = Default::default();
-        cipher4.set(&key);
-        cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).unwrap();
-        assert!(plaintext2 == resulttext2);
-        ciphertext2[0] ^= 1;
-        assert!(cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).is_err());
     }
 
     #[test]
@@ -434,10 +260,11 @@ mod tests {
         let msg = Vec::<u8>::from_hex("43727970746f6772617068696320466f\
                    72756d2052657365617263682047726f\
                    7570").unwrap();
-        let mut poly = Poly1305::new(&key);
-        poly.input(&msg);
+        let key = array_ref!(key, 0, 32);
+        let mut poly = Poly1305::new(key);
+        poly.update(&msg);
         let mut output = [0u8; 16];
-        poly.raw_result(&mut output);
+        poly.finish(&mut output);
         assert!(output.to_hex() == "a8061dc1305136c6c22b8baf0c0127a9");
     }
 
@@ -509,11 +336,11 @@ mod tests {
         let mut combined_text = [0u8; 1024];
         let mut out = [0u8; 1024];
         copy_memory(&ciphertext, &mut combined_text);
-        copy_memory(&tag[0..TAGLEN], &mut combined_text[ciphertext.len()..]);
+        copy_memory(&tag[0..chacha20poly1305::MAC_LENGTH], &mut combined_text[ciphertext.len()..]);
 
         let mut cipher : CipherChaChaPoly = Default::default();
         cipher.set(&key);
-        cipher.decrypt(nonce, &authtext, &combined_text[..ciphertext.len()+TAGLEN], &mut out[..ciphertext.len()]).unwrap();
+        cipher.decrypt(nonce, &authtext, &combined_text[..ciphertext.len()+chacha20poly1305::MAC_LENGTH], &mut out[..ciphertext.len()]).unwrap();
         let desired_plaintext = "496e7465726e65742d44726166747320\
                                  61726520647261667420646f63756d65\
                                  6e74732076616c696420666f72206120\

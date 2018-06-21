@@ -31,12 +31,12 @@
 #![cfg_attr(feature = "nightly", feature(try_from))]
 #![recursion_limit = "1024"]
 
-#[cfg(feature = "ring-resolver")] extern crate ring;
+#[cfg(any(feature = "default-resolver", feature = "hacl-star-resolver"))]
+#[macro_use]
+extern crate arrayref;
 
-#[macro_use] extern crate arrayref;
 #[macro_use] extern crate static_slice;
 #[macro_use] extern crate failure;
-
 extern crate byteorder;
 extern crate smallvec;
 
@@ -52,12 +52,13 @@ mod transportstate;
 
 pub mod params;
 pub mod types;
-pub mod wrappers;
+pub mod resolvers;
 
 pub use error::*;
-pub use noise::{CryptoResolver, DefaultResolver};
+pub use resolvers::{CryptoResolver, FallbackResolver};
 pub use noise::NoiseBuilder;
 pub use session::Session;
 
-#[cfg(feature = "ring-resolver")] pub use wrappers::ring_wrapper::RingAcceleratedResolver;
-#[cfg(feature = "hacl-resolver")] pub use wrappers::hacl_wrapper::HaclStarResolver;
+#[cfg(feature = "default-resolver")]   pub use resolvers::default::DefaultResolver;
+#[cfg(feature = "ring-resolver")]      pub use resolvers::ring::RingResolver;
+#[cfg(feature = "hacl-star-resolver")] pub use resolvers::hacl_star::HaclStarResolver;

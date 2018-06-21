@@ -9,9 +9,7 @@ use criterion::{Benchmark, Criterion, Throughput};
 use snow::*;
 use snow::params::*;
 use snow::types::*;
-use snow::wrappers::crypto_wrapper::Dh25519;
-use snow::wrappers::rand_wrapper::RandomOs;
-use test::Bencher;
+use snow::resolvers::default::{Dh25519, RandomOs};
 
 const MSG_SIZE: usize = 4096;
 
