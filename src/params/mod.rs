@@ -194,7 +194,7 @@ mod tests {
     #[test]
     fn test_modified_psk_handshake() {
         let p: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
-        let tokens = HandshakeTokens::try_from(p.handshake).unwrap();
+        let tokens = HandshakeTokens::try_from(&p.handshake).unwrap();
         match tokens.msg_patterns[0][0] {
             Token::Psk(_) => {},
             _ => panic!("missing token!")
@@ -205,7 +205,7 @@ mod tests {
     fn test_modified_multi_psk_handshake() {
         let p: NoiseParams = "Noise_XXpsk0+psk2_25519_AESGCM_SHA256".parse().unwrap();
 
-        let tokens = HandshakeTokens::try_from(p.handshake).unwrap();
+        let tokens = HandshakeTokens::try_from(&p.handshake).unwrap();
 
         match tokens.msg_patterns[0][0] {
             Token::Psk(_) => {},

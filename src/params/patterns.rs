@@ -225,10 +225,10 @@ use self::HandshakePattern::*;
 
 type Patterns = (PremessagePatterns, PremessagePatterns, MessagePatterns);
 
-impl TryFrom<HandshakeChoice> for HandshakeTokens {
+impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
     type Error = Error;
 
-    fn try_from(handshake: HandshakeChoice) -> Result<Self, Self::Error> {
+    fn try_from(handshake: &'a HandshakeChoice) -> Result<Self, Self::Error> {
         let mut patterns: Patterns = match handshake.pattern {
             N  => (
                 static_slice![Token: ],
@@ -307,13 +307,13 @@ impl TryFrom<HandshakeChoice> for HandshakeTokens {
             ),
         };
 
-        for modifier in handshake.modifiers.list {
+        for modifier in handshake.modifiers.list.iter() {
             if let HandshakeModifier::Psk(n) = modifier {
                 match n {
-                    0 => { patterns.2[0].insert(0, Token::Psk(n)); },
+                    0 => { patterns.2[0].insert(0, Token::Psk(*n)); },
                     _ => {
-                        let i = (n as usize) - 1;
-                        patterns.2[i].push(Token::Psk(n));
+                        let i = (*n as usize) - 1;
+                        patterns.2[i].push(Token::Psk(*n));
                     }
                 }
             }

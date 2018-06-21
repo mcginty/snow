@@ -58,7 +58,7 @@ impl HandshakeState {
             bail!(SnowError::Init{reason: InitStage::ValidateKeyLengths});
         }
 
-        let tokens = HandshakeTokens::try_from(params.handshake.clone())?;
+        let tokens = HandshakeTokens::try_from(&params.handshake)?;
 
         let mut symmetricstate = SymmetricState::new(cipherstate, hasher);
 
