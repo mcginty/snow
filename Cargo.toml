@@ -14,7 +14,7 @@ keywords = ["noise", "protocol", "crypto"]
 [features]
 default = ["default-resolver"]
 nightly = ["blake2-rfc/simd_opt", "chacha20-poly1305-aead/simd_opt", "x25519-dalek/nightly"]
-default-resolver = ["chacha20-poly1305-aead", "blake2-rfc", "rust-crypto"]
+default-resolver = ["chacha20-poly1305-aead", "blake2-rfc", "rust-crypto", "x25519-dalek", "rand"]
 hacl-star-resolver = ["hacl-star"]
 hacl-star-accelerated = ["hacl-star-resolver", "default-resolver"]
 ring-resolver = ["ring"]
@@ -33,15 +33,15 @@ appveyor = { repository = "mcginty/snow", branch = "master", service = "github" 
 arrayref = "^0.3"
 byteorder = "^1.2"
 failure = "^0.1"
-rand = "0.5.0-pre.2"
 smallvec = "^0.6"
 static_slice = "0.0.3"
-x25519-dalek = { version = "^0.2", default-features = false, features = ["std", "u64_backend"] }
+x25519-dalek = { version = "^0.2", optional = true, default-features = false, features = ["std", "u64_backend"] }
 
 chacha20-poly1305-aead = { version = "^0.1", optional = true }
 blake2-rfc = { version = "^0.2", optional = true }
 rust-crypto = { version = "^0.2", optional = true }
 hacl-star = { version = "=0.0.11", optional = true }
+rand = { version = "0.5.0-pre.2", optional = true }
 ring = { version = "0.13.0-alpha5", optional = true }
 
 [dev-dependencies]
