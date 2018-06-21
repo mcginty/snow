@@ -41,7 +41,7 @@ static_slice = "0.0.3"
 x25519-dalek = { version = "^0.2", default-features = false, features = ["std", "u64_backend"] }
 
 hacl-star = { version = "=0.0.11", optional = true }
-ring = { version = "0.13.0-alpha", optional = true }
+ring = { version = "0.13.0-alpha5", optional = true }
 
 [dev-dependencies]
 clap = "^2.0"
