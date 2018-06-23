@@ -12,7 +12,7 @@ use serde::de::{self, Deserialize, Deserializer, Visitor, Unexpected};
 use serde::ser::{Serialize, Serializer};
 use std::ops::Deref;
 use failure::Error;
-use hex::{FromHex, ToHex};
+use hex::FromHex;
 use snow::{NoiseBuilder, Session};
 use snow::params::*;
 use snow::types::Dh;
@@ -30,7 +30,7 @@ struct HexBytes {
 impl From<Vec<u8>> for HexBytes {
     fn from(payload: Vec<u8>) -> Self {
         Self {
-            original: payload.to_hex(),
+            original: hex::encode(&payload),
             payload: payload,
         }
     }
@@ -82,7 +82,7 @@ impl Serialize for HexBytes {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
-        serializer.serialize_str(&self.to_hex())
+        serializer.serialize_str(&hex::encode(&self.payload))
     }
 }
 
@@ -185,9 +185,9 @@ fn confirm_message_vectors(mut init: Session, mut resp: Session, messages_vec: &
         if &sendbuf[..len] != &(*message.ciphertext)[..] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
-            s.push_str(&format!("plaintext: {}\n", message.payload.to_hex()));
-            s.push_str(&format!("expected:  {}\n", message.ciphertext.to_hex()));
-            s.push_str(&format!("actual:    {}", &sendbuf[..len].to_owned().to_hex()));
+            s.push_str(&format!("plaintext: {}\n", hex::encode(&*message.payload)));
+            s.push_str(&format!("expected:  {}\n", hex::encode(&*message.ciphertext)));
+            s.push_str(&format!("actual:    {}",   hex::encode(&sendbuf[..len].to_owned())));
             return Err(s)
         }
     }
@@ -205,9 +205,9 @@ fn confirm_message_vectors(mut init: Session, mut resp: Session, messages_vec: &
         if &sendbuf[..len] != &(*message.ciphertext)[..] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
-            s.push_str(&format!("plaintext: {}\n", message.payload.to_hex()));
-            s.push_str(&format!("expected:  {}\n", message.ciphertext.to_hex()));
-            s.push_str(&format!("actual:    {}", &sendbuf[..message.ciphertext.len()].to_owned().to_hex()));
+            s.push_str(&format!("plaintext: {}\n", hex::encode(&*message.payload)));
+            s.push_str(&format!("expected:  {}\n", hex::encode(&*message.ciphertext)));
+            s.push_str(&format!("actual:    {}", hex::encode(&sendbuf[..message.ciphertext.len()].to_owned())));
             return Err(s)
         }
     }
