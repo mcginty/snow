@@ -372,7 +372,7 @@ mod tests {
 
     use types::*;
     use super::*;
-    use self::hex::{FromHex, ToHex};
+    use self::hex::FromHex;
     use super::crypto::poly1305::Poly1305;
     use super::crypto::mac::Mac;
 
@@ -382,7 +382,7 @@ mod tests {
         let mut hasher:HashSHA256 = Default::default();
         hasher.input("abc".as_bytes());
         hasher.result(&mut output);
-        assert!(output.to_hex() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+        assert!(hex::encode(output) == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     }
 
     #[test]
@@ -392,12 +392,12 @@ mod tests {
         let mut output1 = [0u8; 32];
         let mut hasher: HashSHA256 = Default::default();
         hasher.hmac(&key, &data, &mut output1);
-        assert!(output1.to_hex() == "773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe");
+        assert!(hex::encode(output1) == "773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe");
 
         let mut output2 = [0u8; 64];
         let mut hasher: HashSHA512 = Default::default();
         hasher.hmac(&key, &data, &mut output2);
-        assert!(output2.to_vec().to_hex() == "fa73b0089d56a284efb0f0756c890be9\
+        assert!(hex::encode(output2.to_vec()) == "fa73b0089d56a284efb0f0756c890be9\
                                      b1b5dbdd8ee81a3655f83e33b2279d39\
                                      bf3e848279a722c806b485a47e67c807\
                                      b946a337bee8942674278859e13292fb");
@@ -410,7 +410,7 @@ mod tests {
         let mut hasher:HashBLAKE2b = Default::default();
         hasher.input("abc".as_bytes());
         hasher.result(&mut output);
-        assert!(output.to_vec().to_hex() == "ba80a53f981c4d0d6a2797b69f12f6e9\
+        assert!(hex::encode(output.to_vec()) == "ba80a53f981c4d0d6a2797b69f12f6e9\
                                     4c212f14685ac4b74b12bb6fdbffa2d1\
                                     7d87c5392aab792dc252d5de4533cc95\
                                     18d38aa8dbf1925ab92386edd4009923");
@@ -423,7 +423,7 @@ mod tests {
         let mut hasher:HashBLAKE2s = Default::default();
         hasher.input("abc".as_bytes());
         hasher.result(&mut output);
-        assert!(output.to_hex() == "508c5e8c327c14e2e1a72ba34eeb452f\
+        assert!(hex::encode(output) == "508c5e8c327c14e2e1a72ba34eeb452f\
                     37458b209ed63a294d999b4c86675982");
     }
 
@@ -436,7 +436,7 @@ mod tests {
         let public = Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c").unwrap();
         let mut output = [0u8; 32];
         keypair.dh(&public, &mut output);
-        assert!(output.to_hex() == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
+        assert!(hex::encode(output) == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
     }
 
     #[test]
@@ -451,7 +451,7 @@ mod tests {
         let mut cipher1: CipherAESGCM = Default::default();
         cipher1.set(&key);
         cipher1.encrypt(nonce, &authtext, &plaintext, &mut ciphertext);
-        assert!(ciphertext.to_hex() == "530f8afbc74536b9a963b4f1c4cb738b");
+        assert!(hex::encode(ciphertext) == "530f8afbc74536b9a963b4f1c4cb738b");
 
         let mut resulttext = [0u8; 1];
         let mut cipher2: CipherAESGCM = Default::default();
@@ -467,7 +467,7 @@ mod tests {
         let mut cipher3: CipherAESGCM = Default::default();
         cipher3.set(&key);
         cipher3.encrypt(nonce, &authtext, &plaintext2, &mut ciphertext2);
-        assert!(ciphertext2.to_hex() == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919");
+        assert!(hex::encode(ciphertext2) == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919");
 
         let mut resulttext2 = [1u8; 16];
         let mut cipher4: CipherAESGCM = Default::default();
@@ -489,7 +489,7 @@ mod tests {
         poly.input(&msg);
         let mut output = [0u8; 16];
         poly.raw_result(&mut output);
-        assert!(output.to_hex() == "a8061dc1305136c6c22b8baf0c0127a9");
+        assert!(hex::encode(output) == "a8061dc1305136c6c22b8baf0c0127a9");
     }
 
     #[test]
@@ -529,7 +529,7 @@ mod tests {
         let mut cipher2 : CipherChaChaPoly = Default::default();
         cipher2.set(&key);
         cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
-        assert!(resulttext.to_vec().to_hex() == plaintext.to_vec().to_hex());
+        assert!(hex::encode(resulttext.to_vec()) == hex::encode(plaintext.to_vec()));
     }
 
     #[test]
@@ -582,6 +582,6 @@ mod tests {
                                  6d206f74686572207468616e20617320\
                                  2fe2809c776f726b20696e2070726f67\
                                  726573732e2fe2809d";
-        assert!(out[..ciphertext.len()].to_owned().to_hex() == desired_plaintext);
+        assert!(hex::encode(out[..ciphertext.len()].to_owned()) == desired_plaintext);
     }
 }

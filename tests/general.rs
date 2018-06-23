@@ -3,7 +3,7 @@
 extern crate hex;
 extern crate snow;
 
-use hex::{FromHex, ToHex};
+use hex::FromHex;
 use snow::{NoiseBuilder, CryptoResolver, DefaultResolver};
 use snow::params::*;
 use snow::types::*;
@@ -165,8 +165,8 @@ fn test_Npsk0_expected_value() {
 
     let expected = Vec::<u8>::from_hex("358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662542044ae563929068930dcf04674526cb9").unwrap();
 
-    println!("\nreality:  {}", (&buf[..len]).to_hex());
-    println!("expected: {}", (&expected).to_hex());
+    println!("\nreality:  {}", hex::encode(&buf[..len]));
+    println!("expected: {}", hex::encode(&expected));
     assert_eq!(&buf[..len], &expected[..]);
 }
 
@@ -190,8 +190,8 @@ fn test_Xpsk0_expected_value() {
 
     let expected = Vec::<u8>::from_hex("79a631eede1bf9c98f12032cdeadd0e7a079398fc786b88cc846ec89af85a51ad51eef529db0dd9127d4aa59a9183e118337d75a4e55e7e00f85c3d20ede536dd0112eec8c3b2a514018a90ab685b027dd24aa0c70b0c0f00524cc23785028b9").unwrap();
 
-    println!("\nreality:  {}", (&buf[..len]).to_hex());
-    println!("expected: {}", (&expected).to_hex());
+    println!("\nreality:  {}", hex::encode(&buf[..len]));
+    println!("expected: {}", hex::encode(&expected));
     assert_eq!(&buf[..len], &expected[..]);
 }
 
@@ -236,8 +236,8 @@ fn test_XXpsk0_expected_value() {
     assert_eq!(len, 0);
 
     let expected = Vec::<u8>::from_hex("1b6d7cc3b13bd02217f9cdb98c50870db96281193dca4df570bf6230a603b686fd90d2914c7e797d9276ef8fb34b0c9d87faa048ce4bc7e7af21b6a450352275").unwrap();
-    println!("\nreality:  {}", (&buf[..64]).to_hex());
-    println!("expected: {}", (&expected).to_hex());
+    println!("\nreality:  {}", hex::encode(&buf[..64]));
+    println!("expected: {}", hex::encode(&expected));
     assert_eq!(&buf[..64], &expected[..]);
 }
 
