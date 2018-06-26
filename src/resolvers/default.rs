@@ -138,9 +138,10 @@ impl Dh for Dh25519 {
         &self.privkey
     }
 
-    fn dh(&self, pubkey: &[u8], out: &mut [u8]) {
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()> {
         let result = x25519::diffie_hellman(&self.privkey, array_ref![pubkey, 0, 32]);
         copy_memory(&result, out);
+        Ok(())
     }
 }
 
@@ -435,7 +436,7 @@ mod tests {
         copy_memory(&scalar, &mut keypair.privkey);
         let public = Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c").unwrap();
         let mut output = [0u8; 32];
-        keypair.dh(&public, &mut output);
+        keypair.dh(&public, &mut output).unwrap();
         assert!(hex::encode(output) == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
     }
 

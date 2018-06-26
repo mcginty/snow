@@ -96,10 +96,11 @@ impl Dh for Dh25519 {
         &self.privkey.0
     }
 
-    fn dh(&self, pubkey: &[u8], out: &mut [u8]) {
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()> {
         let out = array_mut_ref!(out, 0, 32);
         let pubkey = array_ref!(pubkey, 0, 32);
         curve25519::scalarmult(out, &self.privkey.0, pubkey);
+        Ok(())
     }
 
 }
