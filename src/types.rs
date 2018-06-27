@@ -18,7 +18,7 @@ pub trait Dh {
     fn generate(&mut self, rng: &mut Random);
     fn pubkey(&self) -> &[u8];
     fn privkey(&self) -> &[u8];
-    fn dh(&self, pubkey: &[u8], out: &mut [u8]);
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()>;
 }
 
 /// Provides cipher operations

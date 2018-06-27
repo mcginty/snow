@@ -129,12 +129,13 @@ impl HandshakeState {
         }
         let dh_len = self.dh_len();
         let mut dh_out = [0u8; MAXDHLEN];
-        match (local_s, remote_s) {
-            (true,  true ) => self.s.dh(&*self.rs, &mut dh_out),
-            (true,  false) => self.s.dh(&*self.re, &mut dh_out),
-            (false, true ) => self.e.dh(&*self.rs, &mut dh_out),
-            (false, false) => self.e.dh(&*self.re, &mut dh_out),
-        }
+        let (dh, key) = match (local_s, remote_s) {
+            (true,  true ) => (&self.s, &self.rs),
+            (true,  false) => (&self.s, &self.re),
+            (false, true ) => (&self.e, &self.rs),
+            (false, false) => (&self.e, &self.re),
+        };
+        dh.dh(&**key, &mut dh_out).map_err(|_| SnowError::Dh)?;
         self.symmetricstate.mix_key(&dh_out[..dh_len]);
         Ok(())
     }

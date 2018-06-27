@@ -14,6 +14,9 @@ pub enum SnowError {
     #[fail(display = "invalid input")]
     Input,
 
+    #[fail(display = "dh failed")]
+    Dh,
+
     #[fail(display = "decryption failed")]
     Decrypt,
 }
