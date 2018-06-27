@@ -18,6 +18,8 @@ pub trait Dh {
     fn generate(&mut self, rng: &mut Random);
     fn pubkey(&self) -> &[u8];
     fn privkey(&self) -> &[u8];
+
+    #[must_use]
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()>;
 }
 
@@ -27,6 +29,8 @@ pub trait Cipher {
 
     fn set(&mut self, key: &[u8]);
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize;
+
+    #[must_use]
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()>;
 }
 

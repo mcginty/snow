@@ -65,6 +65,7 @@ impl Session {
     ///
     /// Will result in `SnowError::Input` if the size of the output exceeds the max message
     /// length in the Noise Protocol (65535 bytes).
+    #[must_use]
     pub fn write_message(&mut self, payload: &[u8], output: &mut [u8]) -> Result<usize, Error> {
         match *self {
             Session::Handshake(ref mut state) => state.write_handshake_message(payload, output),
@@ -84,6 +85,7 @@ impl Session {
     /// # Panics
     ///
     /// This function will panic if there is no key, or if there is a nonce overflow.
+    #[must_use]
     pub fn read_message(&mut self, input: &[u8], payload: &mut [u8]) -> Result<usize, Error> {
         match *self {
             Session::Handshake(ref mut state) => state.read_handshake_message(input, payload),
@@ -96,6 +98,7 @@ impl Session {
     /// # Errors
     ///
     /// Will result in `SnowError::State` if not in transport mode.
+    #[must_use]
     pub fn rekey(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) -> Result<(), Error> {
         match *self {
             Session::Handshake(_) => Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into()),
@@ -150,6 +153,7 @@ impl Session {
     /// # Errors
     ///
     /// Will result in `SnowError::State` if not in transport mode.
+    #[must_use]
     pub fn set_receiving_nonce(&mut self, nonce: u64) -> Result<(), Error> {
         match *self {
             Session::Handshake(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeNotFinished }),
@@ -165,6 +169,7 @@ impl Session {
     ///
     /// Will result in `SnowError::Input` if the PSK is not the right length or the location is out of bounds.
     /// Will result in `SnowError::State` if in transport mode.
+    #[must_use]
     pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
         match *self {
             Session::Handshake(ref mut state) => state.set_psk(location, key),

@@ -144,6 +144,7 @@ impl HandshakeState {
         self.symmetricstate.has_key()
     }
 
+    #[must_use]
     pub fn write_handshake_message(&mut self,
                          payload: &[u8], 
                          message: &mut [u8]) -> Result<usize, Error> {
@@ -221,6 +222,7 @@ impl HandshakeState {
         Ok(byte_index)
     }
 
+    #[must_use]
     pub fn read_handshake_message(&mut self,
                         message: &[u8], 
                         payload: &mut [u8]) -> Result<usize, Error> {
@@ -289,6 +291,7 @@ impl HandshakeState {
     }
 
     /// Set the PSK at the specified position.
+    #[must_use]
     pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
         ensure!(key.len() == PSKLEN, SnowError::Input);
         ensure!(self.psks.len() > location, SnowError::Input);
@@ -303,6 +306,7 @@ impl HandshakeState {
         self.rs.as_option_ref().map(|rs| &rs[..self.dh_len()])
     }
 
+    #[must_use]
     pub fn finish(self) -> Result<TransferredState, Error> {
         if self.is_finished() {
             let dh_len = self.dh_len();
