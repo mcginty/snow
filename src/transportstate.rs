@@ -52,7 +52,7 @@ impl TransportState {
             bail!(StateProblem::OneWay);
         }
         let cipher = if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
-        cipher.decrypt(payload, message).map_err(|_| SnowError::Decrypt.into())
+        cipher.decrypt(payload, message).map_err(|_| SnowError::Decrypt)
     }
 
     pub fn rekey_initiator(&mut self, key: &[u8]) {

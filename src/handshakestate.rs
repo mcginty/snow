@@ -1,11 +1,11 @@
-use constants::*;
-use utils::*;
-use types::*;
-use cipherstate::*;
+use constants::{PSKLEN, TAGLEN, MAXMSGLEN, MAXDHLEN};
+use utils::{Toggle, copy_memory};
+use types::{Dh, Hash, Random};
+use cipherstate::{CipherState, CipherStates};
 #[cfg(feature = "nightly")] use std::convert::TryFrom;
 #[cfg(not(feature = "nightly"))] use utils::TryFrom;
-use symmetricstate::*;
-use params::*;
+use symmetricstate::{SymmetricState, SymmetricStateType};
+use params::{HandshakeChoice, HandshakeTokens, MessagePatterns, NoiseParams, Token};
 use error::{SnowError, InitStage, StateProblem};
 
 

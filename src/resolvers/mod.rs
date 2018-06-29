@@ -4,8 +4,8 @@
 #[cfg(feature = "hacl-star-resolver")] pub mod hacl_star;
 #[cfg(feature = "ring-resolver")]      pub mod ring;
 
-use params::*;
-use types::*;
+use params::{CipherChoice, DHChoice, HashChoice};
+use types::{Cipher, Dh, Hash, Random};
 
 /// An object that resolves the providers of Noise crypto choices
 pub trait CryptoResolver {

@@ -12,7 +12,14 @@ use utils::TryFrom;
 use std::str::FromStr;
 mod patterns;
 
-pub use self::patterns::*;
+pub use self::patterns::{
+    HandshakeChoice,
+    HandshakeModifier,
+    HandshakeTokens,
+    HandshakePattern,
+    Token,
+    MessagePatterns
+};
 
 /// I recommend you choose `Noise`.
 #[derive(PartialEq, Copy, Clone, Debug)]

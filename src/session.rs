@@ -2,7 +2,7 @@ use error::{SnowError, StateProblem};
 use handshakestate::HandshakeState;
 #[cfg(feature = "nightly")] use std::convert::{TryFrom, TryInto};
 #[cfg(not(feature = "nightly"))] use utils::{TryFrom, TryInto};
-use transportstate::*;
+use transportstate::TransportState;
 
 /// A state machine for the entire Noise session.
 ///

@@ -1,9 +1,9 @@
-use constants::*;
-use handshakestate::*;
-use cipherstate::*;
-use session::*;
-use utils::*;
-use params::*;
+use constants::{PSKLEN, MAXDHLEN};
+use handshakestate::HandshakeState;
+use cipherstate::{CipherState, CipherStates};
+use session::Session;
+use utils::Toggle;
+use params::NoiseParams;
 use resolvers::CryptoResolver;
 use error::{SnowError, InitStage, Prerequisite};
 
@@ -63,7 +63,7 @@ impl<'builder> NoiseBuilder<'builder> {
     {
         NoiseBuilder {
             params,
-            resolver: resolver.into(),
+            resolver,
             s: None,
             e_fixed: None,
             rs: None,

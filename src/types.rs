@@ -1,7 +1,7 @@
 //! The traits for cryptographic implementations that can be used by Noise.
 
-use utils::*;
-use constants::*;
+use utils::copy_memory;
+use constants::{MAXBLOCKLEN, MAXHASHLEN};
 
 /// Provides randomness
 pub trait Random {

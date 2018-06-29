@@ -1,4 +1,4 @@
-use constants::*;
+use constants::TAGLEN;
 use error::{SnowError, InitStage};
 use types::Cipher;
 

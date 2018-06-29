@@ -16,9 +16,9 @@ use self::x25519_dalek as x25519;
 
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
 
-use types::*;
-use constants::*;
-use params::*;
+use types::{Cipher, Dh, Hash, Random};
+use constants::TAGLEN;
+use params::{CipherChoice, DHChoice, HashChoice};
 use utils::copy_memory;
 use std::io::{Cursor, Write};
 use super::CryptoResolver;

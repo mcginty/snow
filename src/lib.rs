@@ -55,7 +55,7 @@ pub mod params;
 pub mod types;
 pub mod resolvers;
 
-pub use error::*;
+pub use error::{SnowError, InitStage, Prerequisite, StateProblem};
 pub use resolvers::{CryptoResolver, FallbackResolver};
 pub use noise::NoiseBuilder;
 pub use session::Session;

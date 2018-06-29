@@ -1,7 +1,7 @@
-use utils::*;
-use constants::*;
-use types::*;
-use cipherstate::*;
+use utils::copy_memory;
+use constants::{CIPHERKEYLEN, MAXHASHLEN};
+use types::Hash;
+use cipherstate::CipherState;
 
 pub trait SymmetricStateType {
     fn cipher_name(&self) -> &'static str;
