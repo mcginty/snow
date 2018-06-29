@@ -33,6 +33,7 @@ appveyor = { repository = "mcginty/snow", branch = "master", service = "github" 
 arrayref = "^0.3"
 byteorder = "^1.2"
 failure = "^0.1"
+failure_derive = "^0.1"
 smallvec = "^0.6"
 static_slice = "0.0.3"
 x25519-dalek = { version = "^0.2", optional = true, default-features = false, features = ["std", "u64_backend"] }

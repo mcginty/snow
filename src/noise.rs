@@ -4,7 +4,6 @@ use cipherstate::*;
 use session::*;
 use utils::*;
 use params::*;
-use failure::Error;
 use resolvers::CryptoResolver;
 use error::{SnowError, InitStage, Prerequisite};
 
@@ -106,11 +105,9 @@ impl<'builder> NoiseBuilder<'builder> {
     // TODO this is inefficient as it computes the public key then throws it away
     // TODO also inefficient because it creates a new RNG and DH instance just for this.
     /// Generate a new private key. It's up to the user of this library how to store this.
-    pub fn generate_private_key(&self) -> Result<Vec<u8>, Error> {
-        let mut rng = self.resolver.resolve_rng()
-            .ok_or(SnowError::Init { reason: InitStage::GetRngImpl })?;
-        let mut dh = self.resolver.resolve_dh(&self.params.dh)
-            .ok_or(SnowError::Init { reason: InitStage::GetDhImpl })?;
+    pub fn generate_private_key(&self) -> Result<Vec<u8>, SnowError> {
+        let mut rng = self.resolver.resolve_rng().ok_or(InitStage::GetRngImpl)?;
+        let mut dh = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
         let mut private = vec![0u8; dh.priv_len()];
         dh.generate(&mut *rng);
         private[..dh.priv_len()].copy_from_slice(dh.privkey());
@@ -118,31 +115,31 @@ impl<'builder> NoiseBuilder<'builder> {
     }
 
     /// Build a NoiseSession for the side who will initiate the handshake (send the first message)
-    pub fn build_initiator(self) -> Result<Session, Error> {
+    pub fn build_initiator(self) -> Result<Session, SnowError> {
         self.build(true)
     }
 
     /// Build a NoiseSession for the side who will be responder (receive the first message)
-    pub fn build_responder(self) -> Result<Session, Error> {
+    pub fn build_responder(self) -> Result<Session, SnowError> {
         self.build(false)
     }
 
-    fn build(self, initiator: bool) -> Result<Session, Error> {
+    fn build(self, initiator: bool) -> Result<Session, SnowError> {
         if self.s.is_none() && self.params.handshake.pattern.needs_local_static_key(initiator) {
-            bail!(SnowError::Prereq { reason: Prerequisite::LocalPrivateKey });
+            bail!(Prerequisite::LocalPrivateKey);
         }
 
         if self.rs.is_none() && self.params.handshake.pattern.need_known_remote_pubkey(initiator) {
-            bail!(SnowError::Prereq { reason: Prerequisite::RemotePublicKey });
+            bail!(Prerequisite::RemotePublicKey);
         }
 
-        let rng = self.resolver.resolve_rng().ok_or(SnowError::Init { reason: InitStage::GetRngImpl })?;
-        let cipher = self.resolver.resolve_cipher(&self.params.cipher).ok_or(SnowError::Init { reason: InitStage::GetCipherImpl})?;
-        let hash = self.resolver.resolve_hash(&self.params.hash).ok_or(SnowError::Init { reason: InitStage::GetHashImpl })?;
-        let mut s_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(SnowError::Init { reason: InitStage::GetDhImpl })?;
-        let mut e_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(SnowError::Init { reason: InitStage::GetDhImpl })?;
-        let cipher1 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(SnowError::Init { reason: InitStage::GetCipherImpl })?;
-        let cipher2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(SnowError::Init { reason: InitStage::GetCipherImpl })?;
+        let rng = self.resolver.resolve_rng().ok_or(InitStage::GetRngImpl)?;
+        let cipher = self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
+        let hash = self.resolver.resolve_hash(&self.params.hash).ok_or(InitStage::GetHashImpl)?;
+        let mut s_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
+        let mut e_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
+        let cipher1 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
+        let cipher2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
         let handshake_cipherstate = CipherState::new(cipher);
         let cipherstates = CipherStates::new(CipherState::new(cipher1), CipherState::new(cipher2))?;
 
@@ -176,7 +173,7 @@ impl<'builder> NoiseBuilder<'builder> {
         for (i, psk) in self.psks.iter().enumerate() {
             if let Some(key) = *psk {
                 if key.len() != PSKLEN {
-                    bail!(SnowError::Init { reason: InitStage::ValidatePskLengths });
+                    bail!(InitStage::ValidatePskLengths);
                 }
                 let mut k = [0u8; PSKLEN];
                 k.copy_from_slice(key);

@@ -1,5 +1,21 @@
 //! All error types used by Snow operations.
 
+/// Exits a function early with an error.
+///
+/// The `err!` macro provides an easy way to exit a function. `err!(X)` is
+/// equivalent to writing:
+///
+/// ```rust,ignore
+/// return Err(X.into())
+/// ```
+#[macro_export]
+macro_rules! bail {
+    ($e:expr) => {
+        return Err(($e).into());
+    };
+}
+
+/// All errors in snow will return a `SnowError` enum.
 #[derive(Fail, Debug)]
 pub enum SnowError {
     #[fail(display = "initialization failed at {:?}", reason)]
@@ -25,20 +41,49 @@ pub enum SnowError {
 /// the specific cause of an `Init` error.
 #[derive(Debug)]
 pub enum InitStage {
-    ValidateKeyLengths, ValidatePskLengths, ValidateCipherTypes,
-    GetRngImpl, GetDhImpl, GetCipherImpl, GetHashImpl, ValidatePskPosition
+    ValidateKeyLengths,
+    ValidatePskLengths,
+    ValidateCipherTypes,
+    GetRngImpl,
+    GetDhImpl,
+    GetCipherImpl,
+    GetHashImpl,
+    ValidatePskPosition,
+}
+
+impl From<InitStage> for SnowError {
+    fn from(reason: InitStage) -> Self {
+        SnowError::Init { reason }
+    }
 }
 
 /// A prerequisite that may be missing.
 #[derive(Debug)]
 pub enum Prerequisite {
-    LocalPrivateKey, RemotePublicKey
+    LocalPrivateKey,
+    RemotePublicKey,
+}
+
+impl From<Prerequisite> for SnowError {
+    fn from(reason: Prerequisite) -> Self {
+        SnowError::Prereq { reason }
+    }
 }
 
 /// Specific errors in the state machine.
 #[derive(Debug)]
 pub enum StateProblem {
-    MissingKeyMaterial, MissingPsk, NotTurnToWrite, NotTurnToRead,
-    HandshakeNotFinished, HandshakeAlreadyFinished, OneWay
+    MissingKeyMaterial,
+    MissingPsk,
+    NotTurnToWrite,
+    NotTurnToRead,
+    HandshakeNotFinished,
+    HandshakeAlreadyFinished,
+    OneWay,
 }
 
+impl From<StateProblem> for SnowError {
+    fn from(reason: StateProblem) -> Self {
+        SnowError::State { reason }
+    }
+}

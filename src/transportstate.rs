@@ -1,5 +1,4 @@
 use params::HandshakePattern;
-use failure::Error;
 use error::{SnowError, StateProblem};
 use cipherstate::CipherStates;
 use constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
@@ -11,11 +10,11 @@ use utils::Toggle;
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct TransportState {
-    pub cipherstates: CipherStates,
-    pattern: HandshakePattern,
-    dh_len: usize,
-    rs: Toggle<[u8; MAXDHLEN]>,
-    initiator: bool,
+    pub cipherstates : CipherStates,
+    pattern          : HandshakePattern,
+    dh_len           : usize,
+    rs               : Toggle<[u8; MAXDHLEN]>,
+    initiator        : bool,
 }
 
 impl TransportState {
@@ -35,9 +34,9 @@ impl TransportState {
 
     pub fn write_transport_message(&mut self,
                                    payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize, Error> {
+                                   message: &mut [u8]) -> Result<usize, SnowError> {
         if !self.initiator && self.pattern.is_oneway() {
-            bail!(SnowError::State { reason: StateProblem::OneWay });
+            bail!(StateProblem::OneWay);
         } else if payload.len() + TAGLEN > MAXMSGLEN || payload.len() + TAGLEN > message.len() {
             bail!(SnowError::Input);
         }
@@ -48,9 +47,9 @@ impl TransportState {
 
     pub fn read_transport_message(&mut self,
                                    payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize, Error> {
+                                   message: &mut [u8]) -> Result<usize, SnowError> {
         if self.initiator && self.pattern.is_oneway() {
-            bail!(SnowError::State { reason: StateProblem::OneWay });
+            bail!(StateProblem::OneWay);
         }
         let cipher = if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
         cipher.decrypt(payload, message).map_err(|_| SnowError::Decrypt.into())

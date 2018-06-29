@@ -29,17 +29,18 @@
 //! ```
 
 #![cfg_attr(feature = "nightly", feature(try_from))]
-#![recursion_limit = "1024"]
 
 #[cfg(any(feature = "default-resolver", feature = "hacl-star-resolver"))]
 #[macro_use]
 extern crate arrayref;
 
 #[macro_use] extern crate static_slice;
-#[macro_use] extern crate failure;
+#[macro_use] extern crate failure_derive;
 extern crate byteorder;
+extern crate failure;
 extern crate smallvec;
 
+#[macro_use]
 mod error;
 mod constants;
 mod utils;

@@ -6,7 +6,6 @@ use cipherstate::*;
 #[cfg(not(feature = "nightly"))] use utils::TryFrom;
 use symmetricstate::*;
 use params::*;
-use failure::Error;
 use error::{SnowError, InitStage, StateProblem};
 
 
@@ -49,13 +48,13 @@ impl HandshakeState {
         params          : NoiseParams,
         psks            : [Option<[u8; PSKLEN]>; 10],
         prologue        : &[u8],
-        cipherstates    : CipherStates) -> Result<HandshakeState, Error> {
+        cipherstates    : CipherStates) -> Result<HandshakeState, SnowError> {
 
         if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
         || (s.is_on() && rs.is_on() && s.pub_len() >  rs.len())
         || (s.is_on() && re.is_on() && s.pub_len() >  re.len())
         {
-            bail!(SnowError::Init{reason: InitStage::ValidateKeyLengths});
+            bail!(InitStage::ValidateKeyLengths);
         }
 
         let tokens = HandshakeTokens::try_from(&params.handshake)?;
@@ -119,13 +118,13 @@ impl HandshakeState {
         self.s.pub_len()
     }
 
-    fn dh(&mut self, local_s: bool, remote_s: bool) -> Result<(), Error> {
+    fn dh(&mut self, local_s: bool, remote_s: bool) -> Result<(), SnowError> {
         if !((!local_s  || self.s.is_on())  &&
              ( local_s  || self.e.is_on())  &&
              (!remote_s || self.rs.is_on()) &&
              ( remote_s || self.re.is_on()))
         {
-            bail!(SnowError::State{ reason: StateProblem::MissingKeyMaterial });
+            bail!(StateProblem::MissingKeyMaterial);
         }
         let dh_len = self.dh_len();
         let mut dh_out = [0u8; MAXDHLEN];
@@ -147,15 +146,15 @@ impl HandshakeState {
     #[must_use]
     pub fn write_handshake_message(&mut self,
                          payload: &[u8], 
-                         message: &mut [u8]) -> Result<usize, Error> {
+                         message: &mut [u8]) -> Result<usize, SnowError> {
         if !self.my_turn {
-            bail!(SnowError::State{ reason: StateProblem::NotTurnToWrite });
+            bail!(StateProblem::NotTurnToWrite);
         }
 
         let next_tokens = if !self.message_patterns.is_empty() {
             self.message_patterns.remove(0)
         } else {
-            bail!(SnowError::State{ reason: StateProblem::HandshakeAlreadyFinished });
+            bail!(StateProblem::HandshakeAlreadyFinished);
         };
         let last = self.message_patterns.is_empty();
 
@@ -182,7 +181,7 @@ impl HandshakeState {
                 },
                 Token::S => {
                     if !self.s.is_on() {
-                        bail!(SnowError::State { reason: StateProblem::MissingKeyMaterial });
+                        bail!(StateProblem::MissingKeyMaterial);
                     }
                     if byte_index + self.s.pub_len() > message.len() {
                         bail!(SnowError::Input)
@@ -197,7 +196,7 @@ impl HandshakeState {
                             self.symmetricstate.mix_key_and_hash(&psk);
                         },
                         None => {
-                            bail!(SnowError::State { reason: StateProblem::MissingPsk });
+                            bail!(StateProblem::MissingPsk);
                         }
                     }
                 },
@@ -225,7 +224,7 @@ impl HandshakeState {
     #[must_use]
     pub fn read_handshake_message(&mut self,
                         message: &[u8], 
-                        payload: &mut [u8]) -> Result<usize, Error> {
+                        payload: &mut [u8]) -> Result<usize, SnowError> {
         if message.len() > MAXMSGLEN {
             bail!(SnowError::Input);
         }
@@ -270,7 +269,7 @@ impl HandshakeState {
                                 self.symmetricstate.mix_key_and_hash(&psk);
                             },
                             None => {
-                                bail!(SnowError::State { reason: StateProblem::MissingPsk });
+                                bail!(StateProblem::MissingPsk);
                             }
                         }
                     },
@@ -292,9 +291,11 @@ impl HandshakeState {
 
     /// Set the PSK at the specified position.
     #[must_use]
-    pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
-        ensure!(key.len() == PSKLEN, SnowError::Input);
-        ensure!(self.psks.len() > location, SnowError::Input);
+    pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), SnowError> {
+        if key.len() != PSKLEN || self.psks.len() <= location {
+            bail!(SnowError::Input);
+        }
+
         let mut new_psk = [0u8; PSKLEN];
         new_psk.copy_from_slice(&key[..]);
         self.psks[location as usize] = Some(new_psk);
@@ -307,12 +308,12 @@ impl HandshakeState {
     }
 
     #[must_use]
-    pub fn finish(self) -> Result<TransferredState, Error> {
+    pub fn finish(self) -> Result<TransferredState, SnowError> {
         if self.is_finished() {
             let dh_len = self.dh_len();
             Ok((self.cipherstates, self.params.handshake, dh_len, self.rs))
         } else {
-            bail!(SnowError::State { reason: StateProblem::HandshakeNotFinished });
+            bail!(StateProblem::HandshakeNotFinished);
         }
     }
 

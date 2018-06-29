@@ -1,5 +1,4 @@
 use constants::*;
-use failure::Error;
 use error::{SnowError, InitStage};
 use types::Cipher;
 
@@ -70,9 +69,9 @@ impl CipherState {
 pub struct CipherStates(pub CipherState, pub CipherState);
 
 impl CipherStates {
-    pub fn new(initiator: CipherState, responder: CipherState) -> Result<Self, Error> {
+    pub fn new(initiator: CipherState, responder: CipherState) -> Result<Self, SnowError> {
         if initiator.name() != responder.name() {
-            bail!(SnowError::Init { reason: InitStage::ValidateCipherTypes });
+            bail!(InitStage::ValidateCipherTypes);
         }
 
         Ok(CipherStates(initiator, responder))

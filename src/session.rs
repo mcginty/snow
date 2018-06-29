@@ -1,4 +1,3 @@
-use failure::Error;
 use error::{SnowError, StateProblem};
 use handshakestate::HandshakeState;
 #[cfg(feature = "nightly")] use std::convert::{TryFrom, TryInto};
@@ -66,7 +65,7 @@ impl Session {
     /// Will result in `SnowError::Input` if the size of the output exceeds the max message
     /// length in the Noise Protocol (65535 bytes).
     #[must_use]
-    pub fn write_message(&mut self, payload: &[u8], output: &mut [u8]) -> Result<usize, Error> {
+    pub fn write_message(&mut self, payload: &[u8], output: &mut [u8]) -> Result<usize, SnowError> {
         match *self {
             Session::Handshake(ref mut state) => state.write_handshake_message(payload, output),
             Session::Transport(ref mut state) => state.write_transport_message(payload, output),
@@ -86,7 +85,7 @@ impl Session {
     ///
     /// This function will panic if there is no key, or if there is a nonce overflow.
     #[must_use]
-    pub fn read_message(&mut self, input: &[u8], payload: &mut [u8]) -> Result<usize, Error> {
+    pub fn read_message(&mut self, input: &[u8], payload: &mut [u8]) -> Result<usize, SnowError> {
         match *self {
             Session::Handshake(ref mut state) => state.read_handshake_message(input, payload),
             Session::Transport(ref mut state) => state.read_transport_message(input, payload),
@@ -99,9 +98,9 @@ impl Session {
     ///
     /// Will result in `SnowError::State` if not in transport mode.
     #[must_use]
-    pub fn rekey(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) -> Result<(), Error> {
+    pub fn rekey(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) -> Result<(), SnowError> {
         match *self {
-            Session::Handshake(_) => Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into()),
+            Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
             Session::Transport(ref mut state) => {
                 if let Some(key) = initiator {
                     state.rekey_initiator(key);
@@ -119,9 +118,9 @@ impl Session {
     /// # Errors
     ///
     /// Will result in `SnowError::State` if not in transport mode.
-    pub fn receiving_nonce(&self) -> Result<u64, Error> {
+    pub fn receiving_nonce(&self) -> Result<u64, SnowError> {
         match *self {
-            Session::Handshake(_) => Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into()),
+            Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
             Session::Transport(ref state) => Ok(state.receiving_nonce())
         }
     }
@@ -131,9 +130,9 @@ impl Session {
     /// # Errors
     ///
     /// Will result in `SnowError::State` if not in transport mode.
-    pub fn sending_nonce(&self) -> Result<u64, Error> {
+    pub fn sending_nonce(&self) -> Result<u64, SnowError> {
         match *self {
-            Session::Handshake(_) => Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into()),
+            Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
             Session::Transport(ref state) => Ok(state.sending_nonce())
         }
     }
@@ -154,9 +153,9 @@ impl Session {
     ///
     /// Will result in `SnowError::State` if not in transport mode.
     #[must_use]
-    pub fn set_receiving_nonce(&mut self, nonce: u64) -> Result<(), Error> {
+    pub fn set_receiving_nonce(&mut self, nonce: u64) -> Result<(), SnowError> {
         match *self {
-            Session::Handshake(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeNotFinished }),
+            Session::Handshake(_)             => bail!(StateProblem::HandshakeNotFinished),
             Session::Transport(ref mut state) => { state.set_receiving_nonce(nonce); Ok(()) }
         }
     }
@@ -170,10 +169,10 @@ impl Session {
     /// Will result in `SnowError::Input` if the PSK is not the right length or the location is out of bounds.
     /// Will result in `SnowError::State` if in transport mode.
     #[must_use]
-    pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
+    pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), SnowError> {
         match *self {
             Session::Handshake(ref mut state) => state.set_psk(location, key),
-            Session::Transport(_)             => bail!(SnowError::State { reason: StateProblem::HandshakeAlreadyFinished })
+            Session::Transport(_)             => bail!(StateProblem::HandshakeAlreadyFinished)
         }
     }
 
@@ -198,11 +197,11 @@ impl Session {
     /// session = session.into_transport_mode()?;
     /// ```
     ///
-    pub fn into_transport_mode(self) -> Result<Self, Error> {
+    pub fn into_transport_mode(self) -> Result<Self, SnowError> {
         match self {
             Session::Handshake(state) => {
                 if !state.is_finished() {
-                    Err(SnowError::State { reason: StateProblem::HandshakeNotFinished }.into())
+                    bail!(StateProblem::HandshakeNotFinished)
                 } else {
                     Ok(Session::Transport(state.try_into()?))
                 }
@@ -219,9 +218,9 @@ impl Into<Session> for HandshakeState {
 }
 
 impl TryFrom<HandshakeState> for TransportState {
-    type Error = Error;
+    type Error = SnowError;
 
-    fn try_from(old: HandshakeState) -> Result<Self, Error> {
+    fn try_from(old: HandshakeState) -> Result<Self, Self::Error> {
         let initiator = old.is_initiator();
         let (cipherstates, handshake, dh_len, rs) = old.finish()?;
         Ok(TransportState::new(cipherstates, handshake.pattern, dh_len, rs, initiator))
