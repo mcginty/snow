@@ -1,8 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
-pub fn copy_memory(input: &[u8], out: &mut [u8]) -> usize {
-    out[..input.len()].clone_from_slice(&input[..]);
-    input.len()
+#[macro_export]
+macro_rules! copy_slices {
+    ($inslice:expr, $outslice:expr) => {
+        $outslice[..$inslice.len()].clone_from_slice(&$inslice[..])
+    };
 }
 
 /// Toggle is similar to Option, except that even in the Off/"None" case, there is still

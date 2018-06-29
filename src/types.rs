@@ -1,6 +1,5 @@
 //! The traits for cryptographic implementations that can be used by Noise.
 
-use utils::copy_memory;
 use constants::{MAXBLOCKLEN, MAXHASHLEN};
 
 /// Provides randomness
@@ -79,7 +78,7 @@ pub trait Hash {
         }
 
         let mut in2 = [0u8; MAXHASHLEN+1];
-        copy_memory(&out1[0..hash_len], &mut in2);
+        copy_slices!(&out1[0..hash_len], &mut in2);
         in2[hash_len] = 2;
         self.hmac(&temp_key, &in2[..hash_len+1], out2);
         if outputs == 2 {
@@ -87,7 +86,7 @@ pub trait Hash {
         }
 
         let mut in3 = [0u8; MAXHASHLEN+1];
-        copy_memory(&out2[0..hash_len], &mut in3);
+        copy_slices!(&out2[0..hash_len], &mut in3);
         in3[hash_len] = 3;
         self.hmac(&temp_key, &in3[..hash_len+1], out3);
     }

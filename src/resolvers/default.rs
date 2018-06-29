@@ -19,7 +19,6 @@ use byteorder::{ByteOrder, BigEndian, LittleEndian};
 use types::{Cipher, Dh, Hash, Random};
 use constants::TAGLEN;
 use params::{CipherChoice, DHChoice, HashChoice};
-use utils::copy_memory;
 use std::io::{Cursor, Write};
 use super::CryptoResolver;
 
@@ -119,15 +118,15 @@ impl Dh for Dh25519 {
     }
 
     fn set(&mut self, privkey: &[u8]) {
-        copy_memory(privkey, &mut self.privkey);
+        copy_slices!(privkey, &mut self.privkey);
         let pubkey = x25519::generate_public(&self.privkey);
-        copy_memory(pubkey.as_bytes(), &mut self.pubkey);
+        copy_slices!(pubkey.as_bytes(), &mut self.pubkey);
     }
 
     fn generate(&mut self, rng: &mut Random) {
         rng.fill_bytes(&mut self.privkey);
         let pubkey = x25519::generate_public(&self.privkey);
-        copy_memory(pubkey.as_bytes(), &mut self.pubkey);
+        copy_slices!(pubkey.as_bytes(), &mut self.pubkey);
     }
 
     fn pubkey(&self) -> &[u8] {
@@ -140,7 +139,7 @@ impl Dh for Dh25519 {
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()> {
         let result = x25519::diffie_hellman(&self.privkey, array_ref![pubkey, 0, 32]);
-        copy_memory(&result, out);
+        copy_slices!(&result, out);
         Ok(())
     }
 }
@@ -153,7 +152,7 @@ impl Cipher for CipherAESGCM {
     }
 
     fn set(&mut self, key: &[u8]) {
-        copy_memory(key, &mut self.key);
+        copy_slices!(key, &mut self.key);
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
@@ -162,7 +161,7 @@ impl Cipher for CipherAESGCM {
         let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
         let mut tag = [0u8; TAGLEN];
         cipher.encrypt(plaintext, &mut out[..plaintext.len()], &mut tag);
-        copy_memory(&tag, &mut out[plaintext.len()..]);
+        copy_slices!(&tag, &mut out[plaintext.len()..]);
         plaintext.len() + TAGLEN
     } 
 
@@ -172,7 +171,7 @@ impl Cipher for CipherAESGCM {
         let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
         let text_len = ciphertext.len() - TAGLEN;
         let mut tag = [0u8; TAGLEN];
-        copy_memory(&ciphertext[text_len..], &mut tag);
+        copy_slices!(&ciphertext[text_len..], &mut tag);
         if cipher.decrypt(&ciphertext[..text_len], &mut out[..text_len], &tag) {
             Ok(text_len)
         } else {
@@ -188,7 +187,7 @@ impl Cipher for CipherChaChaPoly {
     }
 
     fn set(&mut self, key: &[u8]) {
-        copy_memory(key, &mut self.key);
+        copy_slices!(key, &mut self.key);
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
@@ -433,7 +432,7 @@ mod tests {
     // Curve25519 test - draft-curves-10
         let mut keypair:Dh25519 = Default::default();
         let scalar = Vec::<u8>::from_hex("a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4").unwrap();
-        copy_memory(&scalar, &mut keypair.privkey);
+        copy_slices!(&scalar, &mut keypair.privkey);
         let public = Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c").unwrap();
         let mut output = [0u8; 32];
         keypair.dh(&public, &mut output).unwrap();
@@ -560,8 +559,8 @@ mod tests {
         let authtext = Vec::<u8>::from_hex("f33388860000000000004e91").unwrap();
         let mut combined_text = [0u8; 1024];
         let mut out = [0u8; 1024];
-        copy_memory(&ciphertext, &mut combined_text);
-        copy_memory(&tag[0..TAGLEN], &mut combined_text[ciphertext.len()..]);
+        copy_slices!(&ciphertext, &mut combined_text);
+        copy_slices!(&tag[0..TAGLEN], &mut combined_text[ciphertext.len()..]);
 
         let mut cipher : CipherChaChaPoly = Default::default();
         cipher.set(&key);

@@ -42,8 +42,9 @@ extern crate smallvec;
 
 #[macro_use]
 mod error;
-mod constants;
+#[macro_use]
 mod utils;
+mod constants;
 mod cipherstate;
 mod symmetricstate;
 mod handshakestate;

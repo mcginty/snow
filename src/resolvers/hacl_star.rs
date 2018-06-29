@@ -9,7 +9,6 @@ use self::hacl_star::sha2::{Sha256, Sha512};
 use self::hacl_star::chacha20poly1305;
 
 use byteorder::{ByteOrder, LittleEndian};
-use utils::copy_memory;
 
 #[derive(Default)]
 pub struct HaclStarResolver;
@@ -79,7 +78,7 @@ impl Dh for Dh25519 {
     }
 
     fn set(&mut self, privkey: &[u8]) {
-        copy_memory(privkey, &mut self.privkey.0); /* RUSTSUCKS: Why can't I convert slice -> array? */
+        copy_slices!(privkey, &mut self.privkey.0); /* RUSTSUCKS: Why can't I convert slice -> array? */
         self.pubkey = self.privkey.get_public();
     }
 
@@ -111,7 +110,7 @@ impl Cipher for CipherChaChaPoly {
     }
 
     fn set(&mut self, key: &[u8]) {
-        copy_memory(key, &mut self.key);
+        copy_slices!(key, &mut self.key);
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
@@ -120,7 +119,7 @@ impl Cipher for CipherChaChaPoly {
 
         let (out, tag) = out.split_at_mut(plaintext.len());
         let tag = array_mut_ref!(tag, 0, chacha20poly1305::MAC_LENGTH);
-        copy_memory(plaintext, out);
+        copy_slices!(plaintext, out);
 
         chacha20poly1305::Key(&self.key)
             .nonce(&nonce_bytes)
@@ -137,7 +136,7 @@ impl Cipher for CipherChaChaPoly {
         let (ciphertext, tag) = ciphertext.split_at(len - chacha20poly1305::MAC_LENGTH);
         let tag = array_ref!(tag, 0, chacha20poly1305::MAC_LENGTH);
         let len = ciphertext.len();
-        copy_memory(ciphertext, out);
+        copy_slices!(ciphertext, out);
 
         if chacha20poly1305::Key(&self.key)
             .nonce(&nonce_bytes)
@@ -247,7 +246,7 @@ mod tests {
     // Curve25519 test - draft-curves-10
         let mut keypair:Dh25519 = Default::default();
         let scalar = Vec::<u8>::from_hex("a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4").unwrap();
-        copy_memory(&scalar, &mut keypair.privkey.0);
+        copy_slices!(&scalar, &mut keypair.privkey.0);
         let public = Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c").unwrap();
         let mut output = [0u8; 32];
         keypair.dh(&public, &mut output);
@@ -336,8 +335,8 @@ mod tests {
         let authtext = Vec::<u8>::from_hex("f33388860000000000004e91").unwrap();
         let mut combined_text = [0u8; 1024];
         let mut out = [0u8; 1024];
-        copy_memory(&ciphertext, &mut combined_text);
-        copy_memory(&tag[0..chacha20poly1305::MAC_LENGTH], &mut combined_text[ciphertext.len()..]);
+        copy_slices!(&ciphertext, &mut combined_text);
+        copy_slices!(&tag[0..chacha20poly1305::MAC_LENGTH], &mut combined_text[ciphertext.len()..]);
 
         let mut cipher : CipherChaChaPoly = Default::default();
         cipher.set(&key);

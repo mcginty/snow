@@ -1,5 +1,5 @@
 use constants::{PSKLEN, TAGLEN, MAXMSGLEN, MAXDHLEN};
-use utils::{Toggle, copy_memory};
+use utils::Toggle;
 use types::{Dh, Hash, Random};
 use cipherstate::{CipherState, CipherStates};
 #[cfg(feature = "nightly")] use std::convert::TryFrom;
@@ -170,7 +170,7 @@ impl HandshakeState {
                     }
                     {
                         let pubkey = self.e.pubkey();
-                        copy_memory(pubkey, &mut message[byte_index..]);
+                        copy_slices!(pubkey, &mut message[byte_index..]);
                         byte_index += self.s.pub_len();
                         self.symmetricstate.mix_hash(pubkey);
                         if self.params.handshake.is_psk() {
