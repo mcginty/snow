@@ -303,10 +303,19 @@ impl HandshakeState {
         Ok(())
     }
  
+    /// Get the remote party's static public key, if available.
+    /// 
+    /// Note: will return `None` if either the chosen Noise pattern
+    /// doesn't necessitate a remote static key, *or* if the remote
+    /// static key is not yet known (as can be the case in the `XX`
+    /// pattern, for example).
     pub fn get_remote_static(&self) -> Option<&[u8]> {
         self.rs.as_option_ref().map(|rs| &rs[..self.dh_len()])
     }
 
+    /// Convert the `HandshakeState` object into an intermediary
+    /// `TransferredState` which contains the subset of necessary
+    /// material required to instantiate a `TransportState`.
     #[must_use]
     pub fn finish(self) -> Result<TransferredState, SnowError> {
         if self.is_finished() {
