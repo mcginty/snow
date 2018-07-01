@@ -516,6 +516,53 @@ fn test_send_trait() {
 }
 
 #[test]
+fn test_checkpointing() {
+    let params: NoiseParams = "Noise_XXpsk2_25519_AESGCM_SHA256".parse().unwrap();
+
+    let b_i = NoiseBuilder::new(params.clone());
+    let b_r = NoiseBuilder::new(params);
+
+    let static_i = b_i.generate_private_key().unwrap();
+    let static_r = b_r.generate_private_key().unwrap();
+
+    let mut static_i_dh: Dh25519 = Default::default();
+    let mut static_r_dh: Dh25519 = Default::default();
+
+    static_i_dh.set(&static_i);
+    static_r_dh.set(&static_r);
+
+    let mut h_i = b_i
+        .psk(2, &[32u8; 32])
+        .local_private_key(&static_i)
+        .remote_public_key(static_r_dh.pubkey())
+        .build_initiator()
+        .unwrap();
+    let mut h_r = b_r
+        .psk(2, &[32u8; 32])
+        .local_private_key(&static_r)
+        .remote_public_key(static_i_dh.pubkey())
+        .build_responder()
+        .unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_bad = [0u8; 48];
+
+    let res = h_i.write_message(b"abc", &mut buffer_bad);
+    assert!(res.is_err(), "write_message() should have failed for insufficiently-sized buffer");
+
+    let len = h_i.write_message(b"abc", &mut buffer_msg)
+        .expect("write_message() should have succeeded for correctly-sized buffer");
+
+    let mut buffer_bad = [0u8; 2];
+    let mut buffer_ok = [0u8; 200];
+    let res = h_r.read_message(&buffer_msg[..len], &mut buffer_bad);
+    assert!(res.is_err(), "read_message() should have failed for insufficiently-sized buffer");
+
+    let res = h_r.read_message(&buffer_msg[..len], &mut buffer_ok)
+        .expect("read_message() should have succeeded");
+}
+
+#[test]
 fn test_get_remote_static() {
     let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
     let mut static_i: Dh25519 = Default::default();

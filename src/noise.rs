@@ -59,8 +59,7 @@ impl<'builder> NoiseBuilder<'builder> {
     }
 
     /// Create a NoiseBuilder with a custom crypto resolver.
-    pub fn with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self
-    {
+    pub fn with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self {
         NoiseBuilder {
             params,
             resolver,
@@ -186,7 +185,7 @@ impl<'builder> NoiseBuilder<'builder> {
                                      initiator,
                                      self.params,
                                      psks,
-                                     self.plog.unwrap_or_else(|| &[0u8; 0]),
+                                     self.plog.unwrap_or_else(|| &[0u8; 0] ),
                                      cipherstates)?;
         Ok(hs.into())
     }

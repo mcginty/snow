@@ -4,7 +4,7 @@ use types::{Dh, Hash, Random};
 use cipherstate::{CipherState, CipherStates};
 #[cfg(feature = "nightly")] use std::convert::TryFrom;
 #[cfg(not(feature = "nightly"))] use utils::TryFrom;
-use symmetricstate::{SymmetricState, SymmetricStateType};
+use symmetricstate::SymmetricState;
 use params::{HandshakeChoice, HandshakeTokens, MessagePatterns, NoiseParams, Token};
 use error::{SnowError, InitStage, StateProblem};
 
@@ -35,7 +35,7 @@ pub type TransferredState = (CipherStates, HandshakeChoice, usize, Toggle<[u8; M
 
 impl HandshakeState {
     #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
-    pub fn new(
+    pub fn new<'a>(
         rng             : Box<Random + Send>,
         cipherstate     : CipherState,
         hasher          : Box<Hash + Send>,
@@ -47,7 +47,7 @@ impl HandshakeState {
         initiator       : bool,
         params          : NoiseParams,
         psks            : [Option<[u8; PSKLEN]>; 10],
-        prologue        : &[u8],
+        prologue        : &'a [u8],
         cipherstates    : CipherStates) -> Result<HandshakeState, SnowError> {
 
         if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
@@ -109,8 +109,8 @@ impl HandshakeState {
             initiator,
             params,
             psks,
-            my_turn : initiator,
-            message_patterns : tokens.msg_patterns,
+            my_turn: initiator,
+            message_patterns: tokens.msg_patterns,
         })
     }
 
@@ -145,18 +145,33 @@ impl HandshakeState {
 
     #[must_use]
     pub fn write_handshake_message(&mut self,
-                         payload: &[u8], 
+                                  message: &[u8], 
+                                  payload: &mut [u8]) -> Result<usize, SnowError> {
+        self.symmetricstate.checkpoint();
+        match self._write_handshake_message(message, payload) {
+            Ok(res) => {
+                self.message_patterns.remove(0);
+                Ok(res)
+            },
+            Err(err) => {
+                self.symmetricstate.rollback();
+                Err(err)
+            }
+        }
+    }
+
+    fn _write_handshake_message(&mut self,
+                         payload: &[u8],
                          message: &mut [u8]) -> Result<usize, SnowError> {
         if !self.my_turn {
             bail!(StateProblem::NotTurnToWrite);
         }
 
         let next_tokens = if !self.message_patterns.is_empty() {
-            self.message_patterns.remove(0)
+            self.message_patterns[0].clone()
         } else {
             bail!(StateProblem::HandshakeAlreadyFinished);
         };
-        let last = self.message_patterns.is_empty();
 
         let mut byte_index = 0;
         for token in next_tokens {
@@ -165,6 +180,7 @@ impl HandshakeState {
                     if byte_index + self.e.pub_len() > message.len() {
                         bail!(SnowError::Input)
                     }
+
                     if !self.fixed_ephemeral {
                         self.e.generate(&mut *self.rng);
                     }
@@ -182,22 +198,20 @@ impl HandshakeState {
                 Token::S => {
                     if !self.s.is_on() {
                         bail!(StateProblem::MissingKeyMaterial);
-                    }
-                    if byte_index + self.s.pub_len() > message.len() {
+                    } else if byte_index + self.s.pub_len() > message.len() {
                         bail!(SnowError::Input)
                     }
+
                     byte_index += self.symmetricstate.encrypt_and_mix_hash(
                         self.s.pubkey(),
                         &mut message[byte_index..]);
                 },
-                Token::Psk(n) => {
-                    match self.psks[n as usize] {
-                        Some(psk) => {
-                            self.symmetricstate.mix_key_and_hash(&psk);
-                        },
-                        None => {
-                            bail!(StateProblem::MissingPsk);
-                        }
+                Token::Psk(n) => match self.psks[n as usize] {
+                    Some(psk) => {
+                        self.symmetricstate.mix_key_and_hash(&psk);
+                    },
+                    None => {
+                        bail!(StateProblem::MissingPsk);
                     }
                 },
                 Token::Dhee => self.dh(false, false)?,
@@ -207,7 +221,6 @@ impl HandshakeState {
             }
         }
 
-        self.my_turn = false;
         if byte_index + payload.len() + TAGLEN > message.len() {
             bail!(SnowError::Input);
         }
@@ -215,26 +228,42 @@ impl HandshakeState {
         if byte_index > MAXMSGLEN {
             bail!(SnowError::Input);
         }
-        if last {
+        if self.message_patterns.len() == 1 {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
         }
+        self.my_turn = false;
         Ok(byte_index)
     }
 
-    #[must_use]
     pub fn read_handshake_message(&mut self,
-                        message: &[u8], 
-                        payload: &mut [u8]) -> Result<usize, SnowError> {
+                                  message: &[u8], 
+                                  payload: &mut [u8]) -> Result<usize, SnowError> {
+        self.symmetricstate.checkpoint();
+        match self._read_handshake_message(message, payload) {
+            Ok(res) => {
+                self.message_patterns.remove(0);
+                Ok(res)
+            },
+            Err(err) => {
+                self.symmetricstate.rollback();
+                Err(err)
+            }
+        }
+    }
+
+    fn _read_handshake_message(&mut self,
+                                   message: &[u8], 
+                                   payload: &mut [u8]) -> Result<usize, SnowError> {
         if message.len() > MAXMSGLEN {
             bail!(SnowError::Input);
         }
 
         let next_tokens = if !self.message_patterns.is_empty() {
-            Some(self.message_patterns.remove(0))
+            Some(self.message_patterns[0].clone()) // TODO: remove clone() here
         } else {
             None
         };
-        let last = next_tokens.is_some() && self.message_patterns.is_empty();
+        let last = next_tokens.is_some() && self.message_patterns.len() == 1;
 
         let dh_len = self.dh_len();
         let mut ptr = message;
@@ -280,6 +309,7 @@ impl HandshakeState {
                 }
             }
         }
+
         self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| SnowError::Decrypt)?;
         self.my_turn = true;
         if last {
