@@ -558,7 +558,7 @@ fn test_checkpointing() {
     let res = h_r.read_message(&buffer_msg[..len], &mut buffer_bad);
     assert!(res.is_err(), "read_message() should have failed for insufficiently-sized buffer");
 
-    let res = h_r.read_message(&buffer_msg[..len], &mut buffer_ok)
+    let _res = h_r.read_message(&buffer_msg[..len], &mut buffer_ok)
         .expect("read_message() should have succeeded");
 }
 
