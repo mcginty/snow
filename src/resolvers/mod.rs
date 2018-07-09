@@ -3,6 +3,7 @@
 #[cfg(feature = "default-resolver")]   pub mod default;
 #[cfg(feature = "hacl-star-resolver")] pub mod hacl_star;
 #[cfg(feature = "ring-resolver")]      pub mod ring;
+#[cfg(feature = "libsodium-resolver")] pub mod libsodium;
 
 use params::*;
 use types::*;

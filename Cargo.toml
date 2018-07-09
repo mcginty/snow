@@ -12,13 +12,15 @@ readme = "README.md"
 keywords = ["noise", "protocol", "crypto"]
 
 [features]
-default = ["default-resolver"]
+default = ["default-resolver", "libsodium-resolver"]
 nightly = ["blake2-rfc/simd_opt", "chacha20-poly1305-aead/simd_opt", "x25519-dalek/nightly"]
 default-resolver = ["chacha20-poly1305-aead", "blake2-rfc", "rust-crypto", "x25519-dalek", "rand"]
 hacl-star-resolver = ["hacl-star"]
 hacl-star-accelerated = ["hacl-star-resolver", "default-resolver"]
 ring-resolver = ["ring"]
 ring-accelerated = ["ring-resolver", "default-resolver"]
+libsodium-resolver = ["sodiumoxide"]
+libsodium-accelerated = ["libsodium-resolver", "default-resolver"]
 vector-tests = []
 
 [[bench]]
@@ -43,6 +45,8 @@ rust-crypto = { version = "^0.2", optional = true }
 hacl-star = { version = "=0.0.11", optional = true }
 rand = { version = "0.5.0-pre.2", optional = true }
 ring = { version = "0.13.0-alpha5", optional = true }
+#sodiumoxide = { version = "^0.1.0", optional = true } # We have to use concrete revision until version bump.
+sodiumoxide = { git = "https://github.com/sodiumoxide/sodiumoxide", rev = "d01bbdbd91313453ae244d56973545d9b695af20", optional = true }
 
 [dev-dependencies]
 clap = "^2.0"
@@ -57,7 +61,7 @@ lazy_static = "^1.0"
 rustc_version = "^0.2"
 
 [package.metadata.docs.rs]
-features = [ "ring-resolver", "hacl-star-resolver" ]
+features = [ "ring-resolver", "hacl-star-resolver", "libsodium-resolver" ]
 all-features = false
 no-default-features = false
 

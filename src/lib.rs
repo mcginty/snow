@@ -62,3 +62,4 @@ pub use session::Session;
 #[cfg(feature = "default-resolver")]   pub use resolvers::default::DefaultResolver;
 #[cfg(feature = "ring-resolver")]      pub use resolvers::ring::RingResolver;
 #[cfg(feature = "hacl-star-resolver")] pub use resolvers::hacl_star::HaclStarResolver;
+#[cfg(feature = "libsodium-resolver")] pub use resolvers::libsodium::SodiumResolver;

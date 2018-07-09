@@ -59,6 +59,13 @@ impl<'builder> NoiseBuilder<'builder> {
         Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(HaclStarResolver), Box::new(DefaultResolver))))
     }
 
+    #[cfg(feature = "libsodium-accelerated")]
+    pub fn new(params: NoiseParams) -> Self {
+        use ::resolvers::{FallbackResolver, default::DefaultResolver, libsodium::SodiumResolver};
+
+        Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(SodiumResolver), Box::new(DefaultResolver))))
+    }
+
     /// Create a NoiseBuilder with a custom crypto resolver.
     pub fn with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self
     {
