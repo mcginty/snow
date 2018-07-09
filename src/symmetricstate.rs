@@ -130,12 +130,9 @@ impl SymmetricState {
 
     pub fn checkpoint(&mut self) {
         self.checkpoint = self.inner;
-        println!("checkpointed at {:?}", self.checkpoint);
     }
 
     pub fn rollback(&mut self) {
         self.inner = self.checkpoint;
-        println!("rolling back    {:?}", self.inner);
-        println!("to              {:?}", self.inner);
     }
 }
