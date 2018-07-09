@@ -38,7 +38,7 @@ pub struct NoiseBuilder<'builder> {
 
 impl<'builder> NoiseBuilder<'builder> {
     /// Create a NoiseBuilder with the default crypto resolver.
-    #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated", feature = "hacl-star-accelerated"))))]
+    #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated", feature = "hacl-star-accelerated", feature = "libsodium-accelerated"))))]
     pub fn new(params: NoiseParams) -> Self {
         use ::resolvers::default::DefaultResolver;
 
