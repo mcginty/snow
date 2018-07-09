@@ -12,7 +12,7 @@ readme = "README.md"
 keywords = ["noise", "protocol", "crypto"]
 
 [features]
-default = ["default-resolver", "libsodium-resolver"]
+default = ["default-resolver"]
 nightly = ["blake2-rfc/simd_opt", "chacha20-poly1305-aead/simd_opt", "x25519-dalek/nightly"]
 default-resolver = ["chacha20-poly1305-aead", "blake2-rfc", "rust-crypto", "x25519-dalek", "rand"]
 hacl-star-resolver = ["hacl-star"]

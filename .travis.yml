@@ -20,4 +20,6 @@ script:
   - cargo test --features "hacl-star-accelerated vector-tests" --verbose
   - cargo test --features "ring-resolver vector-tests" --verbose
   - cargo test --features "ring-accelerated vector-tests" --verbose
+  - cargo test --features "libsodium-resolver vector-tests" --verbose
+  - cargo test --features "libsodium-accelerated vector-tests" --verbose
 
