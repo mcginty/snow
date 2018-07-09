@@ -6,7 +6,7 @@ use params::{CipherChoice, DHChoice, HashChoice};
 use types::{Cipher, Dh, Hash, Random};
 use CryptoResolver;
 
-use self::sodiumoxide::crypto::aead::chacha20poly1305 as sodium_chacha20poly1305;
+use self::sodiumoxide::crypto::aead::chacha20poly1305_ietf as sodium_chacha20poly1305;
 use self::sodiumoxide::crypto::hash::sha256 as sodium_sha256;
 use self::sodiumoxide::crypto::scalarmult::curve25519 as sodium_curve25519;
 
@@ -140,8 +140,8 @@ impl Cipher for SodiumChaChaPoly {
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
-        let mut nonce_bytes = [0u8; 8];
-        LittleEndian::write_u64(&mut nonce_bytes[..], nonce);
+        let mut nonce_bytes = [0u8; 12];
+        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
         let nonce = sodium_chacha20poly1305::Nonce(nonce_bytes);
 
         let buf = sodium_chacha20poly1305::seal(plaintext, Some(authtext), &nonce, &self.key);
@@ -157,8 +157,8 @@ impl Cipher for SodiumChaChaPoly {
         ciphertext: &[u8],
         out: &mut [u8],
     ) -> Result<usize, ()> {
-        let mut nonce_bytes = [0u8; 8];
-        LittleEndian::write_u64(&mut nonce_bytes[..], nonce);
+        let mut nonce_bytes = [0u8; 12];
+        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
         let nonce = sodium_chacha20poly1305::Nonce(nonce_bytes);
 
         let result = sodium_chacha20poly1305::open(ciphertext, Some(authtext), &nonce, &self.key);
