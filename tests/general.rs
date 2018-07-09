@@ -371,7 +371,7 @@ fn test_transport_message_exceeds_max_len() {
     let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 65535*2];
-    noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
+    let _res = noise.write_message(&[0u8; 0], &mut buffer_out);
     noise = noise.into_transport_mode().unwrap();
     assert!(noise.write_message(&[0u8; 65534], &mut buffer_out).is_err());
 }
@@ -382,7 +382,7 @@ fn test_transport_message_undersized_output_buffer() {
     let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 200];
-    noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
+    let _res = noise.write_message(&[0u8; 0], &mut buffer_out);
     noise = noise.into_transport_mode().unwrap();
     assert!(noise.write_message(&[0u8; 300], &mut buffer_out).is_err());
 }
@@ -393,7 +393,7 @@ fn test_oneway_initiator_enforcements() {
     let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 1024];
-    noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
+    let _res = noise.write_message(&[0u8; 0], &mut buffer_out);
     noise = noise.into_transport_mode().unwrap();
     assert!(noise.read_message(&[0u8; 1024], &mut buffer_out).is_err());
 }
