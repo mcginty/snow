@@ -3,12 +3,12 @@
 use constants::{MAXBLOCKLEN, MAXHASHLEN};
 
 /// Provides randomness
-pub trait Random {
+pub trait Random : Send + Sync{
     fn fill_bytes(&mut self, out: &mut [u8]);
 }
 
 /// Provides Diffie-Hellman operations
-pub trait Dh {
+pub trait Dh : Send + Sync{
     fn name(&self) -> &'static str;
     fn pub_len(&self) -> usize;
     fn priv_len(&self) -> usize;
@@ -23,7 +23,7 @@ pub trait Dh {
 }
 
 /// Provides cipher operations
-pub trait Cipher {
+pub trait Cipher : Send + Sync {
     fn name(&self) -> &'static str;
 
     fn set(&mut self, key: &[u8]);
@@ -34,7 +34,7 @@ pub trait Cipher {
 }
 
 /// Provides hashing operations
-pub trait Hash {
+pub trait Hash : Send + Sync {
     fn name(&self) -> &'static str;
     fn block_len(&self) -> usize;
     fn hash_len(&self) -> usize;
