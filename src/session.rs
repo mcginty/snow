@@ -10,10 +10,12 @@ use transportstate::TransportState;
 /// a sized object.
 // TODO: check up on memory usage, since this clippy warning seems like a legit perf issue.
 #[cfg_attr(feature = "cargo-clippy", allow(large_enum_variant))]
+#[derive(Debug)]
 pub enum Session {
     Handshake(HandshakeState),
     Transport(TransportState),
 }
+
 
 impl Session {
     /// If the payload will be encrypted or not. In a future version of Snow, this interface may

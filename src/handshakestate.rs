@@ -7,7 +7,7 @@ use cipherstate::{CipherState, CipherStates};
 use symmetricstate::SymmetricState;
 use params::{HandshakeTokens, MessagePatterns, NoiseParams, Token};
 use error::{SnowError, InitStage, StateProblem};
-
+use std::fmt;
 
 /// A state machine encompassing the handshake phase of a Noise session.
 ///
@@ -365,5 +365,11 @@ impl HandshakeState {
 
     pub fn is_finished(&self) -> bool {
         self.pattern_position == self.message_patterns.len()
+    }
+}
+
+impl fmt::Debug for HandshakeState {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("HandshakeState").finish()
     }
 }

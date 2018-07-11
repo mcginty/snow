@@ -4,6 +4,7 @@ use cipherstate::CipherStates;
 use constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
 use utils::Toggle;
 use handshakestate::HandshakeState;
+use std::fmt;
 
 /// A state machine encompassing the transport phase of a Noise session, using the two
 /// `CipherState`s (for sending and receiving) that were spawned from the `SymmetricState`'s
@@ -100,5 +101,11 @@ impl TransportState {
 
     pub fn is_initiator(&self) -> bool {
         self.initiator
+    }
+}
+
+impl fmt::Debug for TransportState {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.debug_struct("TransportState").finish()
     }
 }
