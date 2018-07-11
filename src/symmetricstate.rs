@@ -10,16 +10,6 @@ struct Inner {
     has_key : bool,
 }
 
-impl fmt::Debug for Inner {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        f.debug_struct("SymmetricState")
-            .field("h", &format_args!("{:?}", &self.h[..10]))
-            .field("ck", &format_args!("{:?}", &self.ck[..10]))
-            .field("has_key", &self.has_key)
-            .finish()
-    }
-}
-
 impl Default for Inner {
     fn default() -> Self {
         Inner {
@@ -134,5 +124,10 @@ impl SymmetricState {
 
     pub fn rollback(&mut self) {
         self.inner = self.checkpoint;
+    }
+
+    pub fn handshake_hash(&self) -> &[u8] {
+        let hash_len = self.hasher.hash_len();
+        &self.inner.h[..hash_len]
     }
 }

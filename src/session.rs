@@ -147,6 +147,16 @@ impl Session {
         }
     }
 
+    /// Get the remote static key that was possibly encrypted in the first payload.
+    ///
+    /// Returns a slice of length `Dh.pub_len()` (i.e. DHLEN for the chosen DH function).
+    pub fn get_handshake_hash(&self) -> Result<&[u8], SnowError> {
+        match *self {
+            Session::Handshake(ref state) => Ok(state.get_handshake_hash()),
+            Session::Transport(ref state) => bail!(StateProblem::HandshakeAlreadyFinished),
+        }
+    }
+
     /// Set the forthcoming incoming nonce value.
     ///
     /// # Errors

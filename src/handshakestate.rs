@@ -355,6 +355,10 @@ impl HandshakeState {
         self.rs.as_option_ref().map(|rs| &rs[..self.dh_len()])
     }
 
+    pub fn get_handshake_hash(&self) -> &[u8] {
+        self.symmetricstate.handshake_hash()
+    }
+
     pub fn is_initiator(&self) -> bool {
         self.initiator
     }
