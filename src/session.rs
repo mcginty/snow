@@ -34,8 +34,8 @@ impl Session {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// let mut session = NoiseBuilder::new("Noise_NN_25519_AESGCM_SHA256".parse()?)
-    ///                   .build_initiator()?;
+    /// let mut session = Builder::new("Noise_NN_25519_AESGCM_SHA256".parse()?)
+    ///     .build_initiator()?;
     ///
     /// if (session.is_handshake_finished()) {
     ///     session = session.into_transport_mode()?;
@@ -147,13 +147,13 @@ impl Session {
         }
     }
 
-    /// Get the remote static key that was possibly encrypted in the first payload.
+    /// Get the handshake hash.
     ///
-    /// Returns a slice of length `Dh.pub_len()` (i.e. DHLEN for the chosen DH function).
+    /// Returns a slice of length `Hasher.hash_len()` (i.e. HASHLEN for the chosen Hash function).
     pub fn get_handshake_hash(&self) -> Result<&[u8], SnowError> {
         match *self {
             Session::Handshake(ref state) => Ok(state.get_handshake_hash()),
-            Session::Transport(ref state) => bail!(StateProblem::HandshakeAlreadyFinished),
+            Session::Transport(_)         => bail!(StateProblem::HandshakeAlreadyFinished),
         }
     }
 
@@ -199,7 +199,7 @@ impl Session {
     /// # Examples
     ///
     /// ```rust,ignore
-    /// let mut session = NoiseBuilder::new("Noise_NN_25519_AESGCM_SHA256".parse()?)
+    /// let mut session = Builder::new("Noise_NN_25519_AESGCM_SHA256".parse()?)
     ///                   .build_initiator()?;
     ///
     /// // ... complete handshake ...

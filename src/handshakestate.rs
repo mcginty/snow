@@ -5,13 +5,13 @@ use cipherstate::{CipherState, CipherStates};
 #[cfg(feature = "nightly")] use std::convert::TryFrom;
 #[cfg(not(feature = "nightly"))] use utils::TryFrom;
 use symmetricstate::SymmetricState;
-use params::{HandshakeChoice, HandshakeTokens, MessagePatterns, NoiseParams, Token};
+use params::{HandshakeTokens, MessagePatterns, NoiseParams, Token};
 use error::{SnowError, InitStage, StateProblem};
 
 
 /// A state machine encompassing the handshake phase of a Noise session.
 ///
-/// **Note:** you are probably looking for [`NoiseBuilder`](struct.NoiseBuilder.html) to
+/// **Note:** you are probably looking for [`Builder`](struct.Builder.html) to
 /// get started.
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object

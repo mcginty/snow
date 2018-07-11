@@ -10,7 +10,7 @@ extern crate clap;
 extern crate snow;
 
 use clap::App;
-use snow::NoiseBuilder;
+use snow::Builder;
 use snow::params::NoiseParams;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -35,7 +35,7 @@ fn run_server() {
     let mut buf = vec![0u8; 65535];
 
     // Initialize our responder NoiseSession using a builder.
-    let builder: NoiseBuilder = NoiseBuilder::new(PARAMS.clone());
+    let builder: Builder = Builder::new(PARAMS.clone());
     let static_key = builder.generate_private_key().unwrap();
     let mut noise = builder
         .local_private_key(&static_key)
@@ -70,7 +70,7 @@ fn run_client() {
     let mut buf = vec![0u8; 65535];
 
     // Initialize our initiator NoiseSession using a builder.
-    let builder: NoiseBuilder = NoiseBuilder::new(PARAMS.clone());
+    let builder: Builder = Builder::new(PARAMS.clone());
     let static_key = builder.generate_private_key().unwrap();
     let mut noise = builder
         .local_private_key(&static_key)

@@ -1,7 +1,6 @@
 use constants::{CIPHERKEYLEN, MAXHASHLEN};
 use types::Hash;
 use cipherstate::CipherState;
-use std::fmt;
 
 #[derive(Copy, Clone)]
 struct Inner {

@@ -13,7 +13,7 @@ use serde::ser::{Serialize, Serializer};
 use std::ops::Deref;
 use failure::Error;
 use hex::FromHex;
-use snow::{NoiseBuilder, Session};
+use snow::{Builder, Session};
 use snow::params::*;
 use snow::types::Dh;
 use snow::resolvers::default::{Dh25519, RandomOs};
@@ -126,8 +126,8 @@ struct TestVectors {
 
 fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), Error> {
     let params: NoiseParams = vector.protocol_name.parse().unwrap();
-    let mut init_builder = NoiseBuilder::new(params.clone());
-    let mut resp_builder = NoiseBuilder::new(params.clone());
+    let mut init_builder = Builder::new(params.clone());
+    let mut resp_builder = Builder::new(params.clone());
 
     if params.handshake.is_psk() {
         let mut psk_index = 0;
@@ -290,8 +290,8 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
     let mut psks = vec![];
     let mut psks_hex = vec![];
 
-    let mut init_b: NoiseBuilder = NoiseBuilder::new(params.clone());
-    let mut resp_b: NoiseBuilder = NoiseBuilder::new(params.clone());
+    let mut init_b: Builder = Builder::new(params.clone());
+    let mut resp_b: Builder = Builder::new(params.clone());
 
     for _ in 0..get_psks_count(&params) {
         let v = random_vec(32);

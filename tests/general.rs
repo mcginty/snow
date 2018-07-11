@@ -4,7 +4,7 @@ extern crate hex;
 extern crate snow;
 
 use hex::FromHex;
-use snow::{NoiseBuilder, CryptoResolver, DefaultResolver};
+use snow::{Builder, CryptoResolver, DefaultResolver};
 use snow::params::*;
 use snow::types::*;
 use snow::resolvers::default::Dh25519;
@@ -109,8 +109,8 @@ fn test_protocol_name() {
 #[test]
 fn test_noise_session_transition_change() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params.clone()).build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::new(params).build_responder().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
@@ -129,8 +129,8 @@ fn test_noise_session_transition_change() {
 #[test]
 fn test_sanity_session() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params.clone()).build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::new(params).build_responder().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
@@ -153,7 +153,7 @@ fn test_Npsk0_expected_value() {
     let params: NoiseParams = "Noise_Npsk0_25519_AESGCM_SHA256".parse().unwrap();
     let mut static_r: Dh25519 = Default::default();
     static_r.set(&get_inc_key(0));
-    let mut h_i = NoiseBuilder::new(params)
+    let mut h_i = Builder::new(params)
         .remote_public_key(static_r.pubkey())
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
@@ -177,7 +177,7 @@ fn test_Xpsk0_expected_value() {
     let mut static_r: Dh25519 = Default::default();
     static_i.set(&get_inc_key(0));
     static_r.set(&get_inc_key(32));
-    let mut h_i = NoiseBuilder::new(params)
+    let mut h_i = Builder::new(params)
         .local_private_key(static_i.privkey())
         .remote_public_key(static_r.pubkey())
         .psk(0, &get_inc_key(1))
@@ -202,14 +202,14 @@ fn test_XXpsk0_expected_value() {
     let mut static_r: Dh25519 = Default::default();
     static_i.set(&get_inc_key(0));
     static_r.set(&get_inc_key(1));
-    let mut h_i = NoiseBuilder::new(params.clone())
+    let mut h_i = Builder::new(params.clone())
         .local_private_key(static_i.privkey())
         .remote_public_key(static_r.pubkey())
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::new(params)
+    let mut h_r = Builder::new(params)
         .local_private_key(static_r.privkey())
         .remote_public_key(static_i.pubkey())
         .prologue(&[1u8, 2, 3])
@@ -244,11 +244,11 @@ fn test_XXpsk0_expected_value() {
 #[test]
 fn test_NNpsk0_sanity_session() {
     let params: NoiseParams = "Noise_NNpsk0_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params.clone())
+    let mut h_i = Builder::new(params.clone())
         .psk(0, &[32u8; 32])
         .build_initiator()
         .unwrap();
-    let mut h_r = NoiseBuilder::new(params)
+    let mut h_r = Builder::new(params)
         .psk(0, &[32u8; 32])
         .build_responder()
         .unwrap();
@@ -272,8 +272,8 @@ fn test_NNpsk0_sanity_session() {
 #[test]
 fn test_XXpsk3_sanity_session() {
     let params: NoiseParams = "Noise_XXpsk3_25519_AESGCM_SHA256".parse().unwrap();
-    let b_i = NoiseBuilder::new(params.clone());
-    let b_r = NoiseBuilder::new(params);
+    let b_i = Builder::new(params.clone());
+    let b_r = Builder::new(params);
     let static_i = b_i.generate_private_key().unwrap();
     let static_r = b_r.generate_private_key().unwrap();
     let mut static_i_dh: Dh25519 = Default::default();
@@ -315,8 +315,8 @@ fn test_XXpsk3_sanity_session() {
 #[test]
 fn test_rekey() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params.clone()).build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::new(params).build_responder().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
 
     assert!(h_i.rekey(None, None).is_err());
 
@@ -350,7 +350,7 @@ fn test_rekey() {
 #[test]
 fn test_handshake_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
+    let mut h_i = Builder::new(params).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 65535*2];
     assert!(h_i.write_message(&[0u8; 65530], &mut buffer_out).is_err());
@@ -359,7 +359,7 @@ fn test_handshake_message_exceeds_max_len() {
 #[test]
 fn test_handshake_message_undersized_output_buffer() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params).build_initiator().unwrap();
+    let mut h_i = Builder::new(params).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 200];
     assert!(h_i.write_message(&[0u8; 400], &mut buffer_out).is_err());
@@ -368,7 +368,7 @@ fn test_handshake_message_undersized_output_buffer() {
 #[test]
 fn test_transport_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
-    let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+    let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 65535*2];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
@@ -379,7 +379,7 @@ fn test_transport_message_exceeds_max_len() {
 #[test]
 fn test_transport_message_undersized_output_buffer() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
-    let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+    let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 200];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
@@ -390,7 +390,7 @@ fn test_transport_message_undersized_output_buffer() {
 #[test]
 fn test_oneway_initiator_enforcements() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
-    let mut noise = NoiseBuilder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+    let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 1024];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
@@ -401,13 +401,13 @@ fn test_oneway_initiator_enforcements() {
 #[test]
 fn test_oneway_responder_enforcements() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
-    let resp_builder = NoiseBuilder::new(params.clone());
+    let resp_builder = Builder::new(params.clone());
     let rpk = resp_builder.generate_private_key().unwrap();
     let mut rk: Dh25519 = Dh25519::default();
     rk.set(&rpk);
 
     let mut resp = resp_builder.local_private_key(&rpk).build_responder().unwrap();
-    let mut init = NoiseBuilder::new(params).remote_public_key(rk.pubkey()).build_initiator().unwrap();
+    let mut init = Builder::new(params).remote_public_key(rk.pubkey()).build_initiator().unwrap();
 
     let mut buffer_resp = [0u8; 65535];
     let mut buffer_init = [0u8; 65535];
@@ -423,13 +423,13 @@ fn test_oneway_responder_enforcements() {
 #[test]
 fn test_set_nonce() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
-    let resp_builder = NoiseBuilder::new(params.clone());
+    let resp_builder = Builder::new(params.clone());
     let rpk = resp_builder.generate_private_key().unwrap();
     let mut rk: Dh25519 = Dh25519::default();
     rk.set(&rpk);
 
     let mut resp = resp_builder.local_private_key(&rpk).build_responder().unwrap();
-    let mut init = NoiseBuilder::new(params).remote_public_key(rk.pubkey()).build_initiator().unwrap();
+    let mut init = Builder::new(params).remote_public_key(rk.pubkey()).build_initiator().unwrap();
 
     let mut buffer_resp = [0u8; 65535];
     let mut buffer_init = [0u8; 65535];
@@ -452,8 +452,8 @@ fn test_set_nonce() {
 #[test]
 fn test_buffer_issues() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = NoiseBuilder::new(params.clone()).build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::new(params).build_responder().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 2];
@@ -467,8 +467,8 @@ fn test_buffer_issues() {
 fn test_buffer_issues_encrypted_handshake() {
     let params: NoiseParams = "Noise_IKpsk2_25519_AESGCM_SHA256".parse().unwrap();
 
-    let b_i = NoiseBuilder::new(params.clone());
-    let b_r = NoiseBuilder::new(params);
+    let b_i = Builder::new(params.clone());
+    let b_r = Builder::new(params);
 
     let static_i = b_i.generate_private_key().unwrap();
     let static_r = b_r.generate_private_key().unwrap();
@@ -508,7 +508,7 @@ fn test_send_trait() {
 
     let (tx, rx) = channel();
     thread::spawn(move|| {
-        let session = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
+        let session = Builder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
                         .build_initiator().unwrap();
         tx.send(session).unwrap();
     });
@@ -519,8 +519,8 @@ fn test_send_trait() {
 fn test_checkpointing() {
     let params: NoiseParams = "Noise_XXpsk2_25519_AESGCM_SHA256".parse().unwrap();
 
-    let b_i = NoiseBuilder::new(params.clone());
-    let b_r = NoiseBuilder::new(params);
+    let b_i = Builder::new(params.clone());
+    let b_r = Builder::new(params);
 
     let static_i = b_i.generate_private_key().unwrap();
     let static_r = b_r.generate_private_key().unwrap();
@@ -569,10 +569,10 @@ fn test_get_remote_static() {
     let mut static_r: Dh25519 = Default::default();
     static_i.set(&get_inc_key(0));
     static_r.set(&get_inc_key(1));
-    let mut h_i = NoiseBuilder::new(params.clone())
+    let mut h_i = Builder::new(params.clone())
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::new(params)
+    let mut h_r = Builder::new(params)
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
 
@@ -612,10 +612,10 @@ fn test_set_psk() {
     let mut static_r: Dh25519 = Default::default();
     static_i.set(&get_inc_key(0));
     static_r.set(&get_inc_key(1));
-    let mut h_i = NoiseBuilder::new(params.clone())
+    let mut h_i = Builder::new(params.clone())
         .local_private_key(static_i.privkey())
         .build_initiator().unwrap();
-    let mut h_r = NoiseBuilder::new(params)
+    let mut h_r = Builder::new(params)
         .local_private_key(static_r.privkey())
         .build_responder().unwrap();
 

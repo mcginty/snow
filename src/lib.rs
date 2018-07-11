@@ -3,16 +3,16 @@
 //! Read the [Noise Protocol Framework Spec](http://noiseprotocol.org/noise.html) for more
 //! information.
 //!
-//! The typical usage flow is to use `NoiseBuilder` to construct a `Session`, which is main
+//! The typical usage flow is to use `Builder` to construct a `Session`, which is main
 //! state machine you will want to interact with.
 //!
 //! # Examples
 //! See `examples/simple.rs` for a more complete TCP client/server example.
 //!
 //! ```rust,ignore
-//! let noise = NoiseBuilder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse().unwrap())
-//!                          .build_initiator()
-//!                          .unwrap();
+//! let noise = snow::Builder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse().unwrap())
+//!     .build_initiator()
+//!     .unwrap();
 //!
 //! let mut buf = [0u8; 65535];
 //!
@@ -48,7 +48,7 @@ mod constants;
 mod cipherstate;
 mod symmetricstate;
 mod handshakestate;
-mod noise;
+mod builder;
 mod session;
 mod transportstate;
 
@@ -58,7 +58,7 @@ pub mod resolvers;
 
 pub use error::{SnowError, InitStage, Prerequisite, StateProblem};
 pub use resolvers::{CryptoResolver, FallbackResolver};
-pub use noise::NoiseBuilder;
+pub use builder::Builder;
 pub use session::Session;
 
 #[cfg(feature = "default-resolver")]   pub use resolvers::default::DefaultResolver;

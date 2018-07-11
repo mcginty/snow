@@ -9,23 +9,23 @@ use error::{SnowError, InitStage, Prerequisite};
 
 /// The default pure-rust crypto implementation resolver.
 
-/// Generates a `NoiseSession` and also validate that all the prerequisites for
+/// Generates a `Session` and also validate that all the prerequisites for
 /// the given parameters are satisfied.
 ///
 /// # Examples
 ///
 /// ```
-/// # use snow::NoiseBuilder;
+/// # use snow::Builder;
 /// # let my_long_term_key = [0u8; 32];
 /// # let their_pub_key = [0u8; 32];
-/// let noise = NoiseBuilder::new("Noise_XX_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
-///                          .local_private_key(&my_long_term_key)
-///                          .remote_public_key(&their_pub_key)
-///                          .prologue("noise is just swell".as_bytes())
-///                          .build_initiator()
-///                          .unwrap();
+/// let noise = Builder::new("Noise_XX_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
+///     .local_private_key(&my_long_term_key)
+///     .remote_public_key(&their_pub_key)
+///     .prologue("noise is just swell".as_bytes())
+///     .build_initiator()
+///     .unwrap();
 /// ```
-pub struct NoiseBuilder<'builder> {
+pub struct Builder<'builder> {
     params:   NoiseParams,
     resolver: Box<CryptoResolver>,
     s:        Option<&'builder [u8]>,
@@ -35,8 +35,8 @@ pub struct NoiseBuilder<'builder> {
     plog:     Option<&'builder [u8]>,
 }
 
-impl<'builder> NoiseBuilder<'builder> {
-    /// Create a NoiseBuilder with the default crypto resolver.
+impl<'builder> Builder<'builder> {
+    /// Create a Builder with the default crypto resolver.
     #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated", feature = "hacl-star-accelerated"))))]
     pub fn new(params: NoiseParams) -> Self {
         use ::resolvers::default::DefaultResolver;
@@ -58,9 +58,9 @@ impl<'builder> NoiseBuilder<'builder> {
         Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(HaclStarResolver), Box::new(DefaultResolver))))
     }
 
-    /// Create a NoiseBuilder with a custom crypto resolver.
+    /// Create a Builder with a custom crypto resolver.
     pub fn with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self {
-        NoiseBuilder {
+        Builder {
             params,
             resolver,
             s: None,
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_builder() {
-        let _noise = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
+        let _noise = Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
             .prologue(&[2,2,2,2,2,2,2,2])
             .local_private_key(&[0u8; 32])
             .build_initiator().unwrap();
@@ -205,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_builder_keygen() {
-        let builder = NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap());
+        let builder = Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap());
         let key1 = builder.generate_private_key();
         let key2 = builder.generate_private_key();
         assert!(key1.unwrap() != key2.unwrap());
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_builder_missing_prereqs() {
-        let noise = NoiseBuilder::new("Noise_NK_25519_ChaChaPoly_SHA256".parse().unwrap())
+        let noise = Builder::new("Noise_NK_25519_ChaChaPoly_SHA256".parse().unwrap())
             .prologue(&[2,2,2,2,2,2,2,2])
             .local_private_key(&[0u8; 32])
             .build_initiator(); // missing remote key, should result in Err
