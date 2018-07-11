@@ -245,7 +245,7 @@ impl HandshakeState {
     }
 
     pub fn read_handshake_message(&mut self,
-                                  message: &[u8], 
+                                  message: &[u8],
                                   payload: &mut [u8]) -> Result<usize, SnowError> {
         self.symmetricstate.checkpoint();
         match self._read_handshake_message(message, payload) {
@@ -261,23 +261,17 @@ impl HandshakeState {
     }
 
     fn _read_handshake_message(&mut self,
-                                   message: &[u8], 
-                                   payload: &mut [u8]) -> Result<usize, SnowError> {
+                               message: &[u8], 
+                               payload: &mut [u8]) -> Result<usize, SnowError> {
         if message.len() > MAXMSGLEN {
             bail!(SnowError::Input);
         }
 
-        let next_tokens = if self.pattern_position < self.message_patterns.len() {
-            Some(&self.message_patterns[self.pattern_position])
-        } else {
-            None
-        };
-        let last = next_tokens.is_some() && self.pattern_position == (self.message_patterns.len() - 1);
+        let last = self.pattern_position == (self.message_patterns.len() - 1);
 
         let dh_len = self.dh_len();
         let mut ptr = message;
-        if let Some(tokens) = next_tokens {
-            for token in tokens.iter() {
+            for token in self.message_patterns[self.pattern_position].iter() {
                 match *token {
                     Token::E => {
                         self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
@@ -326,7 +320,6 @@ impl HandshakeState {
                 Token::Dhss => {
                     let dh_out = self.dh(true, true)?;
                     self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
                 }
             }
         }
