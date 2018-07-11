@@ -3,6 +3,7 @@ use error::{SnowError, StateProblem};
 use cipherstate::CipherStates;
 use constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
 use utils::Toggle;
+use handshakestate::HandshakeState;
 
 /// A state machine encompassing the transport phase of a Noise session, using the two
 /// `CipherState`s (for sending and receiving) that were spawned from the `SymmetricState`'s
@@ -18,14 +19,22 @@ pub struct TransportState {
 }
 
 impl TransportState {
-    pub fn new(cipherstates: CipherStates, pattern: HandshakePattern, dh_len: usize, rs: Toggle<[u8; MAXDHLEN]>, initiator: bool) -> Self {
-        TransportState {
+    pub fn new(handshake: HandshakeState) -> Result<Self, SnowError> {
+        if !handshake.is_finished() {
+            bail!(StateProblem::HandshakeNotFinished);
+        }
+
+        let dh_len = handshake.dh_len();
+        let HandshakeState {cipherstates, params, rs, initiator, ..} = handshake;
+        let pattern = params.handshake.pattern;
+
+        Ok(TransportState {
             cipherstates,
             pattern,
             dh_len,
             rs,
             initiator,
-        }
+        })
     }
 
     pub fn get_remote_static(&self) -> Option<&[u8]> {

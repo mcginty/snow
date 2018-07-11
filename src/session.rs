@@ -221,9 +221,6 @@ impl TryFrom<HandshakeState> for TransportState {
     type Error = SnowError;
 
     fn try_from(old: HandshakeState) -> Result<Self, Self::Error> {
-        let initiator = old.is_initiator();
-        let (cipherstates, handshake, dh_len, rs) = old.finish()?;
-        Ok(TransportState::new(cipherstates, handshake.pattern, dh_len, rs, initiator))
+        TransportState::new(old)
     }
 }
-

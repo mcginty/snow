@@ -16,23 +16,21 @@ use error::{SnowError, InitStage, StateProblem};
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct HandshakeState {
-    rng              : Box<Random + Send>,
-    symmetricstate   : SymmetricState,
-    cipherstates     : CipherStates,
-    s                : Toggle<Box<Dh + Send>>,
-    e                : Toggle<Box<Dh + Send>>,
-    fixed_ephemeral  : bool,
-    rs               : Toggle<[u8; MAXDHLEN]>,
-    re               : Toggle<[u8; MAXDHLEN]>,
-    initiator        : bool,
-    params           : NoiseParams,
-    psks             : [Option<[u8; PSKLEN]>; 10],
-    my_turn          : bool,
-    message_patterns : MessagePatterns,
-    pattern_position : usize,
+    pub(crate) rng              : Box<Random + Send>,
+    pub(crate) symmetricstate   : SymmetricState,
+    pub(crate) cipherstates     : CipherStates,
+    pub(crate) s                : Toggle<Box<Dh + Send>>,
+    pub(crate) e                : Toggle<Box<Dh + Send>>,
+    pub(crate) fixed_ephemeral  : bool,
+    pub(crate) rs               : Toggle<[u8; MAXDHLEN]>,
+    pub(crate) re               : Toggle<[u8; MAXDHLEN]>,
+    pub(crate) initiator        : bool,
+    pub(crate) params           : NoiseParams,
+    pub(crate) psks             : [Option<[u8; PSKLEN]>; 10],
+    pub(crate) my_turn          : bool,
+    pub(crate) message_patterns : MessagePatterns,
+    pub(crate) pattern_position : usize,
 }
-
-pub type TransferredState = (CipherStates, HandshakeChoice, usize, Toggle<[u8; MAXDHLEN]>);
 
 impl HandshakeState {
     #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
@@ -116,7 +114,7 @@ impl HandshakeState {
         })
     }
 
-    fn dh_len(&self) -> usize {
+    pub(crate) fn dh_len(&self) -> usize {
         self.s.pub_len()
     }
 
@@ -355,19 +353,6 @@ impl HandshakeState {
     /// pattern, for example).
     pub fn get_remote_static(&self) -> Option<&[u8]> {
         self.rs.as_option_ref().map(|rs| &rs[..self.dh_len()])
-    }
-
-    /// Convert the `HandshakeState` object into an intermediary
-    /// `TransferredState` which contains the subset of necessary
-    /// material required to instantiate a `TransportState`.
-    #[must_use]
-    pub fn finish(self) -> Result<TransferredState, SnowError> {
-        if self.is_finished() {
-            let dh_len = self.dh_len();
-            Ok((self.cipherstates, self.params.handshake, dh_len, self.rs))
-        } else {
-            bail!(StateProblem::HandshakeNotFinished);
-        }
     }
 
     pub fn is_initiator(&self) -> bool {
