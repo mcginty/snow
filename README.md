@@ -17,7 +17,7 @@ prudent to or if the winds blow at the right heading.
 See `examples/simple.rs` for a more complete TCP client/server example.
 
 ```rust
-let mut noise = snow::Builder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse()?)
+let mut noise = snow::Builder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse()?)
                     .build_initiator()?;
  
 let mut buf = [0u8; 65535];
