@@ -17,7 +17,7 @@ prudent to or if the winds blow at the right heading.
 See `examples/simple.rs` for a more complete TCP client/server example.
 
 ```rust
-let mut noise = NoiseBuilder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse()?)
+let mut noise = snow::Builder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse()?)
                     .build_initiator()?;
  
 let mut buf = [0u8; 65535];
@@ -46,7 +46,7 @@ Snow is currently based off of Noise revision 32.
 - [ ] `fallback` modifier
 
 ## Crypto
-Cryptographic providers are swappable through `NoiseBuilder::with_provider()`, but by default it chooses select, artisanal
+Cryptographic providers are swappable through `Builder::with_provider()`, but by default it chooses select, artisanal
 pure-Rust implementations (see `Cargo.toml` for a quick overview).
 
 ### Providers
