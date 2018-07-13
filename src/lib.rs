@@ -3,7 +3,7 @@
 //! Read the [Noise Protocol Framework Spec](http://noiseprotocol.org/noise.html) for more
 //! information.
 //!
-//! The typical usage flow is to use `Builder` to construct a `Session`, which is main
+//! The typical usage flow is to use [`Builder`] to construct a [`Session`], which is main
 //! state machine you will want to interact with.
 //!
 //! # Examples
@@ -45,13 +45,8 @@
 //! # }
 //! ```
 //! 
-//! ```rust,ignore
-//! let noise = snow::Builder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse().unwrap())
-//!     .build_initiator()
-//!     .unwrap();
-//!
-//!
-//! ```
+//! [`Builder`]: struct.Builder.html
+//! [`Session`]: enum.Session.html
 
 #![cfg_attr(feature = "nightly", feature(try_from))]
 
