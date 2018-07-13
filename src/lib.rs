@@ -9,22 +9,47 @@
 //! # Examples
 //! See `examples/simple.rs` for a more complete TCP client/server example.
 //!
+//! ```
+//! # use snow::SnowError;
+//! #
+//! # fn try_main() -> Result<(), SnowError> {
+//! let mut initiator = snow::Builder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
+//!     .build_initiator()?;
+//! let mut responder = snow::Builder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
+//!     .build_responder()?;
+//! 
+//! let mut read_buf = [0u8; 65535];
+//! let mut first_msg = [0u8; 65535];
+//! let mut second_msg = [0u8; 65535];
+//!
+//! // initiator writes first handshake message
+//! let len = initiator.write_message(&[], &mut first_msg)?;
+//!
+//! // responder reads the message...
+//! responder.read_message(&first_msg[..len], &mut read_buf)?;
+//! 
+//! // responder writes second (final) handshake message
+//! let len = responder.write_message(&[], &mut second_msg)?;
+//! 
+//! // responder reads the message...
+//! initiator.read_message(&second_msg[..len], &mut read_buf)?;
+//!
+//! // complete handshake, and transition the state machines into transport mode
+//! let initiator = initiator.into_transport_mode();
+//! let responder = responder.into_transport_mode();
+//! #     Ok(())
+//! # }
+//! #
+//! # fn main() {
+//! #     try_main().unwrap();
+//! # }
+//! ```
+//! 
 //! ```rust,ignore
 //! let noise = snow::Builder::new("Noise_NN_ChaChaPoly_BLAKE2s".parse().unwrap())
 //!     .build_initiator()
 //!     .unwrap();
 //!
-//! let mut buf = [0u8; 65535];
-//!
-//! // write first handshake message
-//! noise.write_message(&[], &mut buf).unwrap();
-//!
-//! // receive response message
-//! let incoming = receive_message_from_the_mysterious_ether();
-//! noise.read_message(&incoming, &mut buf).unwrap();
-//!
-//! // complete handshake, and transition the state machine into transport mode
-//! let noise = noise.into_transport_mode();
 //!
 //! ```
 
