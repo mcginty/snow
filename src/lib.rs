@@ -65,7 +65,7 @@ extern crate failure;
 extern crate smallvec;
 
 #[macro_use]
-mod error;
+pub mod error;
 #[macro_use]
 mod utils;
 mod constants;
@@ -80,7 +80,7 @@ pub mod params;
 pub mod types;
 pub mod resolvers;
 
-pub use error::{SnowError, InitStage, Prerequisite, StateProblem};
+pub use error::SnowError;
 pub use resolvers::{CryptoResolver, FallbackResolver};
 pub use builder::Builder;
 pub use session::Session;
