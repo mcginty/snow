@@ -1,6 +1,6 @@
 #[cfg(feature = "nightly")] use std::convert::{TryFrom};
 #[cfg(not(feature = "nightly"))] use utils::{TryFrom};
-use error::SnowError;
+use error::{SnowError, PatternProblem};
 use std::str::FromStr;
 use smallvec::SmallVec;
 
@@ -74,15 +74,17 @@ impl HandshakePattern {
 pub enum HandshakeModifier { Psk(u8), Fallback }
 
 impl FromStr for HandshakeModifier {
-    type Err = &'static str;
+    type Err = SnowError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("psk") {
-            Ok(HandshakeModifier::Psk((&s[3..]).parse().map_err(|_| "psk must have number parameter")?))
+            Ok(HandshakeModifier::Psk((&s[3..])
+                .parse()
+                .map_err(|_| PatternProblem::InvalidPsk)?))
         } else if s == "fallback" {
             Ok(HandshakeModifier::Fallback)
         } else {
-            Err("unrecognized or invalid modifier")
+            bail!(PatternProblem::UnsupportedModifier);
         }
     }
 }
@@ -93,7 +95,7 @@ pub struct HandshakeModifierList {
 }
 
 impl FromStr for HandshakeModifierList {
-    type Err = &'static str;
+    type Err = SnowError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
@@ -136,7 +138,7 @@ impl HandshakeChoice {
 }
 
 impl FromStr for HandshakeChoice {
-    type Err = &'static str;
+    type Err = SnowError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (pattern, remainder);
         if s.len() > 1 {
@@ -160,7 +162,7 @@ impl FromStr for HandshakeChoice {
 }
 
 impl FromStr for HandshakePattern {
-    type Err = &'static str;
+    type Err = SnowError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::HandshakePattern::*;
         match s {
@@ -179,7 +181,7 @@ impl FromStr for HandshakePattern {
             "IN" => Ok(IN),
             "IK" => Ok(IK),
             "IX" => Ok(IX),
-            _    => Err("handshake not recognized")
+            _    => bail!(PatternProblem::UnsupportedHandshakeType)
         }
     }
 }

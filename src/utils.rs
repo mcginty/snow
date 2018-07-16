@@ -1,6 +1,5 @@
 use std::ops::{Deref, DerefMut};
 
-#[macro_export]
 macro_rules! copy_slices {
     ($inslice:expr, $outslice:expr) => {
         $outslice[..$inslice.len()].clone_from_slice(&$inslice[..])

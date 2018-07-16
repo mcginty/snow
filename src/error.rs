@@ -8,7 +8,6 @@
 /// ```rust,ignore
 /// return Err(X.into())
 /// ```
-#[macro_export]
 macro_rules! bail {
     ($e:expr) => {
         return Err(($e).into());
@@ -18,6 +17,9 @@ macro_rules! bail {
 /// All errors in snow will return a `SnowError` enum.
 #[derive(Fail, Debug)]
 pub enum SnowError {
+    #[fail(display = "pattern failed to parse: {:?}", reason)]
+    Pattern { reason: PatternProblem },
+
     #[fail(display = "initialization failed at {:?}", reason)]
     Init { reason: InitStage },
 
@@ -35,6 +37,26 @@ pub enum SnowError {
 
     #[fail(display = "decryption failed")]
     Decrypt,
+}
+
+/// The various stages of initialization used to help identify
+/// the specific cause of an `Init` error.
+#[derive(Debug)]
+pub enum PatternProblem {
+    TooFewParameters,
+    UnsupportedHandshakeType,
+    UnsupportedBaseType,
+    UnsupportedHashType,
+    UnsupportedDhType,
+    UnsupportedCipherType,
+    InvalidPsk,
+    UnsupportedModifier,
+}
+
+impl From<PatternProblem> for SnowError {
+    fn from(reason: PatternProblem) -> Self {
+        SnowError::Pattern { reason }
+    }
 }
 
 /// The various stages of initialization used to help identify

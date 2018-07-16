@@ -9,6 +9,7 @@ use std::convert::TryFrom;
 #[cfg(not(feature = "nightly"))]
 use utils::TryFrom;
 
+use error::{SnowError, PatternProblem};
 use std::str::FromStr;
 mod patterns;
 
@@ -28,12 +29,12 @@ pub enum BaseChoice {
 }
 
 impl FromStr for BaseChoice {
-    type Err = &'static str;
+    type Err = SnowError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::BaseChoice::*;
         match s {
-            "Noise"    => Ok(Noise),
-            _          => Err("base type unsupported"),
+            "Noise" => Ok(Noise),
+            _       => bail!(PatternProblem::UnsupportedBaseType)
         }
     }
 }
@@ -46,13 +47,13 @@ pub enum DHChoice {
 }
 
 impl FromStr for DHChoice {
-    type Err = &'static str;
+    type Err = SnowError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::DHChoice::*;
         match s {
             "25519" => Ok(Curve25519),
             "448"   => Ok(Ed448),
-            _       => Err("DH type unsupported")
+            _       => bail!(PatternProblem::UnsupportedDhType)
         }
     }
 }
@@ -65,13 +66,13 @@ pub enum CipherChoice {
 }
 
 impl FromStr for CipherChoice {
-    type Err = &'static str;
+    type Err = SnowError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::CipherChoice::*;
         match s {
             "ChaChaPoly" => Ok(ChaChaPoly),
             "AESGCM"     => Ok(AESGCM),
-            _            => Err("cipher type unsupported")
+            _            => bail!(PatternProblem::UnsupportedCipherType)
         }
     }
 }
@@ -86,7 +87,7 @@ pub enum HashChoice {
 }
 
 impl FromStr for HashChoice {
-    type Err = &'static str;
+    type Err = SnowError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::HashChoice::*;
         match s {
@@ -94,7 +95,7 @@ impl FromStr for HashChoice {
             "SHA512"  => Ok(SHA512),
             "BLAKE2s" => Ok(Blake2s),
             "BLAKE2b" => Ok(Blake2b),
-            _         => Err("hash type unsupported")
+            _         => bail!(PatternProblem::UnsupportedHashType)
         }
     }
 }
@@ -137,16 +138,16 @@ impl NoiseParams {
 }
 
 impl FromStr for NoiseParams {
-    type Err = &'static str;
+    type Err = SnowError;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split('_');
-        static TOO_FEW: &'static str = "too few parameters";
         Ok(NoiseParams::new(s.to_owned(),
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?))
+                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?))
     }
 }
 

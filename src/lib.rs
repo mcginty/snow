@@ -7,34 +7,38 @@
 //! state machine you will want to interact with.
 //!
 //! # Examples
-//! See `examples/simple.rs` for a more complete TCP client/server example.
+//! See `examples/simple.rs` for a more complete TCP client/server example with static keys.
 //!
 //! ```
+//! # extern crate failure;
+//! # extern crate snow;
+//! # use failure::Error;
 //! # use snow::SnowError;
 //! #
-//! # fn try_main() -> Result<(), SnowError> {
-//! let mut initiator = snow::Builder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
+//! # fn try_main() -> Result<(), Error> {
+//! static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
+//! 
+//! let mut initiator = snow::Builder::new(PATTERN.parse()?)
 //!     .build_initiator()?;
-//! let mut responder = snow::Builder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
+//! let mut responder = snow::Builder::new(PATTERN.parse()?)
 //!     .build_responder()?;
 //! 
-//! let mut read_buf = [0u8; 65535];
-//! let mut first_msg = [0u8; 65535];
-//! let mut second_msg = [0u8; 65535];
+//! let (mut read_buf, mut first_msg, mut second_msg) =
+//!     ([0u8; 1024], [0u8; 1024], [0u8; 1024]);
 //!
-//! // initiator writes first handshake message
+//! // -> e
 //! let len = initiator.write_message(&[], &mut first_msg)?;
 //!
-//! // responder reads the message...
+//! // responder processes the first message...
 //! responder.read_message(&first_msg[..len], &mut read_buf)?;
 //! 
-//! // responder writes second (final) handshake message
+//! // <- e, ee
 //! let len = responder.write_message(&[], &mut second_msg)?;
 //! 
-//! // responder reads the message...
+//! // initiator processes the response...
 //! initiator.read_message(&second_msg[..len], &mut read_buf)?;
 //!
-//! // complete handshake, and transition the state machines into transport mode
+//! // NN handshake complete, transition into transport mode.
 //! let initiator = initiator.into_transport_mode();
 //! let responder = responder.into_transport_mode();
 //! #     Ok(())
