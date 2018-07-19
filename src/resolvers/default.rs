@@ -58,46 +58,46 @@ impl CryptoResolver for DefaultResolver {
 }
 
 /// A wrapper around the `rand` crate.
-pub(crate) struct RandomOs {
+struct RandomOs {
     rng : OsRng
 }
 
 /// Wraps x25519-dalek.
 #[derive(Default)]
-pub(crate) struct Dh25519 {
+struct Dh25519 {
     privkey: [u8; 32],
     pubkey:  [u8; 32],
 }
 
 /// Wraps `rust-crypto`'s AES implementation.
 #[derive(Default)]
-pub(crate) struct CipherAESGCM {
+struct CipherAESGCM {
     key: [u8; 32],
 }
 
 /// Wraps `chacha20_poly1305_aead`'s ChaCha20Poly1305 implementation.
 #[derive(Default)]
-pub(crate) struct CipherChaChaPoly {
+struct CipherChaChaPoly {
     key: [u8; 32],
 }
 
 /// Wraps `rust-crypto`'s SHA-256 implementation.
-pub(crate) struct HashSHA256 {
+struct HashSHA256 {
     hasher: Sha256
 }
 
 /// Wraps `rust-crypto`'s SHA-512 implementation.
-pub(crate) struct HashSHA512 {
+struct HashSHA512 {
     hasher: Sha512
 }
 
 /// Wraps `blake2-rfc`'s implementation.
-pub(crate) struct HashBLAKE2b {
+struct HashBLAKE2b {
     hasher: Blake2b
 }
 
 /// Wraps `blake2-rfc`'s implementation.
-pub(crate) struct HashBLAKE2s {
+struct HashBLAKE2s {
     hasher: Blake2s
 }
 

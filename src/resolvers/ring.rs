@@ -39,7 +39,7 @@ impl CryptoResolver for RingResolver {
     }
 }
 
-pub(crate) struct CipherAESGCM {
+struct CipherAESGCM {
     sealing: aead::SealingKey,
     opening: aead::OpeningKey,
 }
@@ -95,7 +95,7 @@ impl Cipher for CipherAESGCM {
     }
 }
 
-pub(crate) struct CipherChaChaPoly {
+struct CipherChaChaPoly {
     sealing: aead::SealingKey,
     opening: aead::OpeningKey,
 }
@@ -150,7 +150,7 @@ impl Cipher for CipherChaChaPoly {
         }
     }
 }
-pub(crate) struct HashSHA256 {
+struct HashSHA256 {
     context: digest::Context,
 }
 
@@ -186,7 +186,7 @@ impl Hash for HashSHA256 {
     }
 }
 
-pub(crate) struct HashSHA512 {
+struct HashSHA512 {
     context: digest::Context,
 }
 

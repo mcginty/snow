@@ -2,14 +2,18 @@
 
 
 /// The default primitive resolver.
-#[cfg(feature = "default-resolver")]   pub mod default;
+#[cfg(feature = "default-resolver")]   mod default;
 /// A HACL* primitive resolver.
-#[cfg(feature = "hacl-star-resolver")] pub mod hacl_star;
+#[cfg(feature = "hacl-star-resolver")] mod hacl_star;
 /// A ring primitive resolver.
-#[cfg(feature = "ring-resolver")]      pub mod ring;
+#[cfg(feature = "ring-resolver")]      mod ring;
 
 use params::{CipherChoice, DHChoice, HashChoice};
 use types::{Cipher, Dh, Hash, Random};
+
+#[cfg(feature = "default-resolver")]   pub use self::default::DefaultResolver;
+#[cfg(feature = "hacl-star-resolver")] pub use self::hacl_star::HaclStarResolver;
+#[cfg(feature = "ring-resolver")]      pub use self::ring::RingResolver;
 
 /// An object that resolves the providers of Noise crypto choices
 pub trait CryptoResolver {

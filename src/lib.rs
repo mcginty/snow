@@ -82,10 +82,5 @@ pub mod types;
 pub mod resolvers;
 
 pub use error::SnowError;
-pub use resolvers::{CryptoResolver, FallbackResolver};
 pub use builder::Builder;
 pub use session::Session;
-
-#[cfg(feature = "default-resolver")]   pub use resolvers::default::DefaultResolver;
-#[cfg(feature = "ring-resolver")]      pub use resolvers::ring::RingResolver;
-#[cfg(feature = "hacl-star-resolver")] pub use resolvers::hacl_star::HaclStarResolver;

@@ -2,13 +2,13 @@
 
 use constants::{MAXBLOCKLEN, MAXHASHLEN};
 
-/// Provides randomness
+/// CSPRNG operations
 pub trait Random : Send + Sync {
     /// Fill a provided buffer with random bytes
     fn fill_bytes(&mut self, out: &mut [u8]);
 }
 
-/// Provides Diffie-Hellman operations
+/// Diffie-Hellman operations
 pub trait Dh : Send + Sync {
     /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
@@ -36,7 +36,7 @@ pub trait Dh : Send + Sync {
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()>;
 }
 
-/// Provides cipher operations
+/// Cipher operations
 pub trait Cipher : Send + Sync {
     /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
@@ -52,7 +52,7 @@ pub trait Cipher : Send + Sync {
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()>;
 }
 
-/// Provides hashing operations
+/// Hashing operations
 pub trait Hash : Send + Sync {
     /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;

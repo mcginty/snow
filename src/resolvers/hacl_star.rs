@@ -45,23 +45,23 @@ impl CryptoResolver for HaclStarResolver {
 }
 
 #[derive(Default)]
-pub(crate) struct Dh25519 {
+struct Dh25519 {
     privkey: SecretKey,
     pubkey:  PublicKey,
 }
 
 #[derive(Default)]
-pub(crate) struct CipherChaChaPoly {
+struct CipherChaChaPoly {
     key: [u8; chacha20poly1305::KEY_LENGTH],
 }
 
 #[derive(Default)]
-pub(crate) struct HashSHA256 {
+struct HashSHA256 {
     hasher: Sha256
 }
 
 #[derive(Default)]
-pub(crate) struct HashSHA512 {
+struct HashSHA512 {
     hasher: Sha512
 }
 
