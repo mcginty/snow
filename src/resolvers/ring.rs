@@ -8,6 +8,8 @@ use constants::TAGLEN;
 use params::{DHChoice, HashChoice, CipherChoice};
 use types::{Random, Dh, Hash, Cipher};
 
+/// A resolver that chooses [ring](https://github.com/briansmith/ring)-backed
+/// primitives when available.
 #[derive(Default)]
 pub struct RingResolver;
 
@@ -37,7 +39,7 @@ impl CryptoResolver for RingResolver {
     }
 }
 
-pub struct CipherAESGCM {
+pub(crate) struct CipherAESGCM {
     sealing: aead::SealingKey,
     opening: aead::OpeningKey,
 }
@@ -93,7 +95,7 @@ impl Cipher for CipherAESGCM {
     }
 }
 
-pub struct CipherChaChaPoly {
+pub(crate) struct CipherChaChaPoly {
     sealing: aead::SealingKey,
     opening: aead::OpeningKey,
 }
@@ -148,7 +150,7 @@ impl Cipher for CipherChaChaPoly {
         }
     }
 }
-pub struct HashSHA256 {
+pub(crate) struct HashSHA256 {
     context: digest::Context,
 }
 
@@ -184,7 +186,7 @@ impl Hash for HashSHA256 {
     }
 }
 
-pub struct HashSHA512 {
+pub(crate) struct HashSHA512 {
     context: digest::Context,
 }
 

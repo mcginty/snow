@@ -10,6 +10,8 @@ use self::hacl_star::chacha20poly1305;
 
 use byteorder::{ByteOrder, LittleEndian};
 
+/// A resolver that chooses HACL*-backed
+/// primitives when available.
 #[derive(Default)]
 pub struct HaclStarResolver;
 
@@ -43,23 +45,23 @@ impl CryptoResolver for HaclStarResolver {
 }
 
 #[derive(Default)]
-pub struct Dh25519 {
+pub(crate) struct Dh25519 {
     privkey: SecretKey,
     pubkey:  PublicKey,
 }
 
 #[derive(Default)]
-pub struct CipherChaChaPoly {
+pub(crate) struct CipherChaChaPoly {
     key: [u8; chacha20poly1305::KEY_LENGTH],
 }
 
 #[derive(Default)]
-pub struct HashSHA256 {
+pub(crate) struct HashSHA256 {
     hasher: Sha256
 }
 
 #[derive(Default)]
-pub struct HashSHA512 {
+pub(crate) struct HashSHA512 {
     hasher: Sha512
 }
 
