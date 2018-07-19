@@ -26,18 +26,18 @@ use super::CryptoResolver;
 pub struct DefaultResolver;
 
 impl CryptoResolver for DefaultResolver {
-    fn resolve_rng(&self) -> Option<Box<Random + Send>> {
+    fn resolve_rng(&self) -> Option<Box<Random>> {
         Some(Box::new(RandomOs::default()))
     }
 
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh + Send>> {
+    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh>> {
         match *choice {
             DHChoice::Curve25519 => Some(Box::new(Dh25519::default())),
             _                    => None,
         }
     }
 
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>> {
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash>> {
         match *choice {
             HashChoice::SHA256  => Some(Box::new(HashSHA256::default())),
             HashChoice::SHA512  => Some(Box::new(HashSHA512::default())),
@@ -46,7 +46,7 @@ impl CryptoResolver for DefaultResolver {
         }
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher>> {
         match *choice {
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
             CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),

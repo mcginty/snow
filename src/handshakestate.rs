@@ -16,11 +16,11 @@ use std::fmt;
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct HandshakeState {
-    pub(crate) rng              : Box<Random + Send>,
+    pub(crate) rng              : Box<Random>,
     pub(crate) symmetricstate   : SymmetricState,
     pub(crate) cipherstates     : CipherStates,
-    pub(crate) s                : Toggle<Box<Dh + Send>>,
-    pub(crate) e                : Toggle<Box<Dh + Send>>,
+    pub(crate) s                : Toggle<Box<Dh>>,
+    pub(crate) e                : Toggle<Box<Dh>>,
     pub(crate) fixed_ephemeral  : bool,
     pub(crate) rs               : Toggle<[u8; MAXDHLEN]>,
     pub(crate) re               : Toggle<[u8; MAXDHLEN]>,
@@ -35,11 +35,11 @@ pub struct HandshakeState {
 impl HandshakeState {
     #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
     pub fn new<'a>(
-        rng             : Box<Random + Send>,
+        rng             : Box<Random>,
         cipherstate     : CipherState,
-        hasher          : Box<Hash + Send>,
-        s               : Toggle<Box<Dh + Send>>,
-        e               : Toggle<Box<Dh + Send>>,
+        hasher          : Box<Hash>,
+        s               : Toggle<Box<Dh>>,
+        e               : Toggle<Box<Dh>>,
         fixed_ephemeral : bool,
         rs              : Toggle<[u8; MAXDHLEN]>,
         re              : Toggle<[u8; MAXDHLEN]>,

@@ -61,21 +61,21 @@ impl TestResolver {
 }
 
 impl CryptoResolver for TestResolver {
-    fn resolve_rng(&self) -> Option<Box<Random + Send>> {
+    fn resolve_rng(&self) -> Option<Box<Random>> {
         let mut rng = RandomInc::default();
         rng.next_byte = self.next_byte;
         Some(Box::new(rng))
     }
 
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh + Send>> {
+    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh>> {
         self.parent.resolve_dh(choice)
     }
 
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>> {
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash>> {
         self.parent.resolve_hash(choice)
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher>> {
         self.parent.resolve_cipher(choice)
     }
 }

@@ -3,12 +3,12 @@
 use constants::{MAXBLOCKLEN, MAXHASHLEN};
 
 /// Provides randomness
-pub trait Random : Send + Sync{
+pub trait Random : Send + Sync {
     fn fill_bytes(&mut self, out: &mut [u8]);
 }
 
 /// Provides Diffie-Hellman operations
-pub trait Dh : Send + Sync{
+pub trait Dh : Send + Sync {
     fn name(&self) -> &'static str;
     fn pub_len(&self) -> usize;
     fn priv_len(&self) -> usize;

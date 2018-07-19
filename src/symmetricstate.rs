@@ -21,13 +21,13 @@ impl Default for Inner {
 
 pub struct SymmetricState {
     cipherstate : CipherState,
-    hasher      : Box<dyn Hash + Send>,
+    hasher      : Box<dyn Hash>,
     inner       : Inner,
     checkpoint  : Inner,
 }
 
 impl SymmetricState {
-    pub fn new(cipherstate: CipherState, hasher: Box<Hash + Send>) -> SymmetricState {
+    pub fn new(cipherstate: CipherState, hasher: Box<Hash>) -> SymmetricState {
         SymmetricState {
             cipherstate,
             hasher,

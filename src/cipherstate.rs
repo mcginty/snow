@@ -3,13 +3,13 @@ use error::{SnowError, InitStage};
 use types::Cipher;
 
 pub struct CipherState {
-    cipher : Box<Cipher + Send>,
+    cipher : Box<Cipher>,
     n : u64,
     has_key : bool,
 }
 
 impl CipherState {
-    pub fn new(cipher: Box<Cipher + Send>) -> Self {
+    pub fn new(cipher: Box<Cipher>) -> Self {
         Self {
             cipher,
             n: 0,

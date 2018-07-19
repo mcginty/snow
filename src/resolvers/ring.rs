@@ -13,15 +13,15 @@ pub struct RingResolver;
 
 #[cfg(feature = "ring")]
 impl CryptoResolver for RingResolver {
-    fn resolve_rng(&self) -> Option<Box<Random + Send>> {
+    fn resolve_rng(&self) -> Option<Box<Random>> {
         None
     }
 
-    fn resolve_dh(&self, _choice: &DHChoice) -> Option<Box<Dh + Send>> {
+    fn resolve_dh(&self, _choice: &DHChoice) -> Option<Box<Dh>> {
         None
     }
 
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>> {
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash>> {
         match *choice {
             HashChoice::SHA256 => Some(Box::new(HashSHA256::default())),
             HashChoice::SHA512 => Some(Box::new(HashSHA512::default())),
@@ -29,7 +29,7 @@ impl CryptoResolver for RingResolver {
         }
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher>> {
         match *choice {
             CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
