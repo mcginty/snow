@@ -137,7 +137,7 @@ impl HandshakeState {
         Ok(dh_out)
     }
 
-    pub fn is_write_encrypted(&self) -> bool {
+    pub fn was_write_payload_encrypted(&self) -> bool {
         self.symmetricstate.has_key()
     }
 

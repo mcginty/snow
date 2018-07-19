@@ -18,14 +18,24 @@ pub enum Session {
 
 
 impl Session {
-    /// If the payload will be encrypted or not. In a future version of Snow, this interface may
-    /// change to more proactively prevent unauthenticated, plaintext payloads during handshakes.
+    /// This method will return `true` if the *previous* write payload was encrypted.
     ///
     /// See [Payload Security Properties](http://noiseprotocol.org/noise.html#payload-security-properties)
-    /// for more information.
-    pub fn is_payload_encrypted(&self) -> bool {
+    /// for more information on the specific properties of your chosen handshake pattern.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let mut session = Builder::new("Noise_NN_25519_AESGCM_SHA256".parse()?)
+    ///     .build_initiator()?;
+    ///
+    /// // write message...
+    ///
+    /// assert!(session.was_write_payload_encrypted());
+    /// ```
+    pub fn was_write_payload_encrypted(&self) -> bool {
         match *self {
-            Session::Handshake(ref state) => state.is_write_encrypted(),
+            Session::Handshake(ref state) => state.was_write_payload_encrypted(),
             Session::Transport(_) => true,
         }
     }
