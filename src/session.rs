@@ -60,6 +60,9 @@ impl Session {
         }
     }
 
+    /// Will report if the session has the initiator role (i.e. was built with [`Builder.build_initiator()`]).
+    ///
+    /// [`Builder.build_initiator()`]: struct.Builder.html#method.build_initiator
     pub fn is_initiator(&self) -> bool {
         match *self {
             Session::Handshake(ref state) => state.is_initiator(),
