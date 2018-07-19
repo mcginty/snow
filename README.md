@@ -46,7 +46,7 @@ However, a few features have yet to be implemented (pull requests welcome):
 - [ ] [The `fallback` modifier](https://noiseprotocol.org/noise_rev34.html#the-fallback-modifier)
 
 ## Crypto
-Cryptographic providers are swappable through `Builder::with_provider()`, but by default it chooses select, artisanal
+Cryptographic providers are swappable through `Builder::with_resolver()`, but by default it chooses select, artisanal
 pure-Rust implementations (see `Cargo.toml` for a quick overview).
 
 ### Providers
