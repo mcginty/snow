@@ -69,8 +69,14 @@ Similar to ring, if you enable the `hacl-accelerated` feature, Snow will default
 
 ### Resolver primitives supported
 
-|             | CSPRNG | 25519 | 448 | AESGCM | ChaChaPoly | SHA256 | SHA512 | BLAKE2s | BLAKE2b |
-|-------------|:------:|:-----:|:---:|:------:|:----------:|:------:|:------:|:-------:|:-------:|
-| default     | ✔      | ✔     |     | ✔      | ✔          | ✔      | ✔      | ✔       | ✔       |
-| ring        |        |       |     | ✔      | ✔          | ✔      | ✔      |         |         |
-| hacl-star   |        | ✔     |     |        | ✔          | ✔      | ✔      |         |         |
+|            | default | ring | hacl* |
+|-----------:|:-------:|:----:|:-----:|
+| CSPRNG     | ✔       |      |       |
+| 25519      | ✔       | ✔    | ✔     |
+| 448        |         |      |       |
+| AESGCM     | ✔       | ✔    |       |
+| ChaChaPoly | ✔       | ✔    | ✔     |
+| SHA256     | ✔       | ✔    | ✔     |
+| SHA512     | ✔       | ✔    | ✔     |
+| BLAKE2s    | ✔       |      |       |
+| BLAKE2b    | ✔       |      |       |
