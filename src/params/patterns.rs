@@ -20,11 +20,13 @@ macro_rules! message_vec {
 /// The tokens which describe message patterns.
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
+#[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
 
 /// One of the patterns as defined in the
 /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section
+#[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum HandshakePattern { N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX }
 
@@ -70,8 +72,15 @@ impl HandshakePattern {
     }
 }
 
+/// A modifier applied to the base pattern as defined in the Noise spec.
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum HandshakeModifier { Psk(u8), Fallback }
+pub enum HandshakeModifier {
+    /// Insert a PSK to mix at the associated position
+    Psk(u8),
+
+    /// Modify the base pattern to its "fallback" form
+    Fallback
+}
 
 impl FromStr for HandshakeModifier {
     type Err = SnowError;
@@ -111,13 +120,19 @@ impl FromStr for HandshakeModifierList {
     }
 }
 
+/// The pattern/modifier combination choice (no primitives specified)
+/// for a full noise protocol definition.
 #[derive(Clone, PartialEq, Debug)]
 pub struct HandshakeChoice {
+    /// The base pattern itself
     pub pattern: HandshakePattern,
+
+    /// The modifier(s) requested for the base pattern
     pub modifiers: HandshakeModifierList,
 }
 
 impl HandshakeChoice {
+    /// Whether the handshake choice includes one or more PSK modifiers.
     pub fn is_psk(&self) -> bool {
         for modifier in &self.modifiers.list {
             if let HandshakeModifier::Psk(_) = *modifier {
@@ -127,6 +142,7 @@ impl HandshakeChoice {
         false
     }
 
+    /// Whether the handshake choice includes the fallback modifier.
     pub fn is_fallback(&self) -> bool {
         for modifier in &self.modifiers.list {
             if HandshakeModifier::Fallback == *modifier {
@@ -187,6 +203,7 @@ impl FromStr for HandshakePattern {
 }
 
 impl HandshakePattern {
+    /// The equivalent of the `ToString` trait, but for `&'static str`.
     pub fn as_str(self) -> &'static str {
         use self::HandshakePattern::*;
         match self {
@@ -210,13 +227,13 @@ impl HandshakePattern {
 }
 
 type PremessagePatterns = &'static [Token];
-pub type MessagePatterns = SmallVec<[SmallVec<[Token; 10]>; 10]>;
+pub(crate) type MessagePatterns = SmallVec<[SmallVec<[Token; 10]>; 10]>;
 
 /// The defined token patterns for a given handshake.
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[derive(Debug)]
-pub struct HandshakeTokens {
+pub(crate) struct HandshakeTokens {
     pub premsg_pattern_i: PremessagePatterns,
     pub premsg_pattern_r: PremessagePatterns,
     pub msg_patterns: MessagePatterns,

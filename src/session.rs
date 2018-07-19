@@ -12,7 +12,10 @@ use transportstate::TransportState;
 #[cfg_attr(feature = "cargo-clippy", allow(large_enum_variant))]
 #[derive(Debug)]
 pub enum Session {
+    /// A session in the handshake stage (the starting state).
     Handshake(HandshakeState),
+
+    /// A session after having completed a handshake, in general-purpose trasport mode.
     Transport(TransportState),
 }
 

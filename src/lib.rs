@@ -52,6 +52,7 @@
 //! [`Builder`]: struct.Builder.html
 //! [`Session`]: enum.Session.html
 
+#![warn(missing_docs)]
 #![cfg_attr(feature = "nightly", feature(try_from))]
 
 #[cfg(any(feature = "default-resolver", feature = "hacl-star-resolver"))]

@@ -16,13 +16,14 @@ mod patterns;
 pub use self::patterns::{
     HandshakeChoice,
     HandshakeModifier,
-    HandshakeTokens,
     HandshakePattern,
     Token,
-    MessagePatterns
 };
 
+pub(crate) use self::patterns::{HandshakeTokens, MessagePatterns};
+
 /// I recommend you choose `Noise`.
+#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum BaseChoice {
     Noise,
@@ -40,6 +41,7 @@ impl FromStr for BaseChoice {
 }
 
 /// One of `25519` or `448`, per the spec.
+#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum DHChoice {
     Curve25519,
@@ -59,6 +61,7 @@ impl FromStr for DHChoice {
 }
 
 /// One of `ChaChaPoly` or `AESGCM`, per the spec.
+#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum CipherChoice {
     ChaChaPoly,
@@ -78,6 +81,7 @@ impl FromStr for CipherChoice {
 }
 
 /// One of the supported SHA-family or BLAKE-family hash choices, per the spec.
+#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum HashChoice {
     SHA256,
@@ -113,6 +117,7 @@ impl FromStr for HashChoice {
 ///
 /// let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
 /// ```
+#[allow(missing_docs)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct NoiseParams {
     pub name: String,

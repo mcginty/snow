@@ -22,6 +22,9 @@ use params::{CipherChoice, DHChoice, HashChoice};
 use std::io::{Cursor, Write};
 use super::CryptoResolver;
 
+/// The default resolver provided by snow. This resolver is designed to
+/// support as many of the Noise spec primitives as possible with
+/// pure-Rust (or nearly pure-Rust) implementations.
 #[derive(Default)]
 pub struct DefaultResolver;
 
@@ -54,38 +57,46 @@ impl CryptoResolver for DefaultResolver {
     }
 }
 
+/// A wrapper around the `rand` crate.
 pub struct RandomOs {
     rng : OsRng
 }
 
+/// Wraps x25519-dalek.
 #[derive(Default)]
 pub struct Dh25519 {
     privkey: [u8; 32],
     pubkey:  [u8; 32],
 }
 
+/// Wraps `rust-crypto`'s AES implementation.
 #[derive(Default)]
 pub struct CipherAESGCM {
     key: [u8; 32],
 }
 
+/// Wraps `chacha20_poly1305_aead`'s ChaCha20Poly1305 implementation.
 #[derive(Default)]
 pub struct CipherChaChaPoly {
     key: [u8; 32],
 }
 
+/// Wraps `rust-crypto`'s SHA-256 implementation.
 pub struct HashSHA256 {
     hasher: Sha256
 }
 
+/// Wraps `rust-crypto`'s SHA-512 implementation.
 pub struct HashSHA512 {
     hasher: Sha512
 }
 
+/// Wraps `blake2-rfc`'s implementation.
 pub struct HashBLAKE2b {
     hasher: Blake2b
 }
 
+/// Wraps `blake2-rfc`'s implementation.
 pub struct HashBLAKE2s {
     hasher: Blake2s
 }

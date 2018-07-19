@@ -15,6 +15,7 @@ macro_rules! bail {
 }
 
 /// All errors in snow will return a `SnowError` enum.
+#[allow(missing_docs)]
 #[derive(Fail, Debug)]
 pub enum SnowError {
     #[fail(display = "pattern failed to parse: {:?}", reason)]
@@ -41,6 +42,7 @@ pub enum SnowError {
 
 /// The various stages of initialization used to help identify
 /// the specific cause of an `Init` error.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub enum PatternProblem {
     TooFewParameters,
@@ -61,6 +63,7 @@ impl From<PatternProblem> for SnowError {
 
 /// The various stages of initialization used to help identify
 /// the specific cause of an `Init` error.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub enum InitStage {
     ValidateKeyLengths,
@@ -80,6 +83,7 @@ impl From<InitStage> for SnowError {
 }
 
 /// A prerequisite that may be missing.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub enum Prerequisite {
     LocalPrivateKey,
@@ -93,6 +97,7 @@ impl From<Prerequisite> for SnowError {
 }
 
 /// Specific errors in the state machine.
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub enum StateProblem {
     MissingKeyMaterial,

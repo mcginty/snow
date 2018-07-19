@@ -4,49 +4,77 @@ use constants::{MAXBLOCKLEN, MAXHASHLEN};
 
 /// Provides randomness
 pub trait Random : Send + Sync {
+    /// Fill a provided buffer with random bytes
     fn fill_bytes(&mut self, out: &mut [u8]);
 }
 
 /// Provides Diffie-Hellman operations
 pub trait Dh : Send + Sync {
+    /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
+
+    /// The length in bytes of a public key for this primitive
     fn pub_len(&self) -> usize;
+
+    /// The length in bytes of a private key for this primitive
     fn priv_len(&self) -> usize;
 
+    /// Set the private key
     fn set(&mut self, privkey: &[u8]);
+
+    /// Generate a new private key
     fn generate(&mut self, rng: &mut Random);
+
+    /// Get the public key
     fn pubkey(&self) -> &[u8];
+
+    /// Get the private key
     fn privkey(&self) -> &[u8];
 
+    /// Calculate a Diffie-Hellman exchange.
     #[must_use]
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()>;
 }
 
 /// Provides cipher operations
 pub trait Cipher : Send + Sync {
+    /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
 
+    /// Set the key
     fn set(&mut self, key: &[u8]);
+
+    /// Encrypt (with associated data) a given plaintext.
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize;
 
     #[must_use]
+    /// Decrypt (with associated data) a given ciphertext.
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()>;
 }
 
 /// Provides hashing operations
 pub trait Hash : Send + Sync {
+    /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
+
+    /// The block length for the primitive
     fn block_len(&self) -> usize;
+
+    /// The final hash digest length for the primitive
     fn hash_len(&self) -> usize;
 
-    /* These functions operate on internal state:
-     * call reset(), then input() repeatedly, then get result() */
+    /// Reset the internal state
     fn reset(&mut self);
+
+    /// Provide input to the internal state
     fn input(&mut self, data: &[u8]);
+
+    /// Get the resulting hash
     fn result(&mut self, out: &mut [u8]);
 
-    /* The hmac and hkdf functions modify internal state
-     * but ignore previous state, they're one-shot, static-like functions */
+    /// Calculate HMAC, as specified in the Noise spec.
+    ///
+    /// NOTE: This method clobbers the existing internal state
     fn hmac(&mut self, key: &[u8], data: &[u8], out: &mut [u8]) {
         assert!(key.len() <= self.block_len());
         let block_len = self.block_len();
@@ -68,6 +96,9 @@ pub trait Hash : Send + Sync {
         self.result(out);
     }
 
+    /// Derive keys as specified in the Noise spec.
+    ///
+    /// NOTE: This method clobbers the existing internal state
     fn hkdf(&mut self, chaining_key: &[u8], input_key_material: &[u8], outputs: usize, out1: &mut [u8], out2: &mut [u8], out3: &mut [u8]) {
         let hash_len = self.hash_len();
         let mut temp_key = [0u8; MAXHASHLEN];
