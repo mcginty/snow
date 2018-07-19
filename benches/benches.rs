@@ -22,7 +22,7 @@ pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
 fn benchmarks(c: &mut Criterion) {
     c.bench("builder", Benchmark::new("skeleton", |b| {
         b.iter(move || {
-            NoiseBuilder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
+            Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
                 .build_initiator().unwrap();
         })
     }).throughput(Throughput::Elements(1)));
@@ -31,7 +31,7 @@ fn benchmarks(c: &mut Criterion) {
         let static_i:Dh25519 = Default::default();
         let privkey = static_i.privkey();
         b.iter(move || {
-            NoiseBuilder::new("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap())
+            Builder::new("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap())
                     .local_private_key(privkey)
                     .build_initiator().unwrap();
         });
@@ -47,10 +47,10 @@ fn benchmarks(c: &mut Criterion) {
 
         b.iter(move || {
             let pattern: NoiseParams = "Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap();
-            let mut h_i = NoiseBuilder::new(pattern.clone())
+            let mut h_i = Builder::new(pattern.clone())
                 .local_private_key(static_i.privkey())
                 .build_initiator().unwrap();
-            let mut h_r = NoiseBuilder::new(pattern)
+            let mut h_r = Builder::new(pattern)
                 .local_private_key(static_r.privkey())
                 .build_responder().unwrap();
 
@@ -70,9 +70,9 @@ fn benchmarks(c: &mut Criterion) {
     c.bench("handshake", Benchmark::new("nn", |b| {
         b.iter(move || {
             let pattern = "Noise_NN_25519_ChaChaPoly_BLAKE2b";
-            let mut h_i = NoiseBuilder::new(pattern.parse().unwrap())
+            let mut h_i = Builder::new(pattern.parse().unwrap())
                 .build_initiator().unwrap();
-            let mut h_r = NoiseBuilder::new(pattern.parse().unwrap())
+            let mut h_r = Builder::new(pattern.parse().unwrap())
                 .build_responder().unwrap();
 
             let mut buffer_msg = [0u8; MSG_SIZE * 2];
@@ -89,9 +89,9 @@ fn benchmarks(c: &mut Criterion) {
     c.bench("transport", Benchmark::new("AESGCM_SHA256 throughput", |b| {
         static PATTERN: &'static str = "Noise_NN_25519_AESGCM_SHA256";
 
-        let mut h_i = NoiseBuilder::new(PATTERN.parse().unwrap())
+        let mut h_i = Builder::new(PATTERN.parse().unwrap())
             .build_initiator().unwrap();
-        let mut h_r = NoiseBuilder::new(PATTERN.parse().unwrap())
+        let mut h_r = Builder::new(PATTERN.parse().unwrap())
             .build_responder().unwrap();
 
         let mut buffer_msg = [0u8; MSG_SIZE * 2];
@@ -115,9 +115,9 @@ fn benchmarks(c: &mut Criterion) {
     c.bench("transport", Benchmark::new("ChaChaPoly_BLAKE2s throughput", |b| {
         static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
 
-        let mut h_i = NoiseBuilder::new(PATTERN.parse().unwrap())
+        let mut h_i = Builder::new(PATTERN.parse().unwrap())
             .build_initiator().unwrap();
-        let mut h_r = NoiseBuilder::new(PATTERN.parse().unwrap())
+        let mut h_r = Builder::new(PATTERN.parse().unwrap())
             .build_responder().unwrap();
 
         let mut buffer_msg = [0u8; MSG_SIZE * 2];
