@@ -272,6 +272,9 @@ impl HandshakeState {
             for token in self.message_patterns[self.pattern_position].iter() {
                 match *token {
                     Token::E => {
+                        if ptr.len() < dh_len {
+                            bail!(SnowError::Input);
+                        }
                         self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
                         ptr = &ptr[dh_len..];
                         self.symmetricstate.mix_hash(&self.re[..dh_len]);
