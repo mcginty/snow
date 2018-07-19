@@ -4,12 +4,6 @@ version = "0.1.0"
 authors = ["Jake McGinty <me@jake.su>"]
 
 [dependencies]
-honggfuzz = "^0.5"
+honggfuzz = { path = "../../honggfuzz-rs" }
 snow = { path = "../" }
 lazy_static = "*"
-
-[profile.dev]
-panic= "abort"
-
-[profile.release]
-panic= "abort"

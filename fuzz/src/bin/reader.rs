@@ -10,11 +10,11 @@ lazy_static! {
 }
 
 fn main() {
+    let mut out_buf = [0u8; 64000];
     loop {
         fuzz!(|data: &[u8]| {
             let builder = snow::Builder::new(PARAMS.clone());
             let mut noise = builder.build_responder().unwrap();
-            let mut out_buf = [0u8; 64000];
 
             let _ = noise.read_message(data, &mut out_buf);
         });
