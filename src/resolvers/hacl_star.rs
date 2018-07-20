@@ -213,7 +213,7 @@ mod tests {
 
     use types::*;
     use super::*;
-    use self::hex::{FromHex, ToHex};
+    use self::hex::FromHex;
     use super::hacl_star::poly1305::Poly1305;
 
     #[test]
@@ -251,7 +251,7 @@ mod tests {
         copy_slices!(&scalar, &mut keypair.privkey.0);
         let public = Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c").unwrap();
         let mut output = [0u8; 32];
-        keypair.dh(&public, &mut output);
+        keypair.dh(&public, &mut output).unwrap();
         assert!(hex::encode(output) == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
     }
 

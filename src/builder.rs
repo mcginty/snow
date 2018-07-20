@@ -53,16 +53,18 @@ impl<'builder> Builder<'builder> {
         Self::with_resolver(params, Box::new(DefaultResolver::default()))
     }
 
+    /// Create a Builder with the ring resolver and default resolver as a fallback.
     #[cfg(feature = "ring-accelerated")]
     pub fn new(params: NoiseParams) -> Self {
-        use ::resolvers::{FallbackResolver, default:: DefaultResolver, ring::RingResolver};
+        use ::resolvers::{FallbackResolver, DefaultResolver, RingResolver};
 
         Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(RingResolver), Box::new(DefaultResolver))))
     }
 
+    /// Create a Builder with the HACL* resolver and default resolver as a fallback.
     #[cfg(feature = "hacl-star-accelerated")]
     pub fn new(params: NoiseParams) -> Self {
-        use ::resolvers::{FallbackResolver, default::DefaultResolver, hacl_star::HaclStarResolver};
+        use ::resolvers::{FallbackResolver, DefaultResolver, HaclStarResolver};
 
         Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(HaclStarResolver), Box::new(DefaultResolver))))
     }
