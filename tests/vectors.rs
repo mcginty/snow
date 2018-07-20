@@ -13,10 +13,8 @@ use serde::ser::{Serialize, Serializer};
 use std::ops::Deref;
 use failure::Error;
 use hex::FromHex;
-use snow::{Builder, Session};
+use snow::{Builder, Keypair, Session};
 use snow::params::*;
-use snow::types::Dh;
-use snow::resolvers::default::{Dh25519, RandomOs};
 use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io::Read;
@@ -278,20 +276,18 @@ fn get_psks_count(params: &NoiseParams) -> usize {
 
 fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
     let prologue = "There is no right and wrong. There's only fun and boring.".as_bytes().to_vec();
-    let mut rand = RandomOs::default();
-    let mut is = Dh25519::default();
-    let mut ie = Dh25519::default();
-    let mut rs = Dh25519::default();
-    let mut re = Dh25519::default();
-    is.generate(&mut rand);
-    ie.generate(&mut rand);
-    rs.generate(&mut rand);
-    re.generate(&mut rand);
     let mut psks = vec![];
     let mut psks_hex = vec![];
 
+    let (is, ie, rs, re): (Keypair, Keypair, Keypair, Keypair);
+
     let mut init_b: Builder = Builder::new(params.clone());
     let mut resp_b: Builder = Builder::new(params.clone());
+
+    is = init_b.generate_keypair().unwrap();
+    ie = init_b.generate_keypair().unwrap();
+    rs = resp_b.generate_keypair().unwrap();
+    re = resp_b.generate_keypair().unwrap();
 
     for _ in 0..get_psks_count(&params) {
         let v = random_vec(32);
@@ -307,22 +303,22 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
             psk_index += 1;
         }
     }
-    init_b = init_b.fixed_ephemeral_key_for_testing_only(&ie.privkey());
+    init_b = init_b.fixed_ephemeral_key_for_testing_only(&ie.private);
     init_b = init_b.prologue(&prologue);
     if params.handshake.pattern.needs_local_static_key(true) {
-        init_b = init_b.local_private_key(&is.privkey());
+        init_b = init_b.local_private_key(&is.private);
     }
     if params.handshake.pattern.need_known_remote_pubkey(true) {
-        init_b = init_b.remote_public_key(&rs.pubkey());
+        init_b = init_b.remote_public_key(&rs.public);
     }
 
-    resp_b = resp_b.fixed_ephemeral_key_for_testing_only(&re.privkey());
+    resp_b = resp_b.fixed_ephemeral_key_for_testing_only(&re.private);
     resp_b = resp_b.prologue(&prologue);
     if params.handshake.pattern.needs_local_static_key(false) {
-        resp_b = resp_b.local_private_key(&rs.privkey());
+        resp_b = resp_b.local_private_key(&rs.private);
     }
     if params.handshake.pattern.need_known_remote_pubkey(false) {
-        resp_b = resp_b.remote_public_key(&is.pubkey());
+        resp_b = resp_b.remote_public_key(&is.public);
     }
 
     let mut init: Session = init_b.build_initiator().unwrap();
@@ -353,25 +349,25 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
     }
 
     let init_static = if params.handshake.pattern.needs_local_static_key(true) {
-        Some(is.privkey().to_vec().into())
+        Some(is.private.to_vec().into())
     } else {
         None
     };
 
     let resp_static = if params.handshake.pattern.needs_local_static_key(false) {
-        Some(rs.privkey().to_vec().into())
+        Some(rs.private.to_vec().into())
     } else {
         None
     };
 
     let init_remote_static = if params.handshake.pattern.need_known_remote_pubkey(true) {
-        Some(rs.pubkey().to_vec().into())
+        Some(rs.public.to_vec().into())
     } else {
         None
     };
 
     let resp_remote_static = if params.handshake.pattern.need_known_remote_pubkey(false) {
-        Some(is.pubkey().to_vec().into())
+        Some(is.public.to_vec().into())
     } else {
         None
     };
@@ -386,12 +382,12 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
         init_prologue: prologue.clone().into(),
         init_psks: Some(psks_hex.clone()),
         init_static,
-        init_ephemeral: Some(ie.privkey().to_vec().into()),
+        init_ephemeral: Some(ie.private.to_vec().into()),
         init_remote_static,
         resp_prologue: prologue.clone().into(),
         resp_psks: Some(psks_hex.clone()),
         resp_static,
-        resp_ephemeral: Some(re.privkey().to_vec().into()),
+        resp_ephemeral: Some(re.private.to_vec().into()),
         resp_remote_static,
         messages,
     }

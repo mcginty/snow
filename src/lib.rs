@@ -82,5 +82,5 @@ pub mod types;
 pub mod resolvers;
 
 pub use error::SnowError;
-pub use builder::Builder;
+pub use builder::{Builder, Keypair};
 pub use session::Session;

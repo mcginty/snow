@@ -2,12 +2,13 @@
 #![allow(non_snake_case)]
 extern crate hex;
 extern crate snow;
+extern crate x25519_dalek;
 
 use hex::FromHex;
-use snow::{Builder, CryptoResolver, DefaultResolver};
+use snow::{Builder, resolvers::{CryptoResolver, DefaultResolver}};
 use snow::params::*;
 use snow::types::*;
-use snow::resolvers::default::Dh25519;
+use x25519_dalek as x25519;
 
 struct RandomInc {
     next_byte: u8
@@ -151,10 +152,8 @@ fn test_sanity_session() {
 #[test]
 fn test_Npsk0_expected_value() {
     let params: NoiseParams = "Noise_Npsk0_25519_AESGCM_SHA256".parse().unwrap();
-    let mut static_r: Dh25519 = Default::default();
-    static_r.set(&get_inc_key(0));
     let mut h_i = Builder::new(params)
-        .remote_public_key(static_r.pubkey())
+        .remote_public_key(x25519::generate_public(&get_inc_key(0)).as_bytes())
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator().unwrap();
@@ -173,13 +172,9 @@ fn test_Npsk0_expected_value() {
 #[test]
 fn test_Xpsk0_expected_value() {
     let params: NoiseParams = "Noise_Xpsk0_25519_ChaChaPoly_SHA256".parse().unwrap();
-    let mut static_i: Dh25519 = Default::default();
-    let mut static_r: Dh25519 = Default::default();
-    static_i.set(&get_inc_key(0));
-    static_r.set(&get_inc_key(32));
     let mut h_i = Builder::new(params)
-        .local_private_key(static_i.privkey())
-        .remote_public_key(static_r.pubkey())
+        .local_private_key(&get_inc_key(0))
+        .remote_public_key(x25519::generate_public(&get_inc_key(32)).as_bytes())
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(64))
         .build_initiator().unwrap();
@@ -198,20 +193,16 @@ fn test_Xpsk0_expected_value() {
 #[test]
 fn test_XXpsk0_expected_value() {
     let params: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
-    let mut static_i: Dh25519 = Default::default();
-    let mut static_r: Dh25519 = Default::default();
-    static_i.set(&get_inc_key(0));
-    static_r.set(&get_inc_key(1));
     let mut h_i = Builder::new(params.clone())
-        .local_private_key(static_i.privkey())
-        .remote_public_key(static_r.pubkey())
+        .local_private_key(&get_inc_key(0))
+        .remote_public_key(x25519::generate_public(&get_inc_key(1)).as_bytes())
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator().unwrap();
     let mut h_r = Builder::new(params)
-        .local_private_key(static_r.privkey())
-        .remote_public_key(static_i.pubkey())
+        .local_private_key(&get_inc_key(1))
+        .remote_public_key(x25519::generate_public(&get_inc_key(0)).as_bytes())
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(33))
@@ -274,22 +265,18 @@ fn test_XXpsk3_sanity_session() {
     let params: NoiseParams = "Noise_XXpsk3_25519_AESGCM_SHA256".parse().unwrap();
     let b_i = Builder::new(params.clone());
     let b_r = Builder::new(params);
-    let static_i = b_i.generate_private_key().unwrap();
-    let static_r = b_r.generate_private_key().unwrap();
-    let mut static_i_dh: Dh25519 = Default::default();
-    let mut static_r_dh: Dh25519 = Default::default();
-    static_i_dh.set(&static_i);
-    static_r_dh.set(&static_r);
+    let static_i = b_i.generate_keypair().unwrap();
+    let static_r = b_r.generate_keypair().unwrap();
     let mut h_i = b_i
         .psk(3, &[32u8; 32])
-        .local_private_key(&static_i)
-        .remote_public_key(static_r_dh.pubkey())
+        .local_private_key(&static_i.private)
+        .remote_public_key(&static_r.public)
         .build_initiator()
         .unwrap();
     let mut h_r = b_r
         .psk(3, &[32u8; 32])
-        .local_private_key(&static_r)
-        .remote_public_key(static_i_dh.pubkey())
+        .local_private_key(&static_r.private)
+        .remote_public_key(&static_i.public)
         .build_responder()
         .unwrap();
 
@@ -402,12 +389,10 @@ fn test_oneway_initiator_enforcements() {
 fn test_oneway_responder_enforcements() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
     let resp_builder = Builder::new(params.clone());
-    let rpk = resp_builder.generate_private_key().unwrap();
-    let mut rk: Dh25519 = Dh25519::default();
-    rk.set(&rpk);
+    let rpk = resp_builder.generate_keypair().unwrap();
 
-    let mut resp = resp_builder.local_private_key(&rpk).build_responder().unwrap();
-    let mut init = Builder::new(params).remote_public_key(rk.pubkey()).build_initiator().unwrap();
+    let mut resp = resp_builder.local_private_key(&rpk.private).build_responder().unwrap();
+    let mut init = Builder::new(params).remote_public_key(&rpk.public).build_initiator().unwrap();
 
     let mut buffer_resp = [0u8; 65535];
     let mut buffer_init = [0u8; 65535];
@@ -424,12 +409,10 @@ fn test_oneway_responder_enforcements() {
 fn test_set_nonce() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
     let resp_builder = Builder::new(params.clone());
-    let rpk = resp_builder.generate_private_key().unwrap();
-    let mut rk: Dh25519 = Dh25519::default();
-    rk.set(&rpk);
+    let rpk = resp_builder.generate_keypair().unwrap();
 
-    let mut resp = resp_builder.local_private_key(&rpk).build_responder().unwrap();
-    let mut init = Builder::new(params).remote_public_key(rk.pubkey()).build_initiator().unwrap();
+    let mut resp = resp_builder.local_private_key(&rpk.private).build_responder().unwrap();
+    let mut init = Builder::new(params).remote_public_key(&rpk.public).build_initiator().unwrap();
 
     let mut buffer_resp = [0u8; 65535];
     let mut buffer_init = [0u8; 65535];
@@ -470,25 +453,19 @@ fn test_buffer_issues_encrypted_handshake() {
     let b_i = Builder::new(params.clone());
     let b_r = Builder::new(params);
 
-    let static_i = b_i.generate_private_key().unwrap();
-    let static_r = b_r.generate_private_key().unwrap();
-
-    let mut static_i_dh: Dh25519 = Default::default();
-    let mut static_r_dh: Dh25519 = Default::default();
-
-    static_i_dh.set(&static_i);
-    static_r_dh.set(&static_r);
+    let static_i = b_i.generate_keypair().unwrap();
+    let static_r = b_r.generate_keypair().unwrap();
 
     let mut h_i = b_i
         .psk(2, &[32u8; 32])
-        .local_private_key(&static_i)
-        .remote_public_key(static_r_dh.pubkey())
+        .local_private_key(&static_i.private)
+        .remote_public_key(&static_r.public)
         .build_initiator()
         .unwrap();
     let mut h_r = b_r
         .psk(2, &[32u8; 32])
-        .local_private_key(&static_r)
-        .remote_public_key(static_i_dh.pubkey())
+        .local_private_key(&static_r.private)
+        .remote_public_key(&static_i.public)
         .build_responder()
         .unwrap();
 
@@ -522,25 +499,19 @@ fn test_checkpointing() {
     let b_i = Builder::new(params.clone());
     let b_r = Builder::new(params);
 
-    let static_i = b_i.generate_private_key().unwrap();
-    let static_r = b_r.generate_private_key().unwrap();
-
-    let mut static_i_dh: Dh25519 = Default::default();
-    let mut static_r_dh: Dh25519 = Default::default();
-
-    static_i_dh.set(&static_i);
-    static_r_dh.set(&static_r);
+    let static_i = b_i.generate_keypair().unwrap();
+    let static_r = b_r.generate_keypair().unwrap();
 
     let mut h_i = b_i
         .psk(2, &[32u8; 32])
-        .local_private_key(&static_i)
-        .remote_public_key(static_r_dh.pubkey())
+        .local_private_key(&static_i.private)
+        .remote_public_key(&static_r.public)
         .build_initiator()
         .unwrap();
     let mut h_r = b_r
         .psk(2, &[32u8; 32])
-        .local_private_key(&static_r)
-        .remote_public_key(static_i_dh.pubkey())
+        .local_private_key(&static_r.private)
+        .remote_public_key(&static_i.public)
         .build_responder()
         .unwrap();
 
@@ -565,15 +536,11 @@ fn test_checkpointing() {
 #[test]
 fn test_get_remote_static() {
     let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
-    let mut static_i: Dh25519 = Default::default();
-    let mut static_r: Dh25519 = Default::default();
-    static_i.set(&get_inc_key(0));
-    static_r.set(&get_inc_key(1));
     let mut h_i = Builder::new(params.clone())
-        .local_private_key(static_i.privkey())
+        .local_private_key(&get_inc_key(0))
         .build_initiator().unwrap();
     let mut h_r = Builder::new(params)
-        .local_private_key(static_r.privkey())
+        .local_private_key(&get_inc_key(1))
         .build_responder().unwrap();
 
     let mut buf  = [0u8; 1024];
@@ -594,29 +561,25 @@ fn test_get_remote_static() {
     let len = h_r.write_message(&[], &mut buf).unwrap();
     let _   = h_i.read_message(&buf[..len], &mut buf2).unwrap();
 
-    assert_eq!(h_i.get_remote_static().unwrap(), static_r.pubkey());
+    assert_eq!(h_i.get_remote_static().unwrap(), x25519::generate_public(&get_inc_key(1)).as_bytes());
     assert!(h_r.get_remote_static().is_none());
 
     // -> s, se
     let len = h_i.write_message(&[], &mut buf).unwrap();
     let _   = h_r.read_message(&buf[..len], &mut buf2).unwrap();
 
-    assert_eq!(h_i.get_remote_static().unwrap(), static_r.pubkey());
-    assert_eq!(h_r.get_remote_static().unwrap(), static_i.pubkey());
+    assert_eq!(h_i.get_remote_static().unwrap(), x25519::generate_public(&get_inc_key(1)).as_bytes());
+    assert_eq!(h_r.get_remote_static().unwrap(), x25519::generate_public(&get_inc_key(0)).as_bytes());
 }
 
 #[test]
 fn test_set_psk() {
     let params: NoiseParams = "Noise_XXpsk3_25519_AESGCM_SHA256".parse().unwrap();
-    let mut static_i: Dh25519 = Default::default();
-    let mut static_r: Dh25519 = Default::default();
-    static_i.set(&get_inc_key(0));
-    static_r.set(&get_inc_key(1));
     let mut h_i = Builder::new(params.clone())
-        .local_private_key(static_i.privkey())
+        .local_private_key(&get_inc_key(0))
         .build_initiator().unwrap();
     let mut h_r = Builder::new(params)
-        .local_private_key(static_r.privkey())
+        .local_private_key(&get_inc_key(1))
         .build_responder().unwrap();
 
     let mut buf  = [0u8; 1024];

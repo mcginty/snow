@@ -36,7 +36,7 @@ fn run_server() {
 
     // Initialize our responder NoiseSession using a builder.
     let builder: Builder = Builder::new(PARAMS.clone());
-    let static_key = builder.generate_private_key().unwrap();
+    let static_key = builder.generate_keypair().unwrap().private;
     let mut noise = builder
         .local_private_key(&static_key)
         .psk(3, SECRET)
@@ -71,7 +71,7 @@ fn run_client() {
 
     // Initialize our initiator NoiseSession using a builder.
     let builder: Builder = Builder::new(PARAMS.clone());
-    let static_key = builder.generate_private_key().unwrap();
+    let static_key = builder.generate_keypair().unwrap().private;
     let mut noise = builder
         .local_private_key(&static_key)
         .psk(3, SECRET)
