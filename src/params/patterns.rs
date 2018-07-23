@@ -22,7 +22,7 @@ macro_rules! message_vec {
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
+pub(crate) enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
 
 /// One of the patterns as defined in the
 /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section

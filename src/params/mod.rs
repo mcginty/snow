@@ -17,10 +17,13 @@ pub use self::patterns::{
     HandshakeChoice,
     HandshakeModifier,
     HandshakePattern,
-    Token,
 };
 
-pub(crate) use self::patterns::{HandshakeTokens, MessagePatterns};
+pub(crate) use self::patterns::{
+    HandshakeTokens,
+    MessagePatterns,
+    Token
+};
 
 /// I recommend you choose `Noise`.
 #[allow(missing_docs)]
