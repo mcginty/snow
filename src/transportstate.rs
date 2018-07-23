@@ -65,6 +65,17 @@ impl TransportState {
         cipher.decrypt(payload, message).map_err(|_| SnowError::Decrypt)
     }
 
+    pub fn read_transport_message_with_nonce(&self,
+                                             nonce: u64,
+                                             payload: &[u8],
+                                             message: &mut [u8]) -> Result<usize, SnowError> {
+        if self.initiator && self.pattern.is_oneway() {
+            bail!(StateProblem::OneWay);
+        }
+        let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
+        cipher.decrypt_with_nonce(nonce, payload, message).map_err(|_| SnowError::Decrypt)
+    }
+
     pub fn rekey_initiator(&mut self, key: &[u8]) {
         self.cipherstates.rekey_initiator(key)
     }
