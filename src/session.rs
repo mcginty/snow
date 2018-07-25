@@ -3,6 +3,7 @@ use handshakestate::HandshakeState;
 #[cfg(feature = "nightly")] use std::convert::{TryFrom, TryInto};
 #[cfg(not(feature = "nightly"))] use utils::{TryFrom, TryInto};
 use transportstate::TransportState;
+use stateless_transportstate::StatelessTransportState;
 
 /// A state machine for the entire Noise session.
 ///
@@ -17,8 +18,10 @@ pub enum Session {
 
     /// A session after having completed a handshake, in general-purpose trasport mode.
     Transport(TransportState),
-}
 
+    /// A session after having completed a handshake, in explicit-nonce trasport mode.
+    StatelessTransport(StatelessTransportState),
+}
 
 impl Session {
     /// This method will return `true` if the *previous* write payload was encrypted.
@@ -38,8 +41,9 @@ impl Session {
     /// ```
     pub fn was_write_payload_encrypted(&self) -> bool {
         match *self {
-            Session::Handshake(ref state) => state.was_write_payload_encrypted(),
-            Session::Transport(_) => true,
+            Session::Handshake(ref state)  => state.was_write_payload_encrypted(),
+            Session::Transport(_)          => true,
+            Session::StatelessTransport(_) => true,
         }
     }
 
@@ -58,8 +62,9 @@ impl Session {
     /// ```
     pub fn is_handshake_finished(&self) -> bool {
         match *self {
-            Session::Handshake(ref state) => state.is_finished(),
-            Session::Transport(_) => true,
+            Session::Handshake(ref state)  => state.is_finished(),
+            Session::Transport(_)          => true,
+            Session::StatelessTransport(_) => true,
         }
     }
 
@@ -68,8 +73,9 @@ impl Session {
     /// [`Builder.build_initiator()`]: struct.Builder.html#method.build_initiator
     pub fn is_initiator(&self) -> bool {
         match *self {
-            Session::Handshake(ref state) => state.is_initiator(),
-            Session::Transport(ref state) => state.is_initiator(),
+            Session::Handshake(ref state)          => state.is_initiator(),
+            Session::Transport(ref state)          => state.is_initiator(),
+            Session::StatelessTransport(ref state) => state.is_initiator(),
         }
     }
 
@@ -87,6 +93,7 @@ impl Session {
         match *self {
             Session::Handshake(ref mut state) => state.write_handshake_message(payload, output),
             Session::Transport(ref mut state) => state.write_transport_message(payload, output),
+            Session::StatelessTransport(_)    => bail!(StateProblem::StatelessTransportMode),
         }
     }
 
@@ -107,6 +114,7 @@ impl Session {
         match *self {
             Session::Handshake(ref mut state) => state.read_handshake_message(input, payload),
             Session::Transport(ref mut state) => state.read_transport_message(input, payload),
+            Session::StatelessTransport(_)    => bail!(StateProblem::StatelessTransportMode),
         }
     }
 
@@ -128,6 +136,15 @@ impl Session {
                 }
                 Ok(())
             },
+            Session::StatelessTransport(ref mut state) => {
+                if let Some(key) = initiator {
+                    state.rekey_initiator(key);
+                }
+                if let Some(key) = responder {
+                    state.rekey_responder(key);
+                }
+                Ok(())
+            },
         }
     }
 
@@ -138,8 +155,9 @@ impl Session {
     /// Will result in `SnowError::State` if not in transport mode.
     pub fn receiving_nonce(&self) -> Result<u64, SnowError> {
         match *self {
-            Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
-            Session::Transport(ref state) => Ok(state.receiving_nonce())
+            Session::Handshake(_)          => bail!(StateProblem::HandshakeNotFinished),
+            Session::Transport(ref state)  => Ok(state.receiving_nonce()),
+            Session::StatelessTransport(_) => bail!(StateProblem::StatelessTransportMode),
         }
     }
 
@@ -150,8 +168,9 @@ impl Session {
     /// Will result in `SnowError::State` if not in transport mode.
     pub fn sending_nonce(&self) -> Result<u64, SnowError> {
         match *self {
-            Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
-            Session::Transport(ref state) => Ok(state.sending_nonce())
+            Session::Handshake(_)          => bail!(StateProblem::HandshakeNotFinished),
+            Session::Transport(ref state)  => Ok(state.sending_nonce()),
+            Session::StatelessTransport(_) => bail!(StateProblem::StatelessTransportMode),
         }
     }
 
@@ -160,8 +179,9 @@ impl Session {
     /// Returns a slice of length `Dh.pub_len()` (i.e. DHLEN for the chosen DH function).
     pub fn get_remote_static(&self) -> Option<&[u8]> {
         match *self {
-            Session::Handshake(ref state) => state.get_remote_static(),
-            Session::Transport(ref state) => state.get_remote_static(),
+            Session::Handshake(ref state)          => state.get_remote_static(),
+            Session::Transport(ref state)          => state.get_remote_static(),
+            Session::StatelessTransport(ref state) => state.get_remote_static(),
         }
     }
 
@@ -171,7 +191,7 @@ impl Session {
     pub fn get_handshake_hash(&self) -> Result<&[u8], SnowError> {
         match *self {
             Session::Handshake(ref state) => Ok(state.get_handshake_hash()),
-            Session::Transport(_)         => bail!(StateProblem::HandshakeAlreadyFinished),
+            _                             => bail!(StateProblem::HandshakeAlreadyFinished),
         }
     }
 
@@ -185,6 +205,7 @@ impl Session {
         match *self {
             Session::Handshake(_)             => bail!(StateProblem::HandshakeNotFinished),
             Session::Transport(ref mut state) => { state.set_receiving_nonce(nonce); Ok(()) }
+            Session::StatelessTransport(_)    => bail!(StateProblem::StatelessTransportMode),
         }
     }
 
@@ -200,7 +221,7 @@ impl Session {
     pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), SnowError> {
         match *self {
             Session::Handshake(ref mut state) => state.set_psk(location, key),
-            Session::Transport(_)             => bail!(StateProblem::HandshakeAlreadyFinished)
+            _                                 => bail!(StateProblem::HandshakeAlreadyFinished)
         }
     }
 
@@ -237,6 +258,41 @@ impl Session {
             _ => Ok(self)
         }
     }
+
+    /// Transition the session into stateless (explicit nonce) transport mode.
+    /// This is useful when using Noise over lossy transports.
+    /// Like `into_transport_mode()`, this can only be done once the handshake has finished.
+    ///
+    /// Consumes the previous state, and returns the new transport state object, thereby freeing
+    /// any material only used during the handshake phase.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `SnowError::State` if the handshake is not finished.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let mut session = Builder::new("Noise_NN_25519_AESGCM_SHA256".parse()?)
+    ///                   .build_initiator()?;
+    ///
+    /// // ... complete handshake ...
+    ///
+    /// session = session.into_stateless_transport_mode()?;
+    /// ```
+    ///
+    pub fn into_stateless_transport_mode(self) -> Result<Self, SnowError> {
+        match self {
+            Session::Handshake(state) => {
+                if !state.is_finished() {
+                    bail!(StateProblem::HandshakeNotFinished)
+                } else {
+                    Ok(Session::StatelessTransport(state.try_into()?))
+                }
+            },
+            _ => Ok(self)
+        }
+    }
 }
 
 impl Into<Session> for HandshakeState {
@@ -250,5 +306,13 @@ impl TryFrom<HandshakeState> for TransportState {
 
     fn try_from(old: HandshakeState) -> Result<Self, Self::Error> {
         TransportState::new(old)
+    }
+}
+
+impl TryFrom<HandshakeState> for StatelessTransportState {
+    type Error = SnowError;
+
+    fn try_from(old: HandshakeState) -> Result<Self, Self::Error> {
+        StatelessTransportState::new(old)
     }
 }

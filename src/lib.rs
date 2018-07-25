@@ -17,12 +17,12 @@
 //! #
 //! # fn try_main() -> Result<(), Error> {
 //! static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
-//! 
+//!
 //! let mut initiator = snow::Builder::new(PATTERN.parse()?)
 //!     .build_initiator()?;
 //! let mut responder = snow::Builder::new(PATTERN.parse()?)
 //!     .build_responder()?;
-//! 
+//!
 //! let (mut read_buf, mut first_msg, mut second_msg) =
 //!     ([0u8; 1024], [0u8; 1024], [0u8; 1024]);
 //!
@@ -31,10 +31,10 @@
 //!
 //! // responder processes the first message...
 //! responder.read_message(&first_msg[..len], &mut read_buf)?;
-//! 
+//!
 //! // <- e, ee
 //! let len = responder.write_message(&[], &mut second_msg)?;
-//! 
+//!
 //! // initiator processes the response...
 //! initiator.read_message(&second_msg[..len], &mut read_buf)?;
 //!
@@ -48,7 +48,7 @@
 //! #     try_main().unwrap();
 //! # }
 //! ```
-//! 
+//!
 //! [`Builder`]: struct.Builder.html
 //! [`Session`]: enum.Session.html
 
@@ -76,6 +76,7 @@ mod handshakestate;
 mod builder;
 mod session;
 mod transportstate;
+mod stateless_transportstate;
 
 pub mod params;
 pub mod types;

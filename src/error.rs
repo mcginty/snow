@@ -107,6 +107,7 @@ pub enum StateProblem {
     HandshakeNotFinished,
     HandshakeAlreadyFinished,
     OneWay,
+    StatelessTransportMode,
 }
 
 impl From<StateProblem> for SnowError {

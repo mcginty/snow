@@ -86,3 +86,88 @@ impl CipherStates {
         self.1.rekey(key)
     }
 }
+
+pub struct StatelessCipherState {
+    cipher : Box<Cipher>,
+    has_key : bool,
+}
+
+impl StatelessCipherState {
+    pub fn new(cipher: Box<Cipher>) -> Self {
+        Self {
+            cipher,
+            has_key: false
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        self.cipher.name()
+    }
+
+    pub fn set(&mut self, key: &[u8]) {
+        self.cipher.set(key);
+        self.has_key = true;
+    }
+
+    // TODO: don't panic
+    pub fn encrypt_ad(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
+        assert!(self.has_key);
+        self.cipher.encrypt(nonce, authtext, plaintext, out)
+    }
+
+    pub fn decrypt_ad(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
+        if (ciphertext.len() < TAGLEN) || (out.len() < (ciphertext.len() - TAGLEN) || !self.has_key) {
+            return Err(())
+        }
+
+        self.cipher.decrypt(nonce, authtext, ciphertext, out)
+    }
+
+    pub fn encrypt(&self, nonce: u64, plaintext: &[u8], out: &mut[u8]) -> usize {
+        self.encrypt_ad(nonce, &[], plaintext, out)
+    }
+
+    pub fn decrypt(&self, nonce: u64, ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
+        self.decrypt_ad(nonce, &[], ciphertext, out)
+    }
+
+    pub fn rekey(&mut self, key: &[u8]) {
+        self.cipher.set(key);
+    }
+}
+
+impl From<CipherState> for StatelessCipherState {
+    fn from(other: CipherState) -> Self {
+        Self {
+            cipher: other.cipher,
+            has_key: other.has_key
+        }
+    }
+}
+
+pub struct StatelessCipherStates(pub StatelessCipherState, pub StatelessCipherState);
+
+impl From<CipherStates> for StatelessCipherStates {
+    fn from(other: CipherStates) -> Self {
+        StatelessCipherStates(other.0.into(), other.1.into())
+    }
+}
+
+impl StatelessCipherStates {
+    pub fn new(initiator: StatelessCipherState, responder: StatelessCipherState) -> Result<Self, SnowError> {
+        if initiator.name() != responder.name() {
+            bail!(InitStage::ValidateCipherTypes);
+        }
+
+        Ok(StatelessCipherStates(initiator, responder))
+    }
+
+    pub fn rekey_initiator(&mut self, key: &[u8]) {
+        self.0.rekey(key)
+    }
+
+
+    pub fn rekey_responder(&mut self, key: &[u8]) {
+        self.1.rekey(key)
+    }
+}

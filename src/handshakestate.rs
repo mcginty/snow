@@ -143,7 +143,7 @@ impl HandshakeState {
 
     #[must_use]
     pub fn write_handshake_message(&mut self,
-                                  message: &[u8], 
+                                  message: &[u8],
                                   payload: &mut [u8]) -> Result<usize, SnowError> {
         self.symmetricstate.checkpoint();
         match self._write_handshake_message(message, payload) {
@@ -259,7 +259,7 @@ impl HandshakeState {
     }
 
     fn _read_handshake_message(&mut self,
-                               message: &[u8], 
+                               message: &[u8],
                                payload: &mut [u8]) -> Result<usize, SnowError> {
         if message.len() > MAXMSGLEN {
             bail!(SnowError::Input);
@@ -347,9 +347,9 @@ impl HandshakeState {
 
         Ok(())
     }
- 
+
     /// Get the remote party's static public key, if available.
-    /// 
+    ///
     /// Note: will return `None` if either the chosen Noise pattern
     /// doesn't necessitate a remote static key, *or* if the remote
     /// static key is not yet known (as can be the case in the `XX`
