@@ -233,20 +233,6 @@ impl Session {
         }
     }
 
-    /// Set the forthcoming incoming nonce value.
-    ///
-    /// # Errors
-    ///
-    /// Will result in `SnowError::State` if not in transport mode.
-    #[must_use]
-    pub fn set_receiving_nonce(&mut self, nonce: u64) -> Result<(), SnowError> {
-        match *self {
-            Session::Handshake(_)             => bail!(StateProblem::HandshakeNotFinished),
-            Session::Transport(ref mut state) => { state.set_receiving_nonce(nonce); Ok(()) }
-            Session::StatelessTransport(_)    => bail!(StateProblem::StatelessTransportMode),
-        }
-    }
-
     /// Set the preshared key at the specified location. It is up to the caller
     /// to correctly set the location based on the specified handshake - Snow
     /// won't stop you from placing a PSK in an unused slot.
