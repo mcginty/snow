@@ -109,10 +109,10 @@ impl Session {
     ///
     /// Will result in `SnowError::StateProblem` if not in stateless transport mode.
     #[must_use]
-    pub fn write_message_with_nonce(&mut self, nonce: u64, payload: &[u8], output: &mut [u8]) -> Result<usize, SnowError> {
+    pub fn write_message_with_nonce(&self, nonce: u64, payload: &[u8], output: &mut [u8]) -> Result<usize, SnowError> {
         match *self {
-            Session::StatelessTransport(ref mut state) => state.write_transport_message(nonce, payload, output),
-            _                                          => bail!(StateProblem::StatelessTransportMode),
+            Session::StatelessTransport(ref state) => state.write_transport_message(nonce, payload, output),
+            _                                      => bail!(StateProblem::StatelessTransportMode),
         }
     }
 
@@ -149,10 +149,10 @@ impl Session {
     ///
     /// Will result in `SnowError::StateProblem` if not in stateless transport mode.
     #[must_use]
-    pub fn read_message_with_nonce(&mut self, nonce: u64, input: &[u8], payload: &mut [u8]) -> Result<usize, SnowError> {
+    pub fn read_message_with_nonce(&self, nonce: u64, input: &[u8], payload: &mut [u8]) -> Result<usize, SnowError> {
         match *self {
-            Session::StatelessTransport(ref mut state) => state.read_transport_message(nonce, input, payload),
-            _                                          => bail!(StateProblem::StatelessTransportMode),
+            Session::StatelessTransport(ref state) => state.read_transport_message(nonce, input, payload),
+            _                                      => bail!(StateProblem::StatelessTransportMode),
         }
     }
 

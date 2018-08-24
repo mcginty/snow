@@ -42,7 +42,7 @@ impl StatelessTransportState {
         self.rs.as_option_ref().map(|rs| &rs[..self.dh_len])
     }
 
-    pub fn write_transport_message(&mut self,
+    pub fn write_transport_message(&self,
                                    nonce: u64,
                                    payload: &[u8],
                                    message: &mut [u8]) -> Result<usize, SnowError> {
@@ -52,7 +52,7 @@ impl StatelessTransportState {
             bail!(SnowError::Input);
         }
 
-        let cipher = if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
+        let cipher = if self.initiator { &self.cipherstates.0 } else { &self.cipherstates.1 };
         Ok(cipher.encrypt(nonce, payload, message))
     }
 
