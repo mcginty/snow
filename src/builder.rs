@@ -46,7 +46,8 @@ pub struct Builder<'builder> {
 
 impl<'builder> Builder<'builder> {
     /// Create a Builder with the default crypto resolver.
-    #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated", feature = "hacl-star-accelerated"))))]
+    #[cfg(all(any(feature = "default-resolver", feature = "wasm-resolver"),
+    not(any(feature = "ring-accelerated", feature = "hacl-star-accelerated"))))]
     pub fn new(params: NoiseParams) -> Self {
         use ::resolvers::DefaultResolver;
 

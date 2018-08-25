@@ -3,6 +3,8 @@
 
 /// The default primitive resolver.
 #[cfg(feature = "default-resolver")]   mod default;
+/// The same with the wasm fork of crypto
+#[cfg(feature = "wasm-resolver")]      mod default;
 /// A HACL* primitive resolver.
 #[cfg(feature = "hacl-star-resolver")] mod hacl_star;
 /// A ring primitive resolver.
@@ -12,6 +14,7 @@ use params::{CipherChoice, DHChoice, HashChoice};
 use types::{Cipher, Dh, Hash, Random};
 
 #[cfg(feature = "default-resolver")]   pub use self::default::DefaultResolver;
+#[cfg(feature = "wasm-resolver")]      pub use self::default::DefaultResolver;
 #[cfg(feature = "hacl-star-resolver")] pub use self::hacl_star::HaclStarResolver;
 #[cfg(feature = "ring-resolver")]      pub use self::ring::RingResolver;
 
