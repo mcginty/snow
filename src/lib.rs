@@ -55,7 +55,7 @@
 #![warn(missing_docs)]
 #![cfg_attr(feature = "nightly", feature(try_from))]
 
-#[cfg(any(feature = "default-resolver", feature = "hacl-star-resolver"))]
+#[cfg(any(feature = "default-resolver", feature="wasm-resolver", feature = "hacl-star-resolver"))]
 #[macro_use]
 extern crate arrayref;
 
