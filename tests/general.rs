@@ -6,6 +6,7 @@ extern crate x25519_dalek;
 
 use hex::FromHex;
 use snow::{Builder, resolvers::{CryptoResolver, DefaultResolver}};
+use snow::error::*;
 use snow::params::*;
 use snow::types::*;
 use x25519_dalek as x25519;
@@ -575,4 +576,63 @@ fn test_set_psk() {
     // -> s, se, psk
     let len = h_i.write_message(&[], &mut buf).unwrap();
     let _   = h_r.read_message(&buf[..len], &mut buf2).unwrap();
+}
+
+#[test]
+fn test_stateless_seperation() {
+    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 200];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let h_i = h_i.into_transport_mode().unwrap();
+    let h_r = h_r.into_transport_mode().unwrap();
+
+    match h_i.write_message_with_nonce(1, b"hack the planet", &mut buffer_msg) {
+        Err(SnowError::State {reason: StateProblem::StatelessTransportMode}) => {},
+        _ => panic!("incorrect failure pattern.")
+    }
+    match h_r.read_message_with_nonce(1, &buffer_msg[..len], &mut buffer_out) {
+        Err(SnowError::State {reason: StateProblem::StatelessTransportMode}) => {},
+        _ => panic!("incorrect failure pattern.")
+    }
+}
+
+#[test]
+fn test_stateless_sanity_session() {
+    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 200];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let mut h_i = h_i.into_stateless_transport_mode().unwrap();
+    let mut h_r = h_r.into_stateless_transport_mode().unwrap();
+
+    match h_i.write_message(b"hack the planet", &mut buffer_msg) {
+        Err(SnowError::State {reason: StateProblem::StatelessTransportMode}) => {},
+        _ => panic!("incorrect failure pattern.")
+    }
+
+    match h_r.read_message(&buffer_msg[..len], &mut buffer_out) {
+        Err(SnowError::State {reason: StateProblem::StatelessTransportMode}) => {},
+        _ => panic!("incorrect failure pattern.")
+    }
+
+    let len = h_i.write_message_with_nonce(1337, b"hack the planet", &mut buffer_msg).unwrap();
+    let len = h_r.read_message_with_nonce(1337, &buffer_msg[..len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[..len], b"hack the planet");
 }
