@@ -28,19 +28,35 @@ impl CipherState {
     }
 
     // TODO: don't panic
-    pub fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
+    pub fn encrypt_ad_with_nonce(&self, n: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
         assert!(self.has_key);
-        let len = self.cipher.encrypt(self.n, authtext, plaintext, out);
+        self.cipher.encrypt(n, authtext, plaintext, out)
+    }
+
+    pub fn decrypt_ad_with_nonce(&self, n: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
+        if (ciphertext.len() < TAGLEN) || (out.len() < (ciphertext.len() - TAGLEN) || !self.has_key) {
+            return Err(())
+        }
+
+        self.cipher.decrypt(n, authtext, ciphertext, out)
+    }
+
+    pub fn encrypt_with_nonce(&self, n: u64, plaintext: &[u8], out: &mut[u8]) -> usize {
+        self.encrypt_ad_with_nonce(n, &[0u8;0], plaintext, out)
+    }
+
+    pub fn decrypt_with_nonce(&self, n: u64, ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
+        self.decrypt_ad_with_nonce(n, &[0u8;0], ciphertext, out)
+    }
+
+    pub fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
+        let len = self.encrypt_ad_with_nonce(self.n, authtext, plaintext, out);
         self.n = self.n.checked_add(1).unwrap();
         len
     }
 
     pub fn decrypt_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
-        if (ciphertext.len() < TAGLEN) || (out.len() < (ciphertext.len() - TAGLEN) || !self.has_key) {
-            return Err(())
-        }
-
-        let len = self.cipher.decrypt(self.n, authtext, ciphertext, out);
+        let len = self.decrypt_ad_with_nonce(self.n, authtext, ciphertext, out);
         self.n = self.n.checked_add(1).unwrap();
         len
     }

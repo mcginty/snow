@@ -156,6 +156,39 @@ impl Session {
         }
     }
 
+    /// Reads a noise message from `input` and use `nonce` during decryption
+    ///
+    /// This is a shorthand for `set_receiving_nonce` and `read_message`. Please note that `read_message` is
+    /// most likely the function you are looking for unless you explicitly need to set the nonce, for example
+    /// because you are using an unreliable transport like udp.
+    ///
+    /// If you use this function you must track the receiving n values for which decryption was successful and
+    /// reject any message which repeats such a value, to prevent replay attacks.
+    ///
+    /// Since you need to provide the n value yourself, this function does not increment the n value, allowing
+    /// it to be used on an immutable borrow.
+    ///
+    /// Returns the size of the payload written to `payload`.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `SnowError::Decrypt` if the contents couldn't be decrypted and/or the
+    /// authentication tag didn't verify.
+    ///
+    /// Also returns `SnowError::StateProblem` if the session is not in transport mode.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if there is no key.
+    #[must_use]
+    pub fn read_message_with_nonce(&self, nonce: u64, input: &[u8], payload: &mut [u8]) -> Result<usize, SnowError> {
+        match *self {
+            // this function is only available in transport mode
+            Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
+            Session::Transport(ref state) => state.read_transport_message_with_nonce(nonce, input, payload),
+        }
+    }
+
     /// Set a new key for the one or both of the initiator-egress and responder-egress symmetric ciphers.
     ///
     /// # Errors
