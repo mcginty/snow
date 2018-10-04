@@ -3,18 +3,22 @@
 extern crate criterion;
 
 extern crate test;
+extern crate rand;
 extern crate snow;
+extern crate x25519_dalek;
 
 use criterion::{Benchmark, Criterion, Throughput};
 use snow::*;
 use snow::params::*;
-use snow::types::*;
-use snow::resolvers::default::{Dh25519, RandomOs};
+use rand::OsRng;
 
 const MSG_SIZE: usize = 4096;
 
 pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
-    for count in 0..data.len() {out[count] = data[count];}
+    for count in 0..data.len() {
+        out[count] = data[count];
+    }
+
     data.len()
 }
 
@@ -28,30 +32,27 @@ fn benchmarks(c: &mut Criterion) {
     }).throughput(Throughput::Elements(1)));
 
     c.bench("builder", Benchmark::new("withkey", |b| {
-        let static_i:Dh25519 = Default::default();
-        let privkey = static_i.privkey();
+        let mut rng = OsRng::new().unwrap();
+        let i_priv = x25519_dalek::generate_secret(&mut rng);
         b.iter(move || {
             Builder::new("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap())
-                    .local_private_key(privkey)
+                    .local_private_key(&i_priv)
                     .build_initiator().unwrap();
         });
     }).throughput(Throughput::Elements(1)));
 
     c.bench("handshake", Benchmark::new("xx", |b| {
-        let mut static_i: Dh25519 = Default::default();
-        let mut static_r: Dh25519 = Default::default();
-
-        let mut rand = RandomOs::default();
-        static_i.generate(&mut rand);
-        static_r.generate(&mut rand);
+        let mut rng = OsRng::new().unwrap();
+        let i_priv = x25519_dalek::generate_secret(&mut rng);
+        let r_priv = x25519_dalek::generate_secret(&mut rng);
 
         b.iter(move || {
             let pattern: NoiseParams = "Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap();
             let mut h_i = Builder::new(pattern.clone())
-                .local_private_key(static_i.privkey())
+                .local_private_key(&i_priv)
                 .build_initiator().unwrap();
             let mut h_r = Builder::new(pattern)
-                .local_private_key(static_r.privkey())
+                .local_private_key(&r_priv)
                 .build_responder().unwrap();
 
             let mut buffer_msg = [0u8; MSG_SIZE * 2];
