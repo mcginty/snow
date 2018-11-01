@@ -43,12 +43,13 @@ impl FromStr for BaseChoice {
     }
 }
 
-/// One of `25519` or `448`, per the spec.
+/// One of `25519`, `448` or `Secp256k1` , per the spec.
 #[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum DHChoice {
     Curve25519,
     Ed448,
+    Secp256k1,
 }
 
 impl FromStr for DHChoice {
@@ -56,9 +57,10 @@ impl FromStr for DHChoice {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::DHChoice::*;
         match s {
-            "25519" => Ok(Curve25519),
-            "448"   => Ok(Ed448),
-            _       => bail!(PatternProblem::UnsupportedDhType)
+            "25519"     => Ok(Curve25519),
+            "448"       => Ok(Ed448),
+            "secp256k1" => Ok(Secp256k1),
+            _           => bail!(PatternProblem::UnsupportedDhType)
         }
     }
 }

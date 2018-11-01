@@ -3,6 +3,7 @@ extern crate blake2_rfc;
 extern crate chacha20_poly1305_aead;
 extern crate x25519_dalek;
 extern crate rand;
+extern crate secp256k1;
 
 use self::blake2_rfc::blake2b::Blake2b;
 use self::blake2_rfc::blake2s::Blake2s;
@@ -36,6 +37,7 @@ impl CryptoResolver for DefaultResolver {
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh>> {
         match *choice {
             DHChoice::Curve25519 => Some(Box::new(Dh25519::default())),
+            DHChoice::Secp256k1  => Some(Box::new(DhSecp256k1::default())),
             _                    => None,
         }
     }
@@ -67,6 +69,20 @@ struct RandomOs {
 struct Dh25519 {
     privkey: [u8; 32],
     pubkey:  [u8; 32],
+}
+
+struct DhSecp256k1 {
+    privkey: [u8; secp256k1::constants::SECRET_KEY_SIZE],
+    pubkey:  [u8; secp256k1::constants::PUBLIC_KEY_SIZE],
+}
+
+impl Default for DhSecp256k1 {
+    fn default() -> Self {
+        Self {
+            privkey: [0; secp256k1::constants::SECRET_KEY_SIZE],
+            pubkey:  [0; secp256k1::constants::PUBLIC_KEY_SIZE],
+        }
+    }
 }
 
 /// Wraps `rust-crypto`'s AES implementation.
@@ -110,6 +126,57 @@ impl Default for RandomOs {
 impl Random for RandomOs {
     fn fill_bytes(&mut self, out: &mut [u8]) {
         self.rng.fill_bytes(out); 
+    }
+}
+
+impl Dh for DhSecp256k1 {
+    fn name(&self) -> &'static str {
+        static NAME: &'static str = "secp256k1";
+        NAME
+    }
+
+    fn pub_len(&self) -> usize {
+        secp256k1::constants::PUBLIC_KEY_SIZE
+    }
+
+    fn priv_len(&self) -> usize {
+        secp256k1::constants::SECRET_KEY_SIZE
+    }
+
+    fn set(&mut self, privkey: &[u8]) {
+        let ctx = &secp256k1::Secp256k1::new();
+        let privkey = secp256k1::SecretKey::from_slice(ctx, privkey).unwrap();
+        let pubkey = secp256k1::PublicKey::from_secret_key(ctx, &privkey);
+
+        copy_slices!(privkey, &mut self.privkey);
+        copy_slices!(pubkey.serialize(), &mut self.pubkey);
+    }
+
+    fn generate(&mut self, rng: &mut Random) {
+        rng.fill_bytes(&mut self.privkey);
+
+        let ctx = &secp256k1::Secp256k1::new();
+        let privkey = secp256k1::SecretKey::from_slice(ctx, &self.privkey).unwrap();
+        let pubkey = secp256k1::PublicKey::from_secret_key(ctx, &privkey);
+        copy_slices!(pubkey.serialize(), &mut self.pubkey);
+    }
+
+    fn pubkey(&self) -> &[u8] {
+        &self.pubkey
+    }
+
+    fn privkey(&self) -> &[u8] {
+        &self.privkey
+    }
+
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()> {
+        let pubkey = &pubkey[..self.pub_len()];
+        let ctx = &secp256k1::Secp256k1::new();
+        let pubkey = secp256k1::PublicKey::from_slice(ctx, pubkey).unwrap();
+        let privkey = secp256k1::SecretKey::from_slice(ctx, &self.privkey).unwrap();
+        let ss = secp256k1::ecdh::SharedSecret::new(ctx, &pubkey, &privkey);
+        copy_slices!(ss[..], out);
+        Ok(())
     }
 }
 
