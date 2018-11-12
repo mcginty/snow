@@ -186,6 +186,30 @@ impl Session {
         }
     }
 
+    /// Implement a deterministic rekey as per section 4.2 of the Noise protocol framework specification.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `SnowError::State` if not in transport mode.
+    #[must_use]
+    pub fn deterministic_rekey(&mut self) -> Result<(), SnowError> {
+        match *self {
+            Session::Handshake(_)              => bail!(StateProblem::HandshakeNotFinished),
+            Session::Transport(ref mut state)  => {
+                let mut initiator_out = vec![0u8; 32];
+                let mut responder_out = vec![0u8; 32];
+                let auth = vec![0u8; 0];
+                let payload = vec![0u8; 0];
+                let _ = state.cipherstates.0.encrypt_with_max_nonce(&auth, &payload, &mut initiator_out);
+                let _ = state.cipherstates.0.encrypt_with_max_nonce(&auth, &payload, &mut responder_out);
+                state.rekey_initiator(&initiator_out);
+                state.rekey_responder(&responder_out);
+            },
+            Session::StatelessTransport(_)     => bail!(StateProblem::StatelessTransportMode),
+        }
+        Ok(())
+    }
+
     /// Get the forthcoming inbound nonce value.
     ///
     /// # Errors

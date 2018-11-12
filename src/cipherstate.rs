@@ -1,3 +1,4 @@
+use std::u64;
 use constants::TAGLEN;
 use error::{SnowError, InitStage};
 use types::Cipher;
@@ -27,10 +28,20 @@ impl CipherState {
         self.has_key = true;
     }
 
+    fn encrypt_with_nonce(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
+        assert!(self.has_key);
+	self.cipher.encrypt(nonce, authtext, plaintext, out)
+    }
+
+    pub fn encrypt_with_max_nonce(&self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
+        self.encrypt_with_nonce(u64::MAX, authtext, plaintext, out)
+    }
+
     // TODO: don't panic
     pub fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
         assert!(self.has_key);
-        let len = self.cipher.encrypt(self.n, authtext, plaintext, out);
+        let n = self.n.clone();
+        let len = self.encrypt_with_nonce(n, authtext, plaintext, out);
         self.n = self.n.checked_add(1).unwrap();
         len
     }

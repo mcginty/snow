@@ -336,6 +336,37 @@ fn test_rekey() {
 }
 
 #[test]
+fn test_deterministic_rekey() {
+    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
+
+    assert!(h_i.rekey(None, None).is_err());
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 200];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let mut h_i = h_i.into_transport_mode().unwrap();
+    let mut h_r = h_r.into_transport_mode().unwrap();
+
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[..len], b"hack the planet");
+
+    let _ = h_i.deterministic_rekey().unwrap();
+    let _ = h_r.deterministic_rekey().unwrap();
+
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[..len], b"hack the planet");
+}
+
+#[test]
 fn test_handshake_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params).build_initiator().unwrap();
