@@ -11,7 +11,7 @@ use self::crypto::sha2::{Sha256, Sha512};
 use self::crypto::aes::KeySize;
 use self::crypto::aes_gcm::AesGcm;
 use self::crypto::aead::{AeadEncryptor, AeadDecryptor};
-use self::rand::{OsRng, RngCore};
+use self::rand::{rngs::OsRng, RngCore};
 use self::x25519_dalek as x25519;
 
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
