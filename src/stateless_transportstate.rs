@@ -67,12 +67,28 @@ impl StatelessTransportState {
         cipher.decrypt(nonce, payload, message).map_err(|_| SnowError::Decrypt)
     }
 
-    pub fn rekey_initiator(&mut self, key: &[u8]) {
-        self.cipherstates.rekey_initiator(key)
+    pub fn rekey_outgoing(&mut self) {
+        if self.initiator {
+            self.cipherstates.rekey_initiator()
+        } else {
+            self.cipherstates.rekey_responder()
+        }
     }
 
-    pub fn rekey_responder(&mut self, key: &[u8]) {
-        self.cipherstates.rekey_responder(key)
+    pub fn rekey_incoming(&mut self) {
+        if self.initiator {
+            self.cipherstates.rekey_responder()
+        } else {
+            self.cipherstates.rekey_initiator()
+        }
+    }
+
+    pub fn rekey_initiator_manually(&mut self, key: &[u8]) {
+        self.cipherstates.rekey_initiator_manually(key)
+    }
+
+    pub fn rekey_responder_manually(&mut self, key: &[u8]) {
+        self.cipherstates.rekey_responder_manually(key)
     }
 
     pub fn is_initiator(&self) -> bool {

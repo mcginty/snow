@@ -1,6 +1,6 @@
 //! The traits for cryptographic implementations that can be used by Noise.
 
-use constants::{MAXBLOCKLEN, MAXHASHLEN};
+use constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN, TAGLEN};
 use rand_core::{CryptoRng, RngCore};
 
 /// CSPRNG operations
@@ -48,6 +48,15 @@ pub trait Cipher : Send + Sync {
     #[must_use]
     /// Decrypt (with associated data) a given ciphertext.
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()>;
+
+    /// Rekey according to Section 4.2 of the Noise Specification, with a default
+    /// implementation guaranteed to be secure for all ciphers.
+    fn rekey(&mut self) {
+        let mut ciphertext = [0; CIPHERKEYLEN + TAGLEN];
+        let ciphertext_len = self.encrypt(u64::max_value(), &[], &[0; CIPHERKEYLEN], &mut ciphertext);
+        assert_eq!(ciphertext_len, ciphertext.len());
+        self.set(&ciphertext[..CIPHERKEYLEN]);
+    }
 }
 
 /// Hashing operations
