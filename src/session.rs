@@ -156,31 +156,47 @@ impl Session {
         }
     }
 
-    /// Set a new key for the one or both of the initiator-egress and responder-egress symmetric ciphers.
+    /// Generates a new key for the the initiator-egress symmetric cipher according to
+    /// Section 4.2 of the Noise Specification. Synchronizing timing of rekey between
+    /// initiator and responder is the responsibility of the application, as described in
+    /// Section 11.3 of the Noise Specification.
     ///
     /// # Errors
     ///
     /// Will result in `SnowError::State` if not in transport mode.
     #[must_use]
-    pub fn rekey(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) -> Result<(), SnowError> {
+    pub fn rekey_initiator(&mut self) -> Result<(), SnowError> {
         match *self {
             Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
             Session::Transport(ref mut state) => {
-                if let Some(key) = initiator {
-                    state.rekey_initiator(key);
-                }
-                if let Some(key) = responder {
-                    state.rekey_responder(key);
-                }
+                state.rekey_initiator();
                 Ok(())
             },
             Session::StatelessTransport(ref mut state) => {
-                if let Some(key) = initiator {
-                    state.rekey_initiator(key);
-                }
-                if let Some(key) = responder {
-                    state.rekey_responder(key);
-                }
+                state.rekey_initiator();
+                Ok(())
+            },
+        }
+    }
+
+    /// Generates a new key for the the responder-egress symmetric cipher according to
+    /// Section 4.2 of the Noise Specification. Synchronizing timing of rekey between
+    /// initiator and responder is the responsibility of the application, as described in
+    /// Section 11.3 of the Noise Specification.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `SnowError::State` if not in transport mode.
+    #[must_use]
+    pub fn rekey_responder(&mut self) -> Result<(), SnowError> {
+        match *self {
+            Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
+            Session::Transport(ref mut state) => {
+                state.rekey_responder();
+                Ok(())
+            },
+            Session::StatelessTransport(ref mut state) => {
+                state.rekey_responder();
                 Ok(())
             },
         }

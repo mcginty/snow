@@ -65,12 +65,12 @@ impl TransportState {
         cipher.decrypt(payload, message).map_err(|_| SnowError::Decrypt)
     }
 
-    pub fn rekey_initiator(&mut self, key: &[u8]) {
-        self.cipherstates.rekey_initiator(key)
+    pub fn rekey_initiator(&mut self) {
+        self.cipherstates.rekey_initiator()
     }
 
-    pub fn rekey_responder(&mut self, key: &[u8]) {
-        self.cipherstates.rekey_responder(key)
+    pub fn rekey_responder(&mut self) {
+        self.cipherstates.rekey_responder()
     }
 
     /// Sets the *receiving* CipherState's nonce. Useful for using noise on lossy transports.

@@ -306,7 +306,10 @@ fn test_rekey() {
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
 
-    assert!(h_i.rekey(None, None).is_err());
+    assert!(h_i.rekey_initiator().is_err());
+    assert!(h_i.rekey_responder().is_err());
+    assert!(h_r.rekey_initiator().is_err());
+    assert!(h_r.rekey_responder().is_err());
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
@@ -319,17 +322,29 @@ fn test_rekey() {
     let mut h_i = h_i.into_transport_mode().unwrap();
     let mut h_r = h_r.into_transport_mode().unwrap();
 
+    // test message initiator->responder before rekeying initiator
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 
-    h_i.rekey(Some(&[1u8; 32]), Some(&[2u8; 32])).unwrap();
-    h_r.rekey(Some(&[1u8; 32]), Some(&[2u8; 32])).unwrap();
+    // rekey initiator (on initiator)
+    h_i.rekey_initiator().unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    assert!(h_r.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
 
+    // rekey initiator (on responder)
+    h_r.rekey_initiator().unwrap();
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 
+    // rekey responder (on responder)
+    h_r.rekey_responder().unwrap();
+    let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    assert!(h_i.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
+
+    // rekey responder (on initiator)
+    h_i.rekey_responder().unwrap();
     let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
