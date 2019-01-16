@@ -1,12 +1,10 @@
 //! The traits for cryptographic implementations that can be used by Noise.
 
 use constants::{MAXBLOCKLEN, MAXHASHLEN};
+use rand_core::{CryptoRng, RngCore};
 
 /// CSPRNG operations
-pub trait Random : Send + Sync {
-    /// Fill a provided buffer with random bytes
-    fn fill_bytes(&mut self, out: &mut [u8]);
-}
+pub trait Random : CryptoRng + RngCore + Send + Sync {}
 
 /// Diffie-Hellman operations
 pub trait Dh : Send + Sync {

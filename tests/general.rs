@@ -3,6 +3,7 @@
 extern crate hex;
 extern crate snow;
 extern crate x25519_dalek;
+extern crate rand_core;
 
 use hex::FromHex;
 use snow::{Builder, resolvers::{CryptoResolver, DefaultResolver}};
@@ -10,32 +11,32 @@ use snow::error::*;
 use snow::params::*;
 use snow::types::*;
 use x25519_dalek as x25519;
-
-struct RandomInc {
-    next_byte: u8
-}
-
-impl Default for RandomInc {
-
-    fn default() -> RandomInc {
-        RandomInc {next_byte: 0}
+use rand_core::{CryptoRng, RngCore, Error, impls};
+ 
+ #[derive(Default)]
+struct CountingRng(u64);
+ 
+impl RngCore for CountingRng {
+    fn next_u32(&mut self) -> u32 {
+        self.next_u64() as u32
+    }
+     
+    fn next_u64(&mut self) -> u64 {
+        self.0 += 1;
+        self.0
+    }
+     
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        impls::fill_bytes_via_next(self, dest)
+    }
+     
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
+        Ok(self.fill_bytes(dest))
     }
 }
 
-impl Random for RandomInc {
-
-    fn fill_bytes(&mut self, out: &mut [u8]) {
-        for count in 0..out.len() {
-            out[count] = self.next_byte;
-            if self.next_byte == 255 {
-                self.next_byte = 0;
-            }
-            else {
-                self.next_byte += 1;
-            }
-        }
-    }
-}
+impl CryptoRng for CountingRng {}
+impl Random for CountingRng {}
 
 fn get_inc_key(start: u8) -> [u8; 32] {
     let mut k = [0u8; 32];
@@ -64,8 +65,7 @@ impl TestResolver {
 
 impl CryptoResolver for TestResolver {
     fn resolve_rng(&self) -> Option<Box<Random>> {
-        let mut rng = RandomInc::default();
-        rng.next_byte = self.next_byte;
+        let rng = CountingRng(self.next_byte as u64);
         Some(Box::new(rng))
     }
 
