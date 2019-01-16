@@ -6,3 +6,4 @@ target/
 .cargo/
 vendor/
 hfuzz_*/
+.vscode/
