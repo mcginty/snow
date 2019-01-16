@@ -202,6 +202,36 @@ impl Session {
         }
     }
 
+    /// Set a new key for the one or both of the initiator-egress and responder-egress symmetric ciphers.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `SnowError::State` if not in transport mode.
+    #[must_use]
+    pub fn rekey_manually(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) -> Result<(), SnowError> {
+        match *self {
+            Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
+            Session::Transport(ref mut state) => {
+                if let Some(key) = initiator {
+                    state.rekey_initiator_manually(key);
+                }
+                if let Some(key) = responder {
+                    state.rekey_responder_manually(key);
+                }
+                Ok(())
+            },
+            Session::StatelessTransport(ref mut state) => {
+                if let Some(key) = initiator {
+                    state.rekey_initiator_manually(key);
+                }
+                if let Some(key) = responder {
+                    state.rekey_responder_manually(key);
+                }
+                Ok(())
+            },
+        }
+    }
+
     /// Get the forthcoming inbound nonce value.
     ///
     /// # Errors

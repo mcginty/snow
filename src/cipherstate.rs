@@ -57,6 +57,10 @@ impl CipherState {
         self.cipher.rekey();
     }
 
+    pub fn rekey_manually(&mut self, key: &[u8]) {
+        self.cipher.set(key);
+    }
+
     pub fn nonce(&self) -> u64 {
         self.n
     }
@@ -81,9 +85,16 @@ impl CipherStates {
         self.0.rekey()
     }
 
+    pub fn rekey_initiator_manually(&mut self, key: &[u8]) {
+        self.0.rekey_manually(key)
+    }
 
     pub fn rekey_responder(&mut self) {
         self.1.rekey()
+    }
+
+    pub fn rekey_responder_manually(&mut self, key: &[u8]) {
+        self.1.rekey_manually(key)
     }
 }
 
@@ -134,6 +145,10 @@ impl StatelessCipherState {
     pub fn rekey(&mut self) {
         self.cipher.rekey()
     }
+
+    pub fn rekey_manually(&mut self, key: &[u8]) {
+        self.cipher.set(key);
+    }
 }
 
 impl From<CipherState> for StatelessCipherState {
@@ -166,8 +181,15 @@ impl StatelessCipherStates {
         self.0.rekey()
     }
 
+    pub fn rekey_initiator_manually(&mut self, key: &[u8]) {
+        self.0.rekey_manually(key)
+    }
 
     pub fn rekey_responder(&mut self) {
         self.1.rekey()
+    }
+
+    pub fn rekey_responder_manually(&mut self, key: &[u8]) {
+        self.1.rekey_manually(key)
     }
 }

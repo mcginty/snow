@@ -69,8 +69,16 @@ impl TransportState {
         self.cipherstates.rekey_initiator()
     }
 
+    pub fn rekey_initiator_manually(&mut self, key: &[u8]) {
+        self.cipherstates.rekey_initiator_manually(key)
+    }
+
     pub fn rekey_responder(&mut self) {
         self.cipherstates.rekey_responder()
+    }
+
+    pub fn rekey_responder_manually(&mut self, key: &[u8]) {
+        self.cipherstates.rekey_responder_manually(key)
     }
 
     /// Sets the *receiving* CipherState's nonce. Useful for using noise on lossy transports.

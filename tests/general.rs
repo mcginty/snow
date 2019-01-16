@@ -351,6 +351,54 @@ fn test_rekey() {
 }
 
 #[test]
+fn test_rekey_manually() {
+    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
+
+    assert!(h_i.rekey_manually(None, None).is_err());
+    assert!(h_r.rekey_manually(None, None).is_err());
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 200];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let mut h_i = h_i.into_transport_mode().unwrap();
+    let mut h_r = h_r.into_transport_mode().unwrap();
+
+    // test message initiator->responder before rekeying initiator
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[..len], b"hack the planet");
+
+    // rekey initiator (on initiator)
+    h_i.rekey_manually(Some(&[1u8; 32]), None).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    assert!(h_r.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
+
+    // rekey initiator (on responder)
+    h_r.rekey_manually(Some(&[1u8; 32]), None).unwrap();
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[..len], b"hack the planet");
+
+    // rekey responder (on responder)
+    h_r.rekey_manually(None, Some(&[1u8; 32])).unwrap();
+    let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    assert!(h_i.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
+
+    // rekey responder (on initiator)
+    h_i.rekey_manually(None, Some(&[1u8; 32])).unwrap();
+    let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    let len = h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[..len], b"hack the planet");
+}
+
+#[test]
 fn test_handshake_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params).build_initiator().unwrap();

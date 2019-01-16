@@ -71,8 +71,16 @@ impl StatelessTransportState {
         self.cipherstates.rekey_initiator()
     }
 
+    pub fn rekey_initiator_manually(&mut self, key: &[u8]) {
+        self.cipherstates.rekey_initiator_manually(key)
+    }
+
     pub fn rekey_responder(&mut self) {
         self.cipherstates.rekey_responder()
+    }
+
+    pub fn rekey_responder_manually(&mut self, key: &[u8]) {
+        self.cipherstates.rekey_responder_manually(key)
     }
 
     pub fn is_initiator(&self) -> bool {
