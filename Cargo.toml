@@ -43,7 +43,7 @@ rust-crypto = { version = "^0.2", optional = true }
 hacl-star = { version = "=0.0.11", optional = true }
 rand = { version = "^0.6", optional = true }
 ring = { version = "^0.14.0", optional = true }
-x25519-dalek = { version = "^0.3", optional = true, default-features = false, features = ["std", "u64_backend"] }
+x25519-dalek = { version = "^0.4", optional = true, default-features = false, features = ["std", "u64_backend"] }
 
 [dev-dependencies]
 clap = "^2.0"
