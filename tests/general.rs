@@ -154,7 +154,7 @@ fn test_sanity_session() {
 fn test_Npsk0_expected_value() {
     let params: NoiseParams = "Noise_Npsk0_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params)
-        .remote_public_key(x25519::generate_public(&get_inc_key(0)).as_bytes())
+        .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator().unwrap();
@@ -175,7 +175,7 @@ fn test_Xpsk0_expected_value() {
     let params: NoiseParams = "Noise_Xpsk0_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params)
         .local_private_key(&get_inc_key(0))
-        .remote_public_key(x25519::generate_public(&get_inc_key(32)).as_bytes())
+        .remote_public_key(&x25519::x25519(get_inc_key(32), x25519::X25519_BASEPOINT_BYTES))
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(64))
         .build_initiator().unwrap();
@@ -196,14 +196,14 @@ fn test_XXpsk0_expected_value() {
     let params: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
         .local_private_key(&get_inc_key(0))
-        .remote_public_key(x25519::generate_public(&get_inc_key(1)).as_bytes())
+        .remote_public_key(&x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES))
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator().unwrap();
     let mut h_r = Builder::new(params)
         .local_private_key(&get_inc_key(1))
-        .remote_public_key(x25519::generate_public(&get_inc_key(0)).as_bytes())
+        .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(33))
@@ -535,15 +535,15 @@ fn test_get_remote_static() {
     let len = h_r.write_message(&[], &mut buf).unwrap();
     let _   = h_i.read_message(&buf[..len], &mut buf2).unwrap();
 
-    assert_eq!(h_i.get_remote_static().unwrap(), x25519::generate_public(&get_inc_key(1)).as_bytes());
+    assert_eq!(h_i.get_remote_static().unwrap(), &x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES));
     assert!(h_r.get_remote_static().is_none());
 
     // -> s, se
     let len = h_i.write_message(&[], &mut buf).unwrap();
     let _   = h_r.read_message(&buf[..len], &mut buf2).unwrap();
 
-    assert_eq!(h_i.get_remote_static().unwrap(), x25519::generate_public(&get_inc_key(1)).as_bytes());
-    assert_eq!(h_r.get_remote_static().unwrap(), x25519::generate_public(&get_inc_key(0)).as_bytes());
+    assert_eq!(h_i.get_remote_static().unwrap(), &x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES));
+    assert_eq!(h_r.get_remote_static().unwrap(), &x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES));
 }
 
 #[test]
