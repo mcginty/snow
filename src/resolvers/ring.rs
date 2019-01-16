@@ -69,26 +69,29 @@ impl Cipher for CipherAESGCM {
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
-        aead::seal_in_place(&self.sealing, &nonce_bytes, authtext, &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
+
+        aead::seal_in_place(&self.sealing, nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
         plaintext.len() + TAGLEN
     }
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
         BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
         if out.len() >= ciphertext.len() {
             let in_out = &mut out[..ciphertext.len()];
             in_out.copy_from_slice(ciphertext);
 
-            let len = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, in_out).map_err(|_| ())?
+            let len = aead::open_in_place(&self.opening, nonce, aead::Aad::from(authtext), 0, in_out).map_err(|_| ())?
                 .len();
 
             Ok(len)
         } else {
             let mut in_out = ciphertext.to_vec();
 
-            let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out).map_err(|_| ())?;
+            let out0 = aead::open_in_place(&self.opening, nonce, aead::Aad::from(authtext), 0, &mut in_out).map_err(|_| ())?;
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
@@ -122,29 +125,31 @@ impl Cipher for CipherChaChaPoly {
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
         LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
-        aead::seal_in_place(&self.sealing, &nonce_bytes, authtext, &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
+        aead::seal_in_place(&self.sealing, nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
         plaintext.len() + TAGLEN
     }
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
         LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
         if out.len() >= ciphertext.len() {
             let in_out = &mut out[..ciphertext.len()];
             in_out.copy_from_slice(ciphertext);
 
-            let len = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, in_out).map_err(|_| ())?
+            let len = aead::open_in_place(&self.opening, nonce, aead::Aad::from(authtext), 0, in_out).map_err(|_| ())?
                 .len();
 
             Ok(len)
         } else {
             let mut in_out = ciphertext.to_vec();
 
-            let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out).map_err(|_| ())?;
+            let out0 = aead::open_in_place(&self.opening, nonce, aead::Aad::from(authtext), 0, &mut in_out).map_err(|_| ())?;
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
@@ -221,5 +226,3 @@ impl Hash for HashSHA512 {
         out[..64].copy_from_slice(self.context.clone().finish().as_ref());
     }
 }
-
-
