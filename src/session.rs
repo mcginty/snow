@@ -156,47 +156,47 @@ impl Session {
         }
     }
 
-    /// Generates a new key for the the initiator-egress symmetric cipher according to
-    /// Section 4.2 of the Noise Specification. Synchronizing timing of rekey between
-    /// initiator and responder is the responsibility of the application, as described in
-    /// Section 11.3 of the Noise Specification.
+    /// Generates a new key for the egress symmetric cipher according to Section 4.2
+    /// of the Noise Specification. Synchronizing timing of rekey between initiator and
+    /// responder is the responsibility of the application, as described in Section 11.3
+    /// of the Noise Specification.
     ///
     /// # Errors
     ///
     /// Will result in `SnowError::State` if not in transport mode.
     #[must_use]
-    pub fn rekey_initiator(&mut self) -> Result<(), SnowError> {
+    pub fn rekey_outgoing(&mut self) -> Result<(), SnowError> {
         match *self {
             Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
             Session::Transport(ref mut state) => {
-                state.rekey_initiator();
+                state.rekey_outgoing();
                 Ok(())
             },
             Session::StatelessTransport(ref mut state) => {
-                state.rekey_initiator();
+                state.rekey_outgoing();
                 Ok(())
             },
         }
     }
 
-    /// Generates a new key for the the responder-egress symmetric cipher according to
-    /// Section 4.2 of the Noise Specification. Synchronizing timing of rekey between
-    /// initiator and responder is the responsibility of the application, as described in
-    /// Section 11.3 of the Noise Specification.
+    /// Generates a new key for the ingress symmetric cipher according to Section 4.2
+    /// of the Noise Specification. Synchronizing timing of rekey between initiator and
+    /// responder is the responsibility of the application, as described in Section 11.3
+    /// of the Noise Specification.
     ///
     /// # Errors
     ///
     /// Will result in `SnowError::State` if not in transport mode.
     #[must_use]
-    pub fn rekey_responder(&mut self) -> Result<(), SnowError> {
+    pub fn rekey_incoming(&mut self) -> Result<(), SnowError> {
         match *self {
             Session::Handshake(_) => bail!(StateProblem::HandshakeNotFinished),
             Session::Transport(ref mut state) => {
-                state.rekey_responder();
+                state.rekey_incoming();
                 Ok(())
             },
             Session::StatelessTransport(ref mut state) => {
-                state.rekey_responder();
+                state.rekey_incoming();
                 Ok(())
             },
         }
