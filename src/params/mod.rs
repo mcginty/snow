@@ -175,6 +175,12 @@ mod tests {
     }
 
     #[test]
+    fn test_basic_deferred() {
+        let p: NoiseParams = "Noise_X1X1_25519_AESGCM_SHA256".parse().unwrap();
+        assert!(p.handshake.modifiers.list.is_empty());
+    }
+
+    #[test]
     fn test_fallback_mod() {
         let p: NoiseParams = "Noise_XXfallback_25519_AESGCM_SHA256".parse().unwrap();
         assert!(p.handshake.modifiers.list[0] == HandshakeModifier::Fallback);
