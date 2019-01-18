@@ -11,7 +11,7 @@ use self::crypto::sha2::{Sha256, Sha512};
 use self::crypto::aes::KeySize;
 use self::crypto::aes_gcm::AesGcm;
 use self::crypto::aead::{AeadEncryptor, AeadDecryptor};
-use self::rand::{rngs::OsRng, RngCore};
+use self::rand::rngs::OsRng;
 use self::x25519_dalek as x25519;
 
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
@@ -30,7 +30,10 @@ pub struct DefaultResolver;
 
 impl CryptoResolver for DefaultResolver {
     fn resolve_rng(&self) -> Option<Box<Random>> {
-        Some(Box::new(RandomOs::default()))
+        match OsRng::new() {
+            Ok(rng) => Some(Box::new(rng)),
+            _       => None
+        }
     }
 
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh>> {
@@ -55,11 +58,6 @@ impl CryptoResolver for DefaultResolver {
             CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
         }
     }
-}
-
-/// A wrapper around the `rand` crate.
-struct RandomOs {
-    rng : OsRng
 }
 
 /// Wraps x25519-dalek.
@@ -101,17 +99,7 @@ struct HashBLAKE2s {
     hasher: Blake2s
 }
 
-impl Default for RandomOs {
-    fn default() -> RandomOs {
-        RandomOs {rng: OsRng::new().unwrap()}
-    }
-}
-
-impl Random for RandomOs {
-    fn fill_bytes(&mut self, out: &mut [u8]) {
-        self.rng.fill_bytes(out); 
-    }
-}
+impl Random for OsRng {}
 
 impl Dh for Dh25519 {
 
@@ -130,14 +118,12 @@ impl Dh for Dh25519 {
 
     fn set(&mut self, privkey: &[u8]) {
         copy_slices!(privkey, &mut self.privkey);
-        let pubkey = x25519::generate_public(&self.privkey);
-        copy_slices!(pubkey.as_bytes(), &mut self.pubkey);
+        self.pubkey = x25519::x25519(self.privkey, x25519::X25519_BASEPOINT_BYTES);
     }
 
     fn generate(&mut self, rng: &mut Random) {
         rng.fill_bytes(&mut self.privkey);
-        let pubkey = x25519::generate_public(&self.privkey);
-        copy_slices!(pubkey.as_bytes(), &mut self.pubkey);
+        self.pubkey = x25519::x25519(self.privkey, x25519::X25519_BASEPOINT_BYTES);
     }
 
     fn pubkey(&self) -> &[u8] {
@@ -149,7 +135,7 @@ impl Dh for Dh25519 {
     }
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()> {
-        let result = x25519::diffie_hellman(&self.privkey, array_ref![pubkey, 0, 32]);
+        let result = x25519::x25519(self.privkey, *array_ref![pubkey, 0, 32]);
         copy_slices!(&result, out);
         Ok(())
     }

@@ -46,8 +46,8 @@ impl CryptoResolver for HaclStarResolver {
 
 #[derive(Default)]
 struct Dh25519 {
-    privkey: SecretKey,
-    pubkey:  PublicKey,
+    privkey: Option<SecretKey>,
+    pubkey:  Option<PublicKey>,
 }
 
 #[derive(Default)]
@@ -80,27 +80,30 @@ impl Dh for Dh25519 {
     }
 
     fn set(&mut self, privkey: &[u8]) {
-        copy_slices!(privkey, &mut self.privkey.0); /* RUSTSUCKS: Why can't I convert slice -> array? */
-        self.pubkey = self.privkey.get_public();
+        let mut sized_privkey = [0u8; 32];
+        copy_slices!(privkey, &mut sized_privkey);
+        let privkey = curve25519::SecretKey(sized_privkey);
+        let pubkey = privkey.get_public();
+        self.privkey = Some(privkey);
+        self.pubkey = Some(pubkey);
     }
 
     fn generate(&mut self, rng: &mut Random) {
-        rng.fill_bytes(&mut self.privkey.0);
-        self.pubkey = self.privkey.get_public();
+        curve25519::keypair(rng, &mut self.privkey, &mut self.pubkey);
     }
 
     fn pubkey(&self) -> &[u8] {
-        &self.pubkey.0
+        &self.pubkey.as_ref().unwrap().0
     }
 
     fn privkey(&self) -> &[u8] {
-        &self.privkey.0
+        &self.privkey.as_ref().unwrap().0
     }
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()> {
         let out = array_mut_ref!(out, 0, 32);
         let pubkey = array_ref!(pubkey, 0, 32);
-        curve25519::scalarmult(out, &self.privkey.0, pubkey);
+        curve25519::scalarmult(out, &self.privkey.as_ref().unwrap().0, pubkey);
         Ok(())
     }
 
@@ -123,7 +126,7 @@ impl Cipher for CipherChaChaPoly {
         let tag = array_mut_ref!(tag, 0, chacha20poly1305::MAC_LENGTH);
         copy_slices!(plaintext, out);
 
-        chacha20poly1305::Key(&self.key)
+        chacha20poly1305::key(&self.key)
             .nonce(&nonce_bytes)
             .encrypt(authtext, out, tag);
 
@@ -140,7 +143,7 @@ impl Cipher for CipherChaChaPoly {
         let len = ciphertext.len();
         copy_slices!(ciphertext, out);
 
-        if chacha20poly1305::Key(&self.key)
+        if chacha20poly1305::key(&self.key)
             .nonce(&nonce_bytes)
             .decrypt(authtext, &mut out[..len], tag)
         {
@@ -248,7 +251,7 @@ mod tests {
     // Curve25519 test - draft-curves-10
         let mut keypair:Dh25519 = Default::default();
         let scalar = Vec::<u8>::from_hex("a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4").unwrap();
-        copy_slices!(&scalar, &mut keypair.privkey.0);
+        keypair.privkey = Some(curve25519::secretkey(array_ref!(scalar, 0, 32)).clone());
         let public = Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c").unwrap();
         let mut output = [0u8; 32];
         keypair.dh(&public, &mut output).unwrap();

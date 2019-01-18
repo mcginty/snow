@@ -3,6 +3,7 @@
 extern crate hex;
 extern crate snow;
 extern crate x25519_dalek;
+extern crate rand_core;
 
 use hex::FromHex;
 use snow::{Builder, resolvers::{CryptoResolver, DefaultResolver}};
@@ -10,32 +11,32 @@ use snow::error::*;
 use snow::params::*;
 use snow::types::*;
 use x25519_dalek as x25519;
-
-struct RandomInc {
-    next_byte: u8
-}
-
-impl Default for RandomInc {
-
-    fn default() -> RandomInc {
-        RandomInc {next_byte: 0}
+use rand_core::{CryptoRng, RngCore, Error, impls};
+ 
+ #[derive(Default)]
+struct CountingRng(u64);
+ 
+impl RngCore for CountingRng {
+    fn next_u32(&mut self) -> u32 {
+        self.next_u64() as u32
+    }
+     
+    fn next_u64(&mut self) -> u64 {
+        self.0 += 1;
+        self.0
+    }
+     
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        impls::fill_bytes_via_next(self, dest)
+    }
+     
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
+        Ok(self.fill_bytes(dest))
     }
 }
 
-impl Random for RandomInc {
-
-    fn fill_bytes(&mut self, out: &mut [u8]) {
-        for count in 0..out.len() {
-            out[count] = self.next_byte;
-            if self.next_byte == 255 {
-                self.next_byte = 0;
-            }
-            else {
-                self.next_byte += 1;
-            }
-        }
-    }
-}
+impl CryptoRng for CountingRng {}
+impl Random for CountingRng {}
 
 fn get_inc_key(start: u8) -> [u8; 32] {
     let mut k = [0u8; 32];
@@ -64,8 +65,7 @@ impl TestResolver {
 
 impl CryptoResolver for TestResolver {
     fn resolve_rng(&self) -> Option<Box<Random>> {
-        let mut rng = RandomInc::default();
-        rng.next_byte = self.next_byte;
+        let rng = CountingRng(self.next_byte as u64);
         Some(Box::new(rng))
     }
 
@@ -154,7 +154,7 @@ fn test_sanity_session() {
 fn test_Npsk0_expected_value() {
     let params: NoiseParams = "Noise_Npsk0_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params)
-        .remote_public_key(x25519::generate_public(&get_inc_key(0)).as_bytes())
+        .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator().unwrap();
@@ -175,7 +175,7 @@ fn test_Xpsk0_expected_value() {
     let params: NoiseParams = "Noise_Xpsk0_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params)
         .local_private_key(&get_inc_key(0))
-        .remote_public_key(x25519::generate_public(&get_inc_key(32)).as_bytes())
+        .remote_public_key(&x25519::x25519(get_inc_key(32), x25519::X25519_BASEPOINT_BYTES))
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(64))
         .build_initiator().unwrap();
@@ -196,14 +196,14 @@ fn test_XXpsk0_expected_value() {
     let params: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
         .local_private_key(&get_inc_key(0))
-        .remote_public_key(x25519::generate_public(&get_inc_key(1)).as_bytes())
+        .remote_public_key(&x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES))
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator().unwrap();
     let mut h_r = Builder::new(params)
         .local_private_key(&get_inc_key(1))
-        .remote_public_key(x25519::generate_public(&get_inc_key(0)).as_bytes())
+        .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(33))
@@ -598,15 +598,15 @@ fn test_get_remote_static() {
     let len = h_r.write_message(&[], &mut buf).unwrap();
     let _   = h_i.read_message(&buf[..len], &mut buf2).unwrap();
 
-    assert_eq!(h_i.get_remote_static().unwrap(), x25519::generate_public(&get_inc_key(1)).as_bytes());
+    assert_eq!(h_i.get_remote_static().unwrap(), &x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES));
     assert!(h_r.get_remote_static().is_none());
 
     // -> s, se
     let len = h_i.write_message(&[], &mut buf).unwrap();
     let _   = h_r.read_message(&buf[..len], &mut buf2).unwrap();
 
-    assert_eq!(h_i.get_remote_static().unwrap(), x25519::generate_public(&get_inc_key(1)).as_bytes());
-    assert_eq!(h_r.get_remote_static().unwrap(), x25519::generate_public(&get_inc_key(0)).as_bytes());
+    assert_eq!(h_i.get_remote_static().unwrap(), &x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES));
+    assert_eq!(h_r.get_remote_static().unwrap(), &x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES));
 }
 
 #[test]

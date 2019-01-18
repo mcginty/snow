@@ -4,13 +4,16 @@ description = "A pure-rust implementation of the Noise Protocol Framework"
 homepage = "https://snow.rs"
 documentation = "https://snow.rs/doc/snow"
 repository = "https://github.com/mcginty/snow"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Jake McGinty <me@jake.su>", "trevp"]
 license = "Unlicense"
 categories = ["cryptography"]
 readme = "README.md"
 keywords = ["noise", "protocol", "crypto"]
 
+# This is slightly mumbo-jumboey, but in short:
+# Features with a -resolver suffix simply enables the existence of a specific resolver,
+# and -accelerated suffix means that this resolver will be the default used by the Builder.
 [features]
 default = ["default-resolver"]
 nightly = ["blake2-rfc/simd_opt", "chacha20-poly1305-aead/simd_opt", "x25519-dalek/nightly"]
@@ -34,25 +37,26 @@ arrayref = "^0.3"
 byteorder = "^1.2"
 failure = "^0.1"
 failure_derive = "^0.1"
+rand_core = "^0.3"
 smallvec = "^0.6.3"
 static_slice = "0.0.3"
 
 chacha20-poly1305-aead = { version = "^0.1", optional = true }
 blake2-rfc = { version = "^0.2", optional = true }
 rust-crypto = { version = "^0.2", optional = true }
-hacl-star = { version = "=0.0.11", optional = true }
+hacl-star = { version = "0.0.13", optional = true }
 rand = { version = "^0.6", optional = true }
-ring = { version = "^0.13.0", optional = true }
-x25519-dalek = { version = "^0.3", optional = true, default-features = false, features = ["std", "u64_backend"] }
+ring = { version = "^0.14.0", optional = true }
+x25519-dalek = { version = "^0.4", optional = true, default-features = false, features = ["std", "u64_backend"] }
 
 [dev-dependencies]
-clap = "^2.0"
+clap = "^2"
 criterion = "0.2"
 serde = "^1.0"
 serde_json = "^1.0"
 serde_derive = "^1.0"
 hex = "^0.3"
-lazy_static = "^1.0"
+lazy_static = "^1.2"
 
 [build-dependencies]
 rustc_version = "^0.2"

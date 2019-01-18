@@ -64,6 +64,7 @@ extern crate arrayref;
 extern crate byteorder;
 extern crate failure;
 extern crate smallvec;
+extern crate rand_core;
 
 #[macro_use]
 pub mod error;
