@@ -523,4 +523,3 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
         })
     }
 }
-
