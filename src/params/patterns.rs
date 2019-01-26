@@ -28,7 +28,7 @@ pub(crate) enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
 /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum HandshakePattern { N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX }
+pub enum HandshakePattern { N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX,NK1, NX1, X1N, X1K, XK1, X1K1, X1X, XX1, X1X1, K1N, K1K, KK1, K1K1, K1X, KX1, K1X1, I1N, I1K, IK1, I1K1, I1X, IX1, I1X1 }
 
 impl HandshakePattern {
     /// If the protocol is one-way only
@@ -45,12 +45,12 @@ impl HandshakePattern {
     pub fn needs_local_static_key(self, initiator: bool) -> bool {
         if initiator {
             match self {
-                N | NN | NK | NX => false,
+                N | NN | NK | NX | NK1 | NX1 => false,
                 _ => true
             }
         } else {
             match self {
-                NN | XN | KN | IN => false,
+                NN | XN | KN | IN | X1N | K1N | I1N => false,
                 _ => true
             }
         }
@@ -60,12 +60,12 @@ impl HandshakePattern {
     pub fn need_known_remote_pubkey(self, initiator: bool) -> bool {
         if initiator {
             match self {
-                N | K | X | NK | XK | KK | IK => true,
+                N | K | X | NK | XK | KK | IK | NK1 | X1K | XK1 | X1K1 | K1K | KK1 | K1K1 | I1K | IK1 | I1K1 => true,
                 _ => false
             }
         } else {
             match self {
-                K | KN | KK | KX => true,
+                K | KN | KK | KX | K1N | K1K | KK1 | K1K1 | K1X | KX1 | K1X1 => true,
                 _ => false,
             }
         }
@@ -153,22 +153,39 @@ impl HandshakeChoice {
     }
 }
 
+// This function tries to parse a HandshakePattern from a string
+fn try_parse_pattern(s: &str) -> Result<(HandshakePattern, &str), SnowError> {
+
+    // The control flow here tries to parse a string until it hits a match.
+    // The order matters, and it has to be from longer length to smaller length.
+    // This is because, for example, the string "XX1" will give a valid but wrong
+    // pattern if it is first tested for a length of 2 before a length of 3.
+    if s.len() > 3 {
+        if let Ok(p) = (&s[..4]).parse() {
+            return Ok((p, &s[4..]));
+        }
+    }
+    if s.len() > 2 {
+        if let Ok(p) = (&s[..3]).parse() {
+            return Ok((p, &s[3..]));
+        }
+    }
+    if s.len() > 1 {
+        if let Ok(p) = (&s[..2]).parse() {
+            return Ok((p, &s[2..]));
+        }
+    }
+    if let Ok(p) = (&s[..1]).parse() {
+        return Ok((p, &s[1..]));
+    }
+
+    bail!(PatternProblem::UnsupportedHandshakeType);
+}
+
 impl FromStr for HandshakeChoice {
     type Err = SnowError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (pattern, remainder);
-        if s.len() > 1 {
-            if let Ok(p) = (&s[..2]).parse() {
-                pattern = p;
-                remainder = &s[2..];
-            } else {
-                pattern = (&s[..1]).parse()?;
-                remainder = &s[1..];
-            }
-        } else {
-            pattern = (&s[..1]).parse()?;
-            remainder = &s[1..];
-        }
+        let (pattern, remainder) = try_parse_pattern(s)?;
 
         Ok(HandshakeChoice {
             pattern,
@@ -197,6 +214,29 @@ impl FromStr for HandshakePattern {
             "IN" => Ok(IN),
             "IK" => Ok(IK),
             "IX" => Ok(IX),
+            "NK1" => Ok(NK1),
+            "NX1" => Ok(NX1),
+            "X1N" => Ok(X1N),
+            "X1K" => Ok(X1K),
+            "XK1" => Ok(XK1),
+            "X1K1" => Ok(X1K1),
+            "X1X" => Ok(X1X),
+            "XX1" => Ok(XX1),
+            "X1X1" => Ok(X1X1),
+            "K1N" => Ok(K1N),
+            "K1K" => Ok(K1K),
+            "KK1" => Ok(KK1),
+            "K1K1" => Ok(K1K1),
+            "K1X" => Ok(K1X),
+            "KX1" => Ok(KX1),
+            "K1X1" => Ok(K1X1),
+            "I1N" => Ok(I1N),
+            "I1K" => Ok(I1K),
+            "IK1" => Ok(IK1),
+            "I1K1" => Ok(I1K1),
+            "I1X" => Ok(I1X),
+            "IX1" => Ok(IX1),
+            "I1X1" => Ok(I1X1),
             _    => bail!(PatternProblem::UnsupportedHandshakeType)
         }
     }
@@ -222,6 +262,29 @@ impl HandshakePattern {
             IN => "IN",
             IK => "IK",
             IX => "IX",
+            NK1  => "NK1",
+            NX1  => "NX1",
+            X1N  => "X1N",
+            X1K  => "X1K",
+            XK1  => "XK1",
+            X1K1 => "X1K1",
+            X1X  => "X1X",
+            XX1  => "XX1",
+            X1X1 => "X1X1",
+            K1N  => "K1N",
+            K1K  => "K1K",
+            KK1  => "KK1",
+            K1K1 => "K1K1",
+            K1X  => "K1X",
+            KX1  => "KX1",
+            K1X1 => "K1X1",
+            I1N  => "I1N",
+            I1K  => "I1K",
+            IK1  => "IK1",
+            I1K1 => "I1K1",
+            I1X  => "I1X",
+            IX1  => "IX1",
+            I1X1 => "I1X1",
         }
     }
 }
@@ -323,6 +386,121 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
                 static_slice![Token: ],
                 static_slice![Token: ],
                 message_vec![&[E, S], &[E, Dhee, Dhes, S, Dhse]],
+            ),
+            NK1 => (
+                static_slice![Token: ],
+                static_slice![Token: S],
+                message_vec![&[E], &[E, Dhee, Dhse]],
+            ),
+            NX1 => (
+                static_slice![Token: ],
+                static_slice![Token: ],
+                message_vec![&[E], &[E, Dhee, S], &[Dhes]]
+            ),
+            X1N => (
+                static_slice![Token: ],
+                static_slice![Token: ],
+                message_vec![&[E], &[E, Dhee], &[S], &[Dhes]]
+            ),
+            X1K => (
+                static_slice![Token: ],
+                static_slice![Token: S],
+                message_vec![&[E, Dhes], &[E, Dhee], &[S], &[Dhes]]
+            ),
+            XK1 => (
+                static_slice![Token: ],
+                static_slice![Token: S],
+                message_vec![&[E], &[E, Dhee, Dhse], &[S, Dhse]]
+            ),
+            X1K1 => (
+                static_slice![Token: ],
+                static_slice![Token: S],
+                message_vec![&[E], &[E, Dhee, Dhse], &[S], &[Dhes]]
+            ),
+            X1X => (
+                static_slice![Token: ],
+                static_slice![Token: ],
+                message_vec![&[E], &[E, Dhee, S, Dhse], &[S], &[Dhes]],
+            ),
+            XX1 => (
+                static_slice![Token: ],
+                static_slice![Token: ],
+                message_vec![&[E], &[E, Dhee, S], &[Dhes, S, Dhse]],
+            ),
+            X1X1 => (
+                static_slice![Token: ],
+                static_slice![Token: ],
+                message_vec![&[E], &[E, Dhee, S], &[Dhes, S], &[Dhes]],
+            ),
+            K1N => (
+                static_slice![Token: S],
+                static_slice![Token: ],
+                message_vec![&[E], &[E, Dhee], &[Dhse]],
+            ),
+            K1K => (
+                static_slice![Token: S],
+                static_slice![Token: S],
+                message_vec![&[E, Dhes], &[E, Dhee], &[Dhse]],
+            ),
+            KK1 => (
+                static_slice![Token: S],
+                static_slice![Token: S],
+                message_vec![&[E], &[E, Dhee, Dhes, Dhse]],
+            ),
+            K1K1 => (
+                static_slice![Token: S],
+                static_slice![Token: S],
+                message_vec![&[E], &[E, Dhee, Dhse], &[Dhse]],
+            ),
+            K1X => (
+                static_slice![Token: S],
+                static_slice![Token: ],
+                message_vec![&[E], &[E, Dhee, S, Dhse], &[Dhse]],
+            ),
+            KX1 => (
+                static_slice![Token: S],
+                static_slice![Token: ],
+                message_vec![&[E], &[E, Dhee, Dhes, S], &[Dhes]],
+            ),
+            K1X1 => (
+                static_slice![Token: S],
+                static_slice![Token: ],
+                message_vec![&[E], &[E, Dhee, S], &[Dhse, Dhes]],
+            ),
+            I1N => (
+                static_slice![Token: ],
+                static_slice![Token: ],
+                message_vec![&[E, S], &[E, Dhee], &[Dhse]],
+            ),
+            I1K => (
+                static_slice![Token: ],
+                static_slice![Token: S],
+                message_vec![&[E, Dhes, S], &[E, Dhee], &[Dhse]],
+            ),
+            IK1 => (
+                static_slice![Token: ],
+                static_slice![Token: S],
+                message_vec![&[E, S], &[E, Dhee, Dhes, Dhse]],
+            ),
+            I1K1 => (
+                static_slice![Token: ],
+                static_slice![Token: S],
+                message_vec![&[E, S], &[E, Dhee, Dhse], &[Dhse]],
+            ),
+            I1X => (
+                static_slice![Token: ],
+                static_slice![Token: ],
+                message_vec![&[E, S], &[E, Dhee, S, Dhse], &[Dhse]],
+            ),
+            IX1 => (
+                static_slice![Token: ],
+                static_slice![Token: ],
+                message_vec![&[E, S], &[E, Dhee, Dhes, S], &[Dhes]],
+            ),
+            I1X1 => (
+                static_slice![Token: ],
+                static_slice![Token: ],
+                message_vec![&[E, S], &[E, Dhee, S], &[Dhse, Dhes]],
             ),
         };
 
