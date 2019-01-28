@@ -40,9 +40,8 @@ See the full documentation at [https://docs.rs/snow](https://docs.rs/snow).
 
 Snow is currently tracking against [Noise spec revision 34](https://noiseprotocol.org/noise_rev34.html).
 
-However, a few features have yet to be implemented (pull requests welcome):
+However, a not all features have been implemented yet (pull requests welcome):
 
-- [ ] [Deferred patterns](https://noiseprotocol.org/noise_rev34.html#interactive-handshake-patterns-deferred)
 - [ ] [The `fallback` modifier](https://noiseprotocol.org/noise_rev34.html#the-fallback-modifier)
 
 ## Crypto
