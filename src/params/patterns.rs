@@ -28,7 +28,17 @@ pub(crate) enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
 /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum HandshakePattern { N, X, K, NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX,NK1, NX1, X1N, X1K, XK1, X1K1, X1X, XX1, X1X1, K1N, K1K, KK1, K1K1, K1X, KX1, K1X1, I1N, I1K, IK1, I1K1, I1X, IX1, I1X1 }
+pub enum HandshakePattern {
+    // 7.4. One-way handshake patterns
+    N, X, K,
+
+    // 7.5. Interactive handshake patterns (fundamental)
+    NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX,
+
+    // 7.6. Interactive handshake patterns (deferred)
+    NK1, NX1, X1N, X1K, XK1, X1K1, X1X, XX1, X1X1, K1N, K1K, KK1, K1K1, K1X,
+    KX1, K1X1, I1N, I1K, IK1, I1K1, I1X, IX1, I1X1
+}
 
 impl HandshakePattern {
     /// If the protocol is one-way only
@@ -60,12 +70,14 @@ impl HandshakePattern {
     pub fn need_known_remote_pubkey(self, initiator: bool) -> bool {
         if initiator {
             match self {
-                N | K | X | NK | XK | KK | IK | NK1 | X1K | XK1 | X1K1 | K1K | KK1 | K1K1 | I1K | IK1 | I1K1 => true,
+                N | K | X | NK | XK | KK | IK | NK1 | X1K | XK1 | X1K1
+                  | K1K | KK1 | K1K1 | I1K | IK1 | I1K1 => true,
                 _ => false
             }
         } else {
             match self {
-                K | KN | KK | KX | K1N | K1K | KK1 | K1K1 | K1X | KX1 | K1X1 => true,
+                K | KN | KK | KX | K1N | K1K | KK1 | K1K1 | K1X | KX1
+                  | K1X1 => true,
                 _ => false,
             }
         }
@@ -151,45 +163,30 @@ impl HandshakeChoice {
         }
         false
     }
-}
 
-// This function tries to parse a HandshakePattern from a string
-fn try_parse_pattern(s: &str) -> Result<(HandshakePattern, &str), SnowError> {
+    /// Parse and split a base HandshakePattern from its optional modifiers
+    fn parse_pattern_and_modifier(s: &str) -> Result<(HandshakePattern, &str), SnowError> {
+        for i in (1..=4).rev() {
+            if s.len() > i-1 {
+                if let Ok(p) = (&s[..i]).parse() {
+                    return Ok((p, &s[i..]));
+                }
+            }
+        }
 
-    // The control flow here tries to parse a string until it hits a match.
-    // The order matters, and it has to be from longer length to smaller length.
-    // This is because, for example, the string "XX1" will give a valid but wrong
-    // pattern if it is first tested for a length of 2 before a length of 3.
-    if s.len() > 3 {
-        if let Ok(p) = (&s[..4]).parse() {
-            return Ok((p, &s[4..]));
-        }
+        bail!(PatternProblem::UnsupportedHandshakeType);
     }
-    if s.len() > 2 {
-        if let Ok(p) = (&s[..3]).parse() {
-            return Ok((p, &s[3..]));
-        }
-    }
-    if s.len() > 1 {
-        if let Ok(p) = (&s[..2]).parse() {
-            return Ok((p, &s[2..]));
-        }
-    }
-    if let Ok(p) = (&s[..1]).parse() {
-        return Ok((p, &s[1..]));
-    }
-
-    bail!(PatternProblem::UnsupportedHandshakeType);
 }
 
 impl FromStr for HandshakeChoice {
     type Err = SnowError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (pattern, remainder) = try_parse_pattern(s)?;
+        let (pattern, remainder) = Self::parse_pattern_and_modifier(s)?;
+        let modifiers = remainder.parse()?;
 
         Ok(HandshakeChoice {
             pattern,
-            modifiers: remainder.parse()?
+            modifiers,
         })
     }
 }
