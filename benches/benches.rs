@@ -10,7 +10,6 @@ extern crate x25519_dalek;
 use criterion::{Benchmark, Criterion, Throughput};
 use snow::*;
 use snow::params::*;
-use rand::OsRng;
 
 const MSG_SIZE: usize = 4096;
 
@@ -32,27 +31,21 @@ fn benchmarks(c: &mut Criterion) {
     }).throughput(Throughput::Elements(1)));
 
     c.bench("builder", Benchmark::new("withkey", |b| {
-        let mut rng = OsRng::new().unwrap();
-        let i_priv = x25519_dalek::generate_secret(&mut rng);
         b.iter(move || {
             Builder::new("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap())
-                    .local_private_key(&i_priv)
+                    .local_private_key(&[1u8; 32])
                     .build_initiator().unwrap();
         });
     }).throughput(Throughput::Elements(1)));
 
     c.bench("handshake", Benchmark::new("xx", |b| {
-        let mut rng = OsRng::new().unwrap();
-        let i_priv = x25519_dalek::generate_secret(&mut rng);
-        let r_priv = x25519_dalek::generate_secret(&mut rng);
-
         b.iter(move || {
             let pattern: NoiseParams = "Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap();
             let mut h_i = Builder::new(pattern.clone())
-                .local_private_key(&i_priv)
+                .local_private_key(&[1u8; 32])
                 .build_initiator().unwrap();
             let mut h_r = Builder::new(pattern)
-                .local_private_key(&r_priv)
+                .local_private_key(&[2u8; 32])
                 .build_responder().unwrap();
 
             let mut buffer_msg = [0u8; MSG_SIZE * 2];
