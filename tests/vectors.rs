@@ -13,6 +13,7 @@ use serde::ser::{Serialize, Serializer};
 use std::ops::Deref;
 use failure::Error;
 use hex::FromHex;
+use rand::RngCore;
 use snow::{Builder, Keypair, Session};
 use snow::params::*;
 use std::fmt;
@@ -98,22 +99,51 @@ impl fmt::Debug for TestMessage {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct TestVector {
-    #[serde(skip_serializing_if="Option::is_none")] name: Option<String>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    name: Option<String>,
+
     protocol_name: String,
-    #[serde(skip_serializing_if="Option::is_none")] hybrid: Option<String>,
-    #[serde(skip_serializing_if="Option::is_none")] fail: Option<bool>,
-    #[serde(skip_serializing_if="Option::is_none")] fallback: Option<bool>,
-    #[serde(skip_serializing_if="Option::is_none")] fallback_pattern: Option<String>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    hybrid: Option<String>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    fail: Option<bool>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    fallback: Option<bool>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    fallback_pattern: Option<String>,
+
     init_prologue: HexBytes,
-    #[serde(skip_serializing_if="Option::is_none")] init_psks: Option<Vec<HexBytes>>,
-    #[serde(skip_serializing_if="Option::is_none")] init_static: Option<HexBytes>,
-    #[serde(skip_serializing_if="Option::is_none")] init_ephemeral: Option<HexBytes>,
-    #[serde(skip_serializing_if="Option::is_none")] init_remote_static: Option<HexBytes>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    init_psks: Option<Vec<HexBytes>>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    init_static: Option<HexBytes>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    init_ephemeral: Option<HexBytes>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    init_remote_static: Option<HexBytes>,
+
     resp_prologue: HexBytes,
-    #[serde(skip_serializing_if="Option::is_none")] resp_psks: Option<Vec<HexBytes>>,
-    #[serde(skip_serializing_if="Option::is_none")] resp_static: Option<HexBytes>,
-    #[serde(skip_serializing_if="Option::is_none")] resp_ephemeral: Option<HexBytes>,
-    #[serde(skip_serializing_if="Option::is_none")] resp_remote_static: Option<HexBytes>,
+    #[serde(skip_serializing_if="Option::is_none")]
+
+    resp_psks: Option<Vec<HexBytes>>,
+    #[serde(skip_serializing_if="Option::is_none")]
+
+    resp_static: Option<HexBytes>,
+    #[serde(skip_serializing_if="Option::is_none")]
+
+    resp_ephemeral: Option<HexBytes>,
+    #[serde(skip_serializing_if="Option::is_none")]
+
+    resp_remote_static: Option<HexBytes>,
+
     messages: Vec<TestMessage>,
 }
 
@@ -257,25 +287,20 @@ fn test_vectors_from_json(json: &str) {
 }
 
 fn random_vec(size: usize) -> Vec<u8> {
-    let mut v = Vec::with_capacity(size);
-    for _ in 0..size {
-        v.push(rand::random());
-    }
+    let mut v = vec![0u8; size];
+    let mut rng = rand::thread_rng();
+    rng.fill_bytes(&mut v);
     v
 }
 
 fn get_psks_count(params: &NoiseParams) -> usize {
-    let mut count = 0;
-    for modifier in &params.handshake.modifiers.list {
-        if let &HandshakeModifier::Psk(_) = modifier {
-            count += 1;
-        }
-    }
-    count
+    params.handshake.modifiers.list.iter()
+        .filter(|m| if let HandshakeModifier::Psk(_) = m { true } else { false })
+        .count()
 }
 
-fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
-    let prologue = "There is no right and wrong. There's only fun and boring.".as_bytes().to_vec();
+fn generate_vector(params: NoiseParams) -> TestVector {
+    let prologue = b"There is no right and wrong. There's only fun and boring.".to_vec();
     let mut psks = vec![];
     let mut psks_hex = vec![];
 
@@ -393,8 +418,11 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
     }
 }
 
-fn generate_multipsk_vector_set() -> TestVectors {
-    let handshakes = vec!["NNpsk0+psk2",
+fn generate_vector_set() -> TestVectors {
+    let mut handshakes = SUPPORTED_HANDSHAKE_PATTERNS.iter()
+        .map(|p| p.as_str())
+        .collect::<Vec<&'static str>>();
+    handshakes.extend_from_slice(&["NNpsk0+psk2",
                           "NXpsk0+psk1+psk2",
                           "XNpsk1+psk3",
                           "XKpsk0+psk3",
@@ -403,7 +431,7 @@ fn generate_multipsk_vector_set() -> TestVectors {
                           "INpsk1+psk2",
                           "IKpsk0+psk2",
                           "IXpsk0+psk2",
-                          "XXpsk0+psk1", "XXpsk0+psk2", "XXpsk0+psk3", "XXpsk0+psk1+psk2+psk3"];
+                          "XXpsk0+psk1", "XXpsk0+psk2", "XXpsk0+psk3", "XXpsk0+psk1+psk2+psk3"]);
     let ciphers = vec!["ChaChaPoly", "AESGCM"];
     let hashes = vec!["BLAKE2s", "BLAKE2b", "SHA256", "SHA512"];
 
@@ -413,7 +441,8 @@ fn generate_multipsk_vector_set() -> TestVectors {
         for cipher in &ciphers {
             for hash in &hashes {
                 let protocol_name = format!("Noise_{}_25519_{}_{}", handshake, cipher, hash);
-                vectors.push(generate_multipsk_vector(protocol_name.parse().unwrap()));
+                let protocol = protocol_name.parse().unwrap();
+                vectors.push(generate_vector(protocol));
             }
         }
     }
@@ -432,12 +461,12 @@ fn test_vectors_cacophony() {
 }
 
 #[test]
-fn test_vectors_snow_multipsk() {
-    let file = OpenOptions::new().write(true).create_new(true).open("tests/vectors/snow-multipsk.txt");
+fn test_vectors_snow() {
+    let file = OpenOptions::new().write(true).create_new(true).open("tests/vectors/snow.txt");
     if let Ok(mut file) = file {
-        serde_json::to_writer_pretty(&mut file, &generate_multipsk_vector_set()).unwrap();
+        serde_json::to_writer_pretty(&mut file, &generate_vector_set()).unwrap();
     }
-    let mut file = File::open("tests/vectors/snow-multipsk.txt").unwrap();
+    let mut file = File::open("tests/vectors/snow.txt").unwrap();
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
     test_vectors_from_json(&contents);
