@@ -10,8 +10,7 @@
 An implementation of Trevor Perrin's [Noise Protocol](https://noiseprotocol.org/) that is designed to be
 Hard To Fuck Up™.
 
-🔥 **Warning** 🔥 This library has not received any formal audit, and its API is subject to change whenever it's
-prudent to or if the winds blow at the right heading.
+🔥 **Warning** 🔥 This library has not received any formal audit.
 
 ## What's it look like?
 See `examples/simple.rs` for a more complete TCP client/server example.
