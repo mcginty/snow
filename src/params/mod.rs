@@ -17,12 +17,13 @@ pub use self::patterns::{
     HandshakeChoice,
     HandshakeModifier,
     HandshakePattern,
+    SUPPORTED_HANDSHAKE_PATTERNS,
 };
 
 pub(crate) use self::patterns::{
     HandshakeTokens,
     MessagePatterns,
-    Token
+    Token,
 };
 
 /// I recommend you choose `Noise`.

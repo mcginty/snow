@@ -4,6 +4,8 @@ use error::{SnowError, PatternProblem};
 use std::str::FromStr;
 use smallvec::SmallVec;
 
+/// A small helper macro that behaves similar to the `vec![]` standard macro,
+/// except it uses `SmallVec` to avoid heap allocations.
 macro_rules! message_vec {
     ($($item:expr),*) => ({
         let token_groups: &[&[Token]] = &[$($item),*];
@@ -17,6 +19,60 @@ macro_rules! message_vec {
     });
 }
 
+/// This macro is specifically a helper to generate the enum of all handshake
+/// patterns in a less error-prone way.
+///
+/// While rust macros can be really difficult to read, it felt too sketchy to hand-
+/// write a growing list of str -> enum variant match statements.
+macro_rules! pattern_enum {
+    // NOTE: see https://danielkeep.github.io/tlborm/book/mbe-macro-rules.html and
+    // https://doc.rust-lang.org/rust-by-example/macros.html for a great overview
+    // of `macro_rules!`.
+    ($name:ident {
+        $($variant:ident),* $(,)*
+    }) => {
+        /// One of the patterns as defined in the
+        /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns)
+        /// section.
+        #[allow(missing_docs)]
+        #[derive(Copy, Clone, PartialEq, Debug)]
+        pub enum $name {
+            $($variant),*,
+        }
+
+        impl FromStr for $name {
+            type Err = SnowError;
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                use self::$name::*;
+                match s {
+                    $(
+                        stringify!($variant) => Ok($variant)
+                    ),
+                    *,
+                    _    => bail!(PatternProblem::UnsupportedHandshakeType)
+                }
+            }
+        }
+
+        impl $name {
+            /// The equivalent of the `ToString` trait, but for `&'static str`.
+            pub fn as_str(self) -> &'static str {
+                use self::$name::*;
+                match self {
+                    $(
+                        $variant => stringify!($variant)
+                    ),
+                    *
+                }
+            }
+        }
+
+        #[doc(hidden)]
+        pub const SUPPORTED_HANDSHAKE_PATTERNS: &'static [$name] = &[$($name::$variant),*];
+    }
+}
+
+
 /// The tokens which describe message patterns.
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
@@ -24,20 +80,19 @@ macro_rules! message_vec {
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub(crate) enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
 
-/// One of the patterns as defined in the
-/// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns) section
-#[allow(missing_docs)]
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum HandshakePattern {
-    // 7.4. One-way handshake patterns
-    N, X, K,
+// See the documentation in the macro above.
+pattern_enum! {
+    HandshakePattern {
+        // 7.4. One-way handshake patterns
+        N, X, K,
 
-    // 7.5. Interactive handshake patterns (fundamental)
-    NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX,
+        // 7.5. Interactive handshake patterns (fundamental)
+        NN, NK, NX, XN, XK, XX, KN, KK, KX, IN, IK, IX,
 
-    // 7.6. Interactive handshake patterns (deferred)
-    NK1, NX1, X1N, X1K, XK1, X1K1, X1X, XX1, X1X1, K1N, K1K, KK1, K1K1, K1X,
-    KX1, K1X1, I1N, I1K, IK1, I1K1, I1X, IX1, I1X1
+        // 7.6. Interactive handshake patterns (deferred)
+        NK1, NX1, X1N, X1K, XK1, X1K1, X1X, XX1, X1X1, K1N, K1K, KK1, K1K1, K1X,
+        KX1, K1X1, I1N, I1K, IK1, I1K1, I1X, IX1, I1X1
+    }
 }
 
 impl HandshakePattern {
@@ -188,101 +243,6 @@ impl FromStr for HandshakeChoice {
             pattern,
             modifiers,
         })
-    }
-}
-
-impl FromStr for HandshakePattern {
-    type Err = SnowError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use self::HandshakePattern::*;
-        match s {
-            "N" => Ok(N),
-            "X" => Ok(X),
-            "K" => Ok(K),
-            "NN" => Ok(NN),
-            "NK" => Ok(NK),
-            "NX" => Ok(NX),
-            "XN" => Ok(XN),
-            "XK" => Ok(XK),
-            "XX" => Ok(XX),
-            "KN" => Ok(KN),
-            "KK" => Ok(KK),
-            "KX" => Ok(KX),
-            "IN" => Ok(IN),
-            "IK" => Ok(IK),
-            "IX" => Ok(IX),
-            "NK1" => Ok(NK1),
-            "NX1" => Ok(NX1),
-            "X1N" => Ok(X1N),
-            "X1K" => Ok(X1K),
-            "XK1" => Ok(XK1),
-            "X1K1" => Ok(X1K1),
-            "X1X" => Ok(X1X),
-            "XX1" => Ok(XX1),
-            "X1X1" => Ok(X1X1),
-            "K1N" => Ok(K1N),
-            "K1K" => Ok(K1K),
-            "KK1" => Ok(KK1),
-            "K1K1" => Ok(K1K1),
-            "K1X" => Ok(K1X),
-            "KX1" => Ok(KX1),
-            "K1X1" => Ok(K1X1),
-            "I1N" => Ok(I1N),
-            "I1K" => Ok(I1K),
-            "IK1" => Ok(IK1),
-            "I1K1" => Ok(I1K1),
-            "I1X" => Ok(I1X),
-            "IX1" => Ok(IX1),
-            "I1X1" => Ok(I1X1),
-            _    => bail!(PatternProblem::UnsupportedHandshakeType)
-        }
-    }
-}
-
-impl HandshakePattern {
-    /// The equivalent of the `ToString` trait, but for `&'static str`.
-    pub fn as_str(self) -> &'static str {
-        use self::HandshakePattern::*;
-        match self {
-            N => "N",
-            X => "X",
-            K => "K",
-            NN => "NN",
-            NK => "NK",
-            NX => "NX",
-            XN => "XN",
-            XK => "XK",
-            XX => "XX",
-            KN => "KN",
-            KK => "KK",
-            KX => "KX",
-            IN => "IN",
-            IK => "IK",
-            IX => "IX",
-            NK1  => "NK1",
-            NX1  => "NX1",
-            X1N  => "X1N",
-            X1K  => "X1K",
-            XK1  => "XK1",
-            X1K1 => "X1K1",
-            X1X  => "X1X",
-            XX1  => "XX1",
-            X1X1 => "X1X1",
-            K1N  => "K1N",
-            K1K  => "K1K",
-            KK1  => "KK1",
-            K1K1 => "K1K1",
-            K1X  => "K1X",
-            KX1  => "KX1",
-            K1X1 => "K1X1",
-            I1N  => "I1N",
-            I1K  => "I1K",
-            IK1  => "IK1",
-            I1K1 => "I1K1",
-            I1X  => "I1X",
-            IX1  => "IX1",
-            I1X1 => "I1X1",
-        }
     }
 }
 
