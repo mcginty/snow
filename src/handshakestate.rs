@@ -272,9 +272,7 @@ impl HandshakeState {
             for token in self.message_patterns[self.pattern_position].iter() {
                 match *token {
                     Token::E => {
-                        if ptr.len() < dh_len {
-                            bail!(SnowError::Input);
-                        }
+                        if ptr.len() < dh_len { bail!(SnowError::Input); }
                         self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
                         ptr = &ptr[dh_len..];
                         self.symmetricstate.mix_hash(&self.re[..dh_len]);
@@ -285,10 +283,12 @@ impl HandshakeState {
                     },
                     Token::S => {
                         let data = if self.symmetricstate.has_key() {
+                            if ptr.len() < dh_len + TAGLEN { bail!(SnowError::Input); }
                             let temp = &ptr[..dh_len + TAGLEN];
                             ptr = &ptr[dh_len + TAGLEN..];
                             temp
                         } else {
+                            if ptr.len() < dh_len { bail!(SnowError::Input); }
                             let temp = &ptr[..dh_len];
                             ptr = &ptr[dh_len..];
                             temp
