@@ -484,6 +484,43 @@ fn test_buffer_issues() {
 }
 
 #[test]
+fn test_read_buffer_issues() {
+    let params: NoiseParams = "Noise_XK_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
+
+    let builder_r = snow::Builder::new(params.clone());
+    let keypair_r = builder_r.generate_keypair().unwrap();
+    let mut h_r = builder_r
+        .local_private_key(&keypair_r.private)
+        .build_responder()
+        .unwrap();
+
+    let builder_i = snow::Builder::new(params);
+    let key_i = builder_i.generate_keypair().unwrap().private;
+    let mut h_i = builder_i
+        .local_private_key(&key_i)
+        .remote_public_key(&keypair_r.public)
+        .build_initiator()
+        .unwrap();
+
+    let mut buffer_msg = [0u8; 65535];
+    let mut buffer_out = [0u8; 65535];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    let res = h_r.read_message(&buffer_msg[..len], &mut buffer_out);
+
+    assert!(res.is_ok());
+
+    let len = h_r.write_message(b"abc", &mut buffer_msg).unwrap();
+    let res = h_i.read_message(&buffer_msg[..len], &mut buffer_out);
+
+    assert!(res.is_ok());
+
+    let _len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    let res = h_r.read_message(&buffer_msg[..2], &mut buffer_out);
+
+    assert!(res.is_err());
+}
+
+#[test]
 fn test_buffer_issues_encrypted_handshake() {
     let params: NoiseParams = "Noise_IKpsk2_25519_AESGCM_SHA256".parse().unwrap();
 
