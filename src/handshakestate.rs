@@ -285,10 +285,16 @@ impl HandshakeState {
                     },
                     Token::S => {
                         let data = if self.symmetricstate.has_key() {
+                            if ptr.len() < dh_len + TAGLEN {
+                                bail!(SnowError::Input);
+                            }
                             let temp = &ptr[..dh_len + TAGLEN];
                             ptr = &ptr[dh_len + TAGLEN..];
                             temp
                         } else {
+                            if ptr.len() < dh_len {
+                                bail!(SnowError::Input);
+                            }
                             let temp = &ptr[..dh_len];
                             ptr = &ptr[dh_len..];
                             temp
