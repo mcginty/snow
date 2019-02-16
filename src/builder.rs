@@ -24,7 +24,7 @@ impl PartialEq for Keypair {
         let priv_eq = self.private.ct_eq(&other.private).unwrap_u8() == 1u8;
         let pub_eq = self.public.ct_eq(&other.public).unwrap_u8() == 1u8;
 
-        if priv_eq && pub_eq {
+        if priv_eq & pub_eq {
             true
         } else {
             false
