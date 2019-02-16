@@ -6,16 +6,30 @@ use utils::Toggle;
 use params::NoiseParams;
 use resolvers::CryptoResolver;
 use error::{SnowError, InitStage, Prerequisite};
+use subtle::ConstantTimeEq;
 
 /// A keypair object returned by [`generate_keypair()`]
 ///
 /// [`generate_keypair()`]: #method.generate_keypair
-#[derive(PartialEq)]
 pub struct Keypair {
     /// The private asymmetric key
     pub private: Vec<u8>,
     /// The public asymmetric key
     pub public: Vec<u8>,
+}
+
+
+impl PartialEq for Keypair {
+    fn eq(&self, other: &Keypair) -> bool {
+        let priv_eq = self.private.ct_eq(&other.private).unwrap_u8() == 1u8;
+        let pub_eq = self.public.ct_eq(&other.public).unwrap_u8() == 1u8;
+
+        if priv_eq && pub_eq {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 /// Generates a `Session` and also validate that all the prerequisites for
