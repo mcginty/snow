@@ -16,7 +16,7 @@ keywords = ["noise", "protocol", "crypto"]
 # and -accelerated suffix means that this resolver will be the default used by the Builder.
 [features]
 default = ["default-resolver"]
-nightly = ["blake2-rfc/simd_opt", "chacha20-poly1305-aead/simd_opt", "x25519-dalek/nightly"]
+nightly = ["blake2-rfc/simd_opt", "chacha20-poly1305-aead/simd_opt", "x25519-dalek/nightly", "subtle/nightly"]
 default-resolver = ["chacha20-poly1305-aead", "blake2-rfc", "rust-crypto", "x25519-dalek", "rand"]
 hacl-star-resolver = ["hacl-star"]
 hacl-star-accelerated = ["hacl-star-resolver", "default-resolver"]
@@ -48,6 +48,7 @@ hacl-star = { version = "0.0.13", optional = true }
 rand = { version = "^0.6", optional = true }
 ring = { version = "^0.14.0", optional = true }
 x25519-dalek = { version = "^0.4", optional = true, default-features = false, features = ["std", "u64_backend"] }
+subtle = { version = "2.0.0", default-features = false }
 
 [dev-dependencies]
 clap = "^2"
