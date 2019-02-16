@@ -261,5 +261,32 @@ mod tests {
             panic!("builder should have failed on build");
         }
     }
+
+    #[test]
+    fn test_partialeq_impl() {
+        let keypair_1 = Keypair {
+            private: vec![0x01; 32],
+            public: vec![0x01; 32],
+        };
+
+        let mut keypair_2 = Keypair {
+            private: vec![0x01; 32],
+            public: vec![0x01; 32],
+        };
+        
+        // If both private and public are the same, return true
+        assert_eq!(keypair_1 == keypair_2, true);
+
+        // If either public or private are different, return false
+
+        // Wrong private
+        keypair_2.private = vec![0x50; 32];
+        assert_eq!(keypair_1 == keypair_2, false);
+        // Reset to original
+        keypair_2.private = vec![0x01; 32];
+        // Wrong public
+        keypair_2.public = vec![0x50; 32];
+        assert_eq!(keypair_1 == keypair_2, false);
+    }
 }
 
