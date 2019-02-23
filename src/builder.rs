@@ -21,10 +21,10 @@ pub struct Keypair {
 
 impl PartialEq for Keypair {
     fn eq(&self, other: &Keypair) -> bool {
-        let priv_eq = self.private.ct_eq(&other.private).unwrap_u8() == 1u8;
-        let pub_eq = self.public.ct_eq(&other.public).unwrap_u8() == 1u8;
+        let priv_eq = self.private.ct_eq(&other.private);
+        let pub_eq = self.public.ct_eq(&other.public);
 
-        if priv_eq & pub_eq {
+        if (priv_eq & pub_eq).into() {
             true
         } else {
             false
