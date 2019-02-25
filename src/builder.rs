@@ -24,11 +24,7 @@ impl PartialEq for Keypair {
         let priv_eq = self.private.ct_eq(&other.private);
         let pub_eq = self.public.ct_eq(&other.public);
 
-        if (priv_eq & pub_eq).into() {
-            true
-        } else {
-            false
-        }
+        (priv_eq & pub_eq).into()
     }
 }
 
