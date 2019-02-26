@@ -6,16 +6,26 @@ use utils::Toggle;
 use params::NoiseParams;
 use resolvers::CryptoResolver;
 use error::{SnowError, InitStage, Prerequisite};
+use subtle::ConstantTimeEq;
 
 /// A keypair object returned by [`generate_keypair()`]
 ///
 /// [`generate_keypair()`]: #method.generate_keypair
-#[derive(PartialEq)]
 pub struct Keypair {
     /// The private asymmetric key
     pub private: Vec<u8>,
     /// The public asymmetric key
     pub public: Vec<u8>,
+}
+
+
+impl PartialEq for Keypair {
+    fn eq(&self, other: &Keypair) -> bool {
+        let priv_eq = self.private.ct_eq(&other.private);
+        let pub_eq = self.public.ct_eq(&other.public);
+
+        (priv_eq & pub_eq).into()
+    }
 }
 
 /// Generates a `Session` and also validate that all the prerequisites for
@@ -246,6 +256,33 @@ mod tests {
         if let Ok(_) = noise {
             panic!("builder should have failed on build");
         }
+    }
+
+    #[test]
+    fn test_partialeq_impl() {
+        let keypair_1 = Keypair {
+            private: vec![0x01; 32],
+            public: vec![0x01; 32],
+        };
+
+        let mut keypair_2 = Keypair {
+            private: vec![0x01; 32],
+            public: vec![0x01; 32],
+        };
+        
+        // If both private and public are the same, return true
+        assert_eq!(keypair_1 == keypair_2, true);
+
+        // If either public or private are different, return false
+
+        // Wrong private
+        keypair_2.private = vec![0x50; 32];
+        assert_eq!(keypair_1 == keypair_2, false);
+        // Reset to original
+        keypair_2.private = vec![0x01; 32];
+        // Wrong public
+        keypair_2.public = vec![0x50; 32];
+        assert_eq!(keypair_1 == keypair_2, false);
     }
 }
 

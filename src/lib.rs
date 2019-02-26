@@ -65,6 +65,7 @@ extern crate byteorder;
 extern crate failure;
 extern crate smallvec;
 extern crate rand_core;
+extern crate subtle;
 
 #[macro_use]
 pub mod error;
