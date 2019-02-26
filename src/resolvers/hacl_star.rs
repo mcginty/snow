@@ -89,7 +89,9 @@ impl Dh for Dh25519 {
     }
 
     fn generate(&mut self, rng: &mut Random) {
-        curve25519::keypair(rng, &mut self.privkey, &mut self.pubkey);
+        let (privkey, pubkey) = curve25519::keypair(rng);
+        self.privkey = Some(privkey);
+        self.pubkey = Some(pubkey);
     }
 
     fn pubkey(&self) -> &[u8] {
