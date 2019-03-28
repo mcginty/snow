@@ -16,10 +16,10 @@ pub enum Session {
     /// A session in the handshake stage (the starting state).
     Handshake(HandshakeState),
 
-    /// A session after having completed a handshake, in general-purpose trasport mode.
+    /// A session after having completed a handshake, in general-purpose transport mode.
     Transport(TransportState),
 
-    /// A session after having completed a handshake, in explicit-nonce trasport mode.
+    /// A session after having completed a handshake, in explicit-nonce transport mode.
     StatelessTransport(StatelessTransportState),
 }
 
