@@ -9,6 +9,19 @@ use stateless_transportstate::StatelessTransportState;
 ///
 /// Enums provide a convenient interface as it's how Rust implements union structs, meaning this is
 /// a sized object.
+/// 
+/// # Handshaking
+/// 
+/// To transition away from the Handshake variant to a Transport or StatelessTransport,
+/// you first need to call [`Session::read_message`] and [`Session::write_message`] in a sequence corresponding to your handshaking pattern.
+/// 
+/// See the `examples` directory.
+/// 
+/// It is probable that `snow` will be more tighly integrated with I/O to automatically perform handshaking implied by the Noise pattern string in the future.
+/// 
+/// [`Session::read_message`]: struct.Session.html#method.read_message
+/// [`Session::write_message`]: struct.Session.html#method.write_message
+/// 
 // TODO: check up on memory usage, since this clippy warning seems like a legit perf issue.
 #[cfg_attr(feature = "cargo-clippy", allow(large_enum_variant))]
 #[derive(Debug)]
