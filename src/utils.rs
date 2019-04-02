@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 macro_rules! copy_slices {
     ($inslice:expr, $outslice:expr) => {
-        $outslice[..$inslice.len()].clone_from_slice(&$inslice[..])
+        $outslice[..$inslice.len()].copy_from_slice(&$inslice[..])
     };
 }
 
