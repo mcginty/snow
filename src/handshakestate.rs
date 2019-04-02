@@ -179,14 +179,12 @@ impl HandshakeState {
                     if !self.fixed_ephemeral {
                         self.e.generate(&mut *self.rng);
                     }
-                    {
-                        let pubkey = self.e.pubkey();
-                        copy_slices!(pubkey, &mut message[byte_index..]);
-                        byte_index += self.s.pub_len();
-                        self.symmetricstate.mix_hash(pubkey);
-                        if self.params.handshake.is_psk() {
-                            self.symmetricstate.mix_key(pubkey);
-                        }
+                    let pubkey = self.e.pubkey();
+                    message[byte_index..byte_index+pubkey.len()].copy_from_slice(pubkey);
+                    byte_index += pubkey.len();
+                    self.symmetricstate.mix_hash(pubkey);
+                    if self.params.handshake.is_psk() {
+                        self.symmetricstate.mix_key(pubkey);
                     }
                     self.e.enable();
                 },
