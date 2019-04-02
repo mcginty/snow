@@ -1,6 +1,6 @@
-use constants::TAGLEN;
-use error::{Error, InitStage};
-use types::Cipher;
+use crate::constants::TAGLEN;
+use crate::error::{Error, InitStage};
+use crate::types::Cipher;
 
 pub struct CipherState {
     cipher : Box<Cipher>,

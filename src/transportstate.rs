@@ -1,9 +1,9 @@
-use params::HandshakePattern;
-use error::{Error, StateProblem};
-use cipherstate::CipherStates;
-use constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
-use utils::Toggle;
-use handshakestate::HandshakeState;
+use crate::params::HandshakePattern;
+use crate::error::{Error, StateProblem};
+use crate::cipherstate::CipherStates;
+use crate::constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
+use crate::utils::Toggle;
+use crate::handshakestate::HandshakeState;
 use std::fmt;
 
 /// A state machine encompassing the transport phase of a Noise session, using the two

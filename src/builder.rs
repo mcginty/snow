@@ -1,11 +1,11 @@
-use constants::{PSKLEN, MAXDHLEN};
-use handshakestate::HandshakeState;
-use cipherstate::{CipherState, CipherStates};
-use session::Session;
-use utils::Toggle;
-use params::NoiseParams;
-use resolvers::CryptoResolver;
-use error::{Error, InitStage, Prerequisite};
+use crate::constants::{PSKLEN, MAXDHLEN};
+use crate::handshakestate::HandshakeState;
+use crate::cipherstate::{CipherState, CipherStates};
+use crate::session::Session;
+use crate::utils::Toggle;
+use crate::params::NoiseParams;
+use crate::resolvers::CryptoResolver;
+use crate::error::{Error, InitStage, Prerequisite};
 use subtle::ConstantTimeEq;
 
 /// A keypair object returned by [`generate_keypair()`]
@@ -58,7 +58,7 @@ impl<'builder> Builder<'builder> {
     /// Create a Builder with the default crypto resolver.
     #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated", feature = "hacl-star-accelerated"))))]
     pub fn new(params: NoiseParams) -> Self {
-        use ::resolvers::DefaultResolver;
+        use crate::resolvers::DefaultResolver;
 
         Self::with_resolver(params, Box::new(DefaultResolver::default()))
     }

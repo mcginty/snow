@@ -8,8 +8,8 @@
 /// A ring primitive resolver.
 #[cfg(feature = "ring-resolver")]      mod ring;
 
-use params::{CipherChoice, DHChoice, HashChoice};
-use types::{Cipher, Dh, Hash, Random};
+use crate::params::{CipherChoice, DHChoice, HashChoice};
+use crate::types::{Cipher, Dh, Hash, Random};
 
 #[cfg(feature = "default-resolver")]   pub use self::default::DefaultResolver;
 #[cfg(feature = "hacl-star-resolver")] pub use self::hacl_star::HaclStarResolver;

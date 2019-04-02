@@ -16,9 +16,9 @@ use self::x25519_dalek as x25519;
 
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
 
-use types::{Cipher, Dh, Hash, Random};
-use constants::TAGLEN;
-use params::{CipherChoice, DHChoice, HashChoice};
+use crate::types::{Cipher, Dh, Hash, Random};
+use crate::constants::TAGLEN;
+use crate::params::{CipherChoice, DHChoice, HashChoice};
 use std::io::{Cursor, Write};
 use super::CryptoResolver;
 
@@ -367,7 +367,7 @@ mod tests {
 
     extern crate hex;
 
-    use types::*;
+    use crate::types::*;
     use super::*;
     use self::hex::FromHex;
     use super::crypto::poly1305::Poly1305;

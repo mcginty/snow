@@ -1,12 +1,12 @@
-use constants::{PSKLEN, TAGLEN, MAXMSGLEN, MAXDHLEN};
-use utils::Toggle;
-use types::{Dh, Hash, Random};
-use cipherstate::{CipherState, CipherStates};
+use crate::constants::{PSKLEN, TAGLEN, MAXMSGLEN, MAXDHLEN};
+use crate::utils::Toggle;
+use crate::types::{Dh, Hash, Random};
+use crate::cipherstate::{CipherState, CipherStates};
 #[cfg(feature = "nightly")] use std::convert::TryFrom;
 #[cfg(not(feature = "nightly"))] use utils::TryFrom;
-use symmetricstate::SymmetricState;
-use params::{HandshakeTokens, MessagePatterns, NoiseParams, Token};
-use error::{Error, InitStage, StateProblem};
+use crate::symmetricstate::SymmetricState;
+use crate::params::{HandshakeTokens, MessagePatterns, NoiseParams, Token};
+use crate::error::{Error, InitStage, StateProblem};
 use std::fmt;
 
 /// A state machine encompassing the handshake phase of a Noise session.

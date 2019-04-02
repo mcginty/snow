@@ -9,7 +9,7 @@ use std::convert::TryFrom;
 #[cfg(not(feature = "nightly"))]
 use utils::TryFrom;
 
-use error::{Error, PatternProblem};
+use crate::error::{Error, PatternProblem};
 use std::str::FromStr;
 mod patterns;
 
