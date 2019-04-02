@@ -9,7 +9,7 @@ use std::convert::TryFrom;
 #[cfg(not(feature = "nightly"))]
 use utils::TryFrom;
 
-use error::{SnowError, PatternProblem};
+use error::{Error, PatternProblem};
 use std::str::FromStr;
 mod patterns;
 
@@ -34,7 +34,7 @@ pub enum BaseChoice {
 }
 
 impl FromStr for BaseChoice {
-    type Err = SnowError;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::BaseChoice::*;
         match s {
@@ -53,7 +53,7 @@ pub enum DHChoice {
 }
 
 impl FromStr for DHChoice {
-    type Err = SnowError;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::DHChoice::*;
         match s {
@@ -73,7 +73,7 @@ pub enum CipherChoice {
 }
 
 impl FromStr for CipherChoice {
-    type Err = SnowError;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::CipherChoice::*;
         match s {
@@ -95,7 +95,7 @@ pub enum HashChoice {
 }
 
 impl FromStr for HashChoice {
-    type Err = SnowError;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::HashChoice::*;
         match s {
@@ -147,7 +147,7 @@ impl NoiseParams {
 }
 
 impl FromStr for NoiseParams {
-    type Err = SnowError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split('_');

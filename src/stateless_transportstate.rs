@@ -1,5 +1,5 @@
 use params::HandshakePattern;
-use error::{SnowError, StateProblem};
+use error::{Error, StateProblem};
 use cipherstate::StatelessCipherStates;
 use constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
 use handshakestate::HandshakeState;
@@ -20,7 +20,7 @@ pub struct StatelessTransportState {
 }
 
 impl StatelessTransportState {
-    pub fn new(handshake: HandshakeState) -> Result<Self, SnowError> {
+    pub fn new(handshake: HandshakeState) -> Result<Self, Error> {
         if !handshake.is_finished() {
             bail!(StateProblem::HandshakeNotFinished);
         }
@@ -45,11 +45,11 @@ impl StatelessTransportState {
     pub fn write_transport_message(&self,
                                    nonce: u64,
                                    payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize, SnowError> {
+                                   message: &mut [u8]) -> Result<usize, Error> {
         if !self.initiator && self.pattern.is_oneway() {
             bail!(StateProblem::OneWay);
         } else if payload.len() + TAGLEN > MAXMSGLEN || payload.len() + TAGLEN > message.len() {
-            bail!(SnowError::Input);
+            bail!(Error::Input);
         }
 
         let cipher = if self.initiator { &self.cipherstates.0 } else { &self.cipherstates.1 };
@@ -59,12 +59,12 @@ impl StatelessTransportState {
     pub fn read_transport_message(&self,
                                   nonce: u64,
                                   payload: &[u8],
-                                  message: &mut [u8]) -> Result<usize, SnowError> {
+                                  message: &mut [u8]) -> Result<usize, Error> {
         if self.initiator && self.pattern.is_oneway() {
-            bail!(SnowError::State { reason: StateProblem::OneWay });
+            bail!(StateProblem::OneWay);
         }
         let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
-        cipher.decrypt(nonce, payload, message).map_err(|_| SnowError::Decrypt)
+        cipher.decrypt(nonce, payload, message).map_err(|_| Error::Decrypt)
     }
 
     pub fn rekey_outgoing(&mut self) {

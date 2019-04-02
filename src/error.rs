@@ -1,5 +1,7 @@
 //! All error types used by Snow operations.
 
+use std::fmt;
+
 /// Exits a function early with an error.
 ///
 /// The `err!` macro provides an easy way to exit a function. `err!(X)` is
@@ -14,30 +16,37 @@ macro_rules! bail {
     };
 }
 
-/// All errors in snow will return a `SnowError` enum.
+/// All errors in snow will include an `ErrorKind`.
 #[allow(missing_docs)]
-#[derive(Fail, Debug)]
-pub enum SnowError {
-    #[fail(display = "pattern failed to parse: {:?}", reason)]
-    Pattern { reason: PatternProblem },
+#[derive(Debug)]
+pub enum Error {
+    /// The noise pattern failed to parse.
+    Pattern(PatternProblem),
 
-    #[fail(display = "initialization failed at {:?}", reason)]
-    Init { reason: InitStage },
+    /// Initialization failure, at a provided stage.
+    Init(InitStage),
 
-    #[fail(display = "missing prerequisite: {:?}", reason)]
-    Prereq { reason: Prerequisite },
+    /// Missing prerequisite.
+    Prereq(Prerequisite),
 
-    #[fail(display = "state error of type: {:?}", reason)]
-    State { reason: StateProblem },
+    /// A state error.
+    State(StateProblem),
 
-    #[fail(display = "invalid input")]
+    /// Invalid input.
     Input,
 
-    #[fail(display = "dh failed")]
+    /// Diffie-hellman failed.
     Dh,
 
-    #[fail(display = "decryption failed")]
+    /// Decryption failed.
     Decrypt,
+
+
+    /// This enum may grow additional variants, so this makes sure clients
+    /// don't count on exhaustive matching. (Otherwise, adding a new variant
+    /// could break existing code.)
+    #[doc(hidden)]
+    __Nonexhaustive,
 }
 
 /// The various stages of initialization used to help identify
@@ -55,9 +64,9 @@ pub enum PatternProblem {
     UnsupportedModifier,
 }
 
-impl From<PatternProblem> for SnowError {
+impl From<PatternProblem> for Error {
     fn from(reason: PatternProblem) -> Self {
-        SnowError::Pattern { reason }
+        Error::Pattern(reason)
     }
 }
 
@@ -76,9 +85,9 @@ pub enum InitStage {
     ValidatePskPosition,
 }
 
-impl From<InitStage> for SnowError {
+impl From<InitStage> for Error {
     fn from(reason: InitStage) -> Self {
-        SnowError::Init { reason }
+        Error::Init(reason)
     }
 }
 
@@ -90,9 +99,9 @@ pub enum Prerequisite {
     RemotePublicKey,
 }
 
-impl From<Prerequisite> for SnowError {
+impl From<Prerequisite> for Error {
     fn from(reason: Prerequisite) -> Self {
-        SnowError::Prereq { reason }
+        Error::Prereq(reason)
     }
 }
 
@@ -110,8 +119,25 @@ pub enum StateProblem {
     StatelessTransportMode,
 }
 
-impl From<StateProblem> for SnowError {
+impl From<StateProblem> for Error {
     fn from(reason: StateProblem) -> Self {
-        SnowError::State { reason }
+        Error::State(reason)
     }
 }
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Pattern(reason) => write!(f, "pattern error: {:?}", reason),
+            Error::Init(reason) => write!(f, "initialization error: {:?}", reason),
+            Error::Prereq(reason) => write!(f, "prerequisite error: {:?}", reason),
+            Error::State(reason) => write!(f, "state error: {:?}", reason),
+            Error::Input => write!(f, "input error"),
+            Error::Dh => write!(f, "diffie-hellman error"),
+            Error::Decrypt => write!(f, "decrypt error"),
+            Error::__Nonexhaustive => write!(f, "Nonexhaustive"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}

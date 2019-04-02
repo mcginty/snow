@@ -1,5 +1,5 @@
 use params::HandshakePattern;
-use error::{SnowError, StateProblem};
+use error::{Error, StateProblem};
 use cipherstate::CipherStates;
 use constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
 use utils::Toggle;
@@ -20,7 +20,7 @@ pub struct TransportState {
 }
 
 impl TransportState {
-    pub fn new(handshake: HandshakeState) -> Result<Self, SnowError> {
+    pub fn new(handshake: HandshakeState) -> Result<Self, Error> {
         if !handshake.is_finished() {
             bail!(StateProblem::HandshakeNotFinished);
         }
@@ -44,11 +44,11 @@ impl TransportState {
 
     pub fn write_transport_message(&mut self,
                                    payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize, SnowError> {
+                                   message: &mut [u8]) -> Result<usize, Error> {
         if !self.initiator && self.pattern.is_oneway() {
             bail!(StateProblem::OneWay);
         } else if payload.len() + TAGLEN > MAXMSGLEN || payload.len() + TAGLEN > message.len() {
-            bail!(SnowError::Input);
+            bail!(Error::Input);
         }
 
         let cipher = if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
@@ -57,12 +57,12 @@ impl TransportState {
 
     pub fn read_transport_message(&mut self,
                                    payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize, SnowError> {
+                                   message: &mut [u8]) -> Result<usize, Error> {
         if self.initiator && self.pattern.is_oneway() {
             bail!(StateProblem::OneWay);
         }
         let cipher = if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
-        cipher.decrypt(payload, message).map_err(|_| SnowError::Decrypt)
+        cipher.decrypt(payload, message).map_err(|_| Error::Decrypt)
     }
 
     pub fn rekey_outgoing(&mut self) {

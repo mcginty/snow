@@ -11,7 +11,7 @@ use snow::error::*;
 use snow::params::*;
 use snow::types::*;
 use x25519_dalek as x25519;
-use rand_core::{CryptoRng, RngCore, Error, impls};
+use rand_core::{CryptoRng, RngCore, impls};
  
  #[derive(Default)]
 struct CountingRng(u64);
@@ -29,8 +29,8 @@ impl RngCore for CountingRng {
     fn fill_bytes(&mut self, dest: &mut [u8]) {
         impls::fill_bytes_via_next(self, dest)
     }
-     
-    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
+
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
         Ok(self.fill_bytes(dest))
     }
 }
@@ -696,11 +696,11 @@ fn test_stateless_seperation() {
     let h_r = h_r.into_transport_mode().unwrap();
 
     match h_i.write_message_with_nonce(1, b"hack the planet", &mut buffer_msg) {
-        Err(SnowError::State {reason: StateProblem::StatelessTransportMode}) => {},
+        Err(Error::State(StateProblem::StatelessTransportMode)) => {},
         _ => panic!("incorrect failure pattern.")
     }
     match h_r.read_message_with_nonce(1, &buffer_msg[..len], &mut buffer_out) {
-        Err(SnowError::State {reason: StateProblem::StatelessTransportMode}) => {},
+        Err(Error::State(StateProblem::StatelessTransportMode)) => {},
         _ => panic!("incorrect failure pattern.")
     }
 }
@@ -723,12 +723,12 @@ fn test_stateless_sanity_session() {
     let mut h_r = h_r.into_stateless_transport_mode().unwrap();
 
     match h_i.write_message(b"hack the planet", &mut buffer_msg) {
-        Err(SnowError::State {reason: StateProblem::StatelessTransportMode}) => {},
+        Err(Error::State(StateProblem::StatelessTransportMode)) => {},
         _ => panic!("incorrect failure pattern.")
     }
 
     match h_r.read_message(&buffer_msg[..len], &mut buffer_out) {
-        Err(SnowError::State {reason: StateProblem::StatelessTransportMode}) => {},
+        Err(Error::State(StateProblem::StatelessTransportMode)) => {},
         _ => panic!("incorrect failure pattern.")
     }
 

@@ -10,10 +10,8 @@
 //! See `examples/simple.rs` for a more complete TCP client/server example with static keys.
 //!
 //! ```
-//! # extern crate failure;
 //! # extern crate snow;
-//! # use failure::Error;
-//! # use snow::SnowError;
+//! # use snow::Error;
 //! #
 //! # fn try_main() -> Result<(), Error> {
 //! static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
@@ -53,16 +51,13 @@
 //! [`Session`]: enum.Session.html
 
 #![warn(missing_docs)]
-#![cfg_attr(feature = "nightly", feature(try_from))]
 
 #[cfg(any(feature = "default-resolver", feature = "hacl-star-resolver"))]
 #[macro_use]
 extern crate arrayref;
 
 #[macro_use] extern crate static_slice;
-#[macro_use] extern crate failure_derive;
 extern crate byteorder;
-extern crate failure;
 extern crate smallvec;
 extern crate rand_core;
 extern crate subtle;
@@ -84,6 +79,6 @@ pub mod params;
 pub mod types;
 pub mod resolvers;
 
-pub use error::SnowError;
+pub use error::Error;
 pub use builder::{Builder, Keypair};
 pub use session::Session;

@@ -1,6 +1,6 @@
 #[cfg(feature = "nightly")] use std::convert::{TryFrom};
 #[cfg(not(feature = "nightly"))] use utils::{TryFrom};
-use error::{SnowError, PatternProblem};
+use error::{Error, PatternProblem};
 use std::str::FromStr;
 use smallvec::SmallVec;
 
@@ -41,7 +41,7 @@ macro_rules! pattern_enum {
         }
 
         impl FromStr for $name {
-            type Err = SnowError;
+            type Err = Error;
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 use self::$name::*;
                 match s {
@@ -150,7 +150,7 @@ pub enum HandshakeModifier {
 }
 
 impl FromStr for HandshakeModifier {
-    type Err = SnowError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("psk") {
@@ -171,7 +171,7 @@ pub struct HandshakeModifierList {
 }
 
 impl FromStr for HandshakeModifierList {
-    type Err = SnowError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
@@ -220,7 +220,7 @@ impl HandshakeChoice {
     }
 
     /// Parse and split a base HandshakePattern from its optional modifiers
-    fn parse_pattern_and_modifier(s: &str) -> Result<(HandshakePattern, &str), SnowError> {
+    fn parse_pattern_and_modifier(s: &str) -> Result<(HandshakePattern, &str), Error> {
         for i in (1..=4).rev() {
             if s.len() > i-1 {
                 if let Ok(p) = (&s[..i]).parse() {
@@ -234,7 +234,7 @@ impl HandshakeChoice {
 }
 
 impl FromStr for HandshakeChoice {
-    type Err = SnowError;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (pattern, remainder) = Self::parse_pattern_and_modifier(s)?;
         let modifiers = remainder.parse()?;
@@ -265,7 +265,7 @@ use self::HandshakePattern::*;
 type Patterns = (PremessagePatterns, PremessagePatterns, MessagePatterns);
 
 impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
-    type Error = SnowError;
+    type Error = Error;
 
     fn try_from(handshake: &'a HandshakeChoice) -> Result<Self, Self::Error> {
         let mut patterns: Patterns = match handshake.pattern {

@@ -6,7 +6,7 @@ use cipherstate::{CipherState, CipherStates};
 #[cfg(not(feature = "nightly"))] use utils::TryFrom;
 use symmetricstate::SymmetricState;
 use params::{HandshakeTokens, MessagePatterns, NoiseParams, Token};
-use error::{SnowError, InitStage, StateProblem};
+use error::{Error, InitStage, StateProblem};
 use std::fmt;
 
 /// A state machine encompassing the handshake phase of a Noise session.
@@ -47,7 +47,7 @@ impl HandshakeState {
         params          : NoiseParams,
         psks            : [Option<[u8; PSKLEN]>; 10],
         prologue        : &'a [u8],
-        cipherstates    : CipherStates) -> Result<HandshakeState, SnowError> {
+        cipherstates    : CipherStates) -> Result<HandshakeState, Error> {
 
         if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
         || (s.is_on() && rs.is_on() && s.pub_len() >  rs.len())
@@ -118,7 +118,7 @@ impl HandshakeState {
         self.s.pub_len()
     }
 
-    fn dh(&self, local_s: bool, remote_s: bool) -> Result<[u8; MAXDHLEN], SnowError> {
+    fn dh(&self, local_s: bool, remote_s: bool) -> Result<[u8; MAXDHLEN], Error> {
         if !((!local_s  || self.s.is_on())  &&
              ( local_s  || self.e.is_on())  &&
              (!remote_s || self.rs.is_on()) &&
@@ -133,7 +133,7 @@ impl HandshakeState {
             (false, true ) => (&self.e, &self.rs),
             (false, false) => (&self.e, &self.re),
         };
-        dh.dh(&**key, &mut dh_out).map_err(|_| SnowError::Dh)?;
+        dh.dh(&**key, &mut dh_out).map_err(|_| Error::Dh)?;
         Ok(dh_out)
     }
 
@@ -144,7 +144,7 @@ impl HandshakeState {
     #[must_use]
     pub fn write_handshake_message(&mut self,
                                   message: &[u8],
-                                  payload: &mut [u8]) -> Result<usize, SnowError> {
+                                  payload: &mut [u8]) -> Result<usize, Error> {
         self.symmetricstate.checkpoint();
         match self._write_handshake_message(message, payload) {
             Ok(res) => {
@@ -160,7 +160,7 @@ impl HandshakeState {
 
     fn _write_handshake_message(&mut self,
                          payload: &[u8],
-                         message: &mut [u8]) -> Result<usize, SnowError> {
+                         message: &mut [u8]) -> Result<usize, Error> {
         if !self.my_turn {
             bail!(StateProblem::NotTurnToWrite);
         } else if self.pattern_position >= self.message_patterns.len() {
@@ -173,7 +173,7 @@ impl HandshakeState {
             match token {
                 Token::E => {
                     if byte_index + self.e.pub_len() > message.len() {
-                        bail!(SnowError::Input)
+                        bail!(Error::Input)
                     }
 
                     if !self.fixed_ephemeral {
@@ -194,7 +194,7 @@ impl HandshakeState {
                     if !self.s.is_on() {
                         bail!(StateProblem::MissingKeyMaterial);
                     } else if byte_index + self.s.pub_len() > message.len() {
-                        bail!(SnowError::Input)
+                        bail!(Error::Input)
                     }
 
                     byte_index += self.symmetricstate.encrypt_and_mix_hash(
@@ -229,11 +229,11 @@ impl HandshakeState {
         }
 
         if byte_index + payload.len() + TAGLEN > message.len() {
-            bail!(SnowError::Input);
+            bail!(Error::Input);
         }
         byte_index += self.symmetricstate.encrypt_and_mix_hash(payload, &mut message[byte_index..]);
         if byte_index > MAXMSGLEN {
-            bail!(SnowError::Input);
+            bail!(Error::Input);
         }
         if self.pattern_position == (self.message_patterns.len() - 1) {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
@@ -244,7 +244,7 @@ impl HandshakeState {
 
     pub fn read_handshake_message(&mut self,
                                   message: &[u8],
-                                  payload: &mut [u8]) -> Result<usize, SnowError> {
+                                  payload: &mut [u8]) -> Result<usize, Error> {
         self.symmetricstate.checkpoint();
         match self._read_handshake_message(message, payload) {
             Ok(res) => {
@@ -260,9 +260,9 @@ impl HandshakeState {
 
     fn _read_handshake_message(&mut self,
                                message: &[u8],
-                               payload: &mut [u8]) -> Result<usize, SnowError> {
+                               payload: &mut [u8]) -> Result<usize, Error> {
         if message.len() > MAXMSGLEN {
-            bail!(SnowError::Input);
+            bail!(Error::Input);
         }
 
         let last = self.pattern_position == (self.message_patterns.len() - 1);
@@ -273,7 +273,7 @@ impl HandshakeState {
                 match *token {
                     Token::E => {
                         if ptr.len() < dh_len {
-                            bail!(SnowError::Input);
+                            bail!(Error::Input);
                         }
                         self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
                         ptr = &ptr[dh_len..];
@@ -286,20 +286,20 @@ impl HandshakeState {
                     Token::S => {
                         let data = if self.symmetricstate.has_key() {
                             if ptr.len() < dh_len + TAGLEN {
-                                bail!(SnowError::Input);
+                                bail!(Error::Input);
                             }
                             let temp = &ptr[..dh_len + TAGLEN];
                             ptr = &ptr[dh_len + TAGLEN..];
                             temp
                         } else {
                             if ptr.len() < dh_len {
-                                bail!(SnowError::Input);
+                                bail!(Error::Input);
                             }
                             let temp = &ptr[..dh_len];
                             ptr = &ptr[dh_len..];
                             temp
                         };
-                        self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| SnowError::Decrypt)?;
+                        self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| Error::Decrypt)?;
                         self.rs.enable();
                     },
                     Token::Psk(n) => {
@@ -331,7 +331,7 @@ impl HandshakeState {
             }
         }
 
-        self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| SnowError::Decrypt)?;
+        self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| Error::Decrypt)?;
         self.my_turn = true;
         if last {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
@@ -342,9 +342,9 @@ impl HandshakeState {
 
     /// Set the PSK at the specified position.
     #[must_use]
-    pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), SnowError> {
+    pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
         if key.len() != PSKLEN || self.psks.len() <= location {
-            bail!(SnowError::Input);
+            bail!(Error::Input);
         }
 
         let mut new_psk = [0u8; PSKLEN];

@@ -5,7 +5,7 @@ use session::Session;
 use utils::Toggle;
 use params::NoiseParams;
 use resolvers::CryptoResolver;
-use error::{SnowError, InitStage, Prerequisite};
+use error::{Error, InitStage, Prerequisite};
 use subtle::ConstantTimeEq;
 
 /// A keypair object returned by [`generate_keypair()`]
@@ -126,7 +126,7 @@ impl<'builder> Builder<'builder> {
 
     // TODO: performance issue w/ creating a new RNG and DH instance per call.
     /// Generate a new asymmetric keypair (for use as a static key).
-    pub fn generate_keypair(&self) -> Result<Keypair, SnowError> {
+    pub fn generate_keypair(&self) -> Result<Keypair, Error> {
         let mut rng     = self.resolver.resolve_rng().ok_or(InitStage::GetRngImpl)?;
         let mut dh      = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
         let mut private = vec![0u8; dh.priv_len()];
@@ -140,16 +140,16 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Build a NoiseSession for the side who will initiate the handshake (send the first message)
-    pub fn build_initiator(self) -> Result<Session, SnowError> {
+    pub fn build_initiator(self) -> Result<Session, Error> {
         self.build(true)
     }
 
     /// Build a NoiseSession for the side who will be responder (receive the first message)
-    pub fn build_responder(self) -> Result<Session, SnowError> {
+    pub fn build_responder(self) -> Result<Session, Error> {
         self.build(false)
     }
 
-    fn build(self, initiator: bool) -> Result<Session, SnowError> {
+    fn build(self, initiator: bool) -> Result<Session, Error> {
         if self.s.is_none() && self.params.handshake.pattern.needs_local_static_key(initiator) {
             bail!(Prerequisite::LocalPrivateKey);
         }

@@ -1,6 +1,5 @@
 #![cfg(feature = "vector-tests")]
 #[macro_use] extern crate serde_derive;
-#[macro_use] extern crate failure;
 
 extern crate hex;
 extern crate snow;
@@ -11,7 +10,6 @@ extern crate rand;
 use serde::de::{self, Deserialize, Deserializer, Visitor, Unexpected};
 use serde::ser::{Serialize, Serializer};
 use std::ops::Deref;
-use failure::Error;
 use hex::FromHex;
 use rand::RngCore;
 use snow::{Builder, Keypair, Session};
@@ -152,7 +150,7 @@ struct TestVectors {
     vectors: Vec<TestVector>,
 }
 
-fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), Error> {
+fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), String> {
     let params: NoiseParams = vector.protocol_name.parse().unwrap();
     let mut init_builder = Builder::new(params.clone());
     let mut resp_builder = Builder::new(params.clone());
@@ -168,7 +166,7 @@ fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), Error> 
                 }
             }
         } else {
-            bail!("missing PSKs for a PSK-mode handshake");
+            return Err("missing PSKs for a PSK-mode handshake".into());
         }
     }
 
@@ -191,8 +189,10 @@ fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), Error> 
         resp_builder = resp_builder.fixed_ephemeral_key_for_testing_only(&*resp_e);
     }
 
-    let init = init_builder.prologue(&vector.init_prologue).build_initiator()?;
-    let resp = resp_builder.prologue(&vector.resp_prologue).build_responder()?;
+    let init = init_builder.prologue(&vector.init_prologue).build_initiator()
+        .map_err(|e| format!("{:?}", e))?;
+    let resp = resp_builder.prologue(&vector.resp_prologue).build_responder()
+        .map_err(|e| format!("{:?}", e))?;
 
     Ok((init, resp))
 }

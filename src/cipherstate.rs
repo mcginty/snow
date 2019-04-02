@@ -1,5 +1,5 @@
 use constants::TAGLEN;
-use error::{SnowError, InitStage};
+use error::{Error, InitStage};
 use types::Cipher;
 
 pub struct CipherState {
@@ -73,7 +73,7 @@ impl CipherState {
 pub struct CipherStates(pub CipherState, pub CipherState);
 
 impl CipherStates {
-    pub fn new(initiator: CipherState, responder: CipherState) -> Result<Self, SnowError> {
+    pub fn new(initiator: CipherState, responder: CipherState) -> Result<Self, Error> {
         if initiator.name() != responder.name() {
             bail!(InitStage::ValidateCipherTypes);
         }
@@ -169,7 +169,7 @@ impl From<CipherStates> for StatelessCipherStates {
 }
 
 impl StatelessCipherStates {
-    pub fn new(initiator: StatelessCipherState, responder: StatelessCipherState) -> Result<Self, SnowError> {
+    pub fn new(initiator: StatelessCipherState, responder: StatelessCipherState) -> Result<Self, Error> {
         if initiator.name() != responder.name() {
             bail!(InitStage::ValidateCipherTypes);
         }
