@@ -145,14 +145,14 @@ impl HandshakeState {
     pub fn write_handshake_message(&mut self,
                                   message: &[u8],
                                   payload: &mut [u8]) -> Result<usize, Error> {
-        self.symmetricstate.checkpoint();
+        let checkpoint = self.symmetricstate.checkpoint();
         match self._write_handshake_message(message, payload) {
             Ok(res) => {
                 self.pattern_position += 1;
                 Ok(res)
             },
             Err(err) => {
-                self.symmetricstate.rollback();
+                self.symmetricstate.restore(checkpoint);
                 Err(err)
             }
         }
@@ -245,14 +245,14 @@ impl HandshakeState {
     pub fn read_handshake_message(&mut self,
                                   message: &[u8],
                                   payload: &mut [u8]) -> Result<usize, Error> {
-        self.symmetricstate.checkpoint();
+        let checkpoint = self.symmetricstate.checkpoint();
         match self._read_handshake_message(message, payload) {
             Ok(res) => {
                 self.pattern_position += 1;
                 Ok(res)
             },
             Err(err) => {
-                self.symmetricstate.rollback();
+                self.symmetricstate.restore(checkpoint);
                 Err(err)
             }
         }

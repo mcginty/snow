@@ -3,15 +3,15 @@ use crate::types::Hash;
 use crate::cipherstate::CipherState;
 
 #[derive(Copy, Clone)]
-struct Inner {
+pub(crate) struct SymmetricStateData {
     h       : [u8; MAXHASHLEN],
     ck      : [u8; MAXHASHLEN],
     has_key : bool,
 }
 
-impl Default for Inner {
+impl Default for SymmetricStateData {
     fn default() -> Self {
-        Inner {
+        SymmetricStateData {
             h: [0u8; MAXHASHLEN],
             ck: [0u8; MAXHASHLEN],
             has_key: false
@@ -22,8 +22,7 @@ impl Default for Inner {
 pub struct SymmetricState {
     cipherstate : CipherState,
     hasher      : Box<dyn Hash>,
-    inner       : Inner,
-    checkpoint  : Inner,
+    inner       : SymmetricStateData,
 }
 
 impl SymmetricState {
@@ -31,8 +30,7 @@ impl SymmetricState {
         SymmetricState {
             cipherstate,
             hasher,
-            inner: Inner::default(),
-            checkpoint: Inner::default(),
+            inner: SymmetricStateData::default(),
         }
     }
 
@@ -117,12 +115,12 @@ impl SymmetricState {
         child2.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
     }
 
-    pub fn checkpoint(&mut self) {
-        self.checkpoint = self.inner;
+    pub(crate) fn checkpoint(&mut self) -> SymmetricStateData {
+        self.inner
     }
 
-    pub fn rollback(&mut self) {
-        self.inner = self.checkpoint;
+    pub(crate) fn restore(&mut self, checkpoint: SymmetricStateData) {
+        self.inner = checkpoint;
     }
 
     pub fn handshake_hash(&self) -> &[u8] {
