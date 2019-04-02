@@ -1,3 +1,4 @@
+use crate::error::Error;
 use crate::constants::{CIPHERKEYLEN, MAXHASHLEN};
 use crate::types::Hash;
 use crate::cipherstate::CipherState;
@@ -77,16 +78,16 @@ impl SymmetricState {
     }
 
     /// Encrypt a message and mixes in the hash of the output
-    pub fn encrypt_and_mix_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> usize {
+    pub fn encrypt_and_mix_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
         let hash_len = self.hasher.hash_len();
         let output_len = if self.inner.has_key {
-            self.cipherstate.encrypt_ad(&self.inner.h[..hash_len], plaintext, out)
+            self.cipherstate.encrypt_ad(&self.inner.h[..hash_len], plaintext, out)?
         } else {
             copy_slices!(plaintext, out);
             plaintext.len()
         };
         self.mix_hash(&out[..output_len]);
-        output_len
+        Ok(output_len)
     }
 
     pub fn decrypt_and_mix_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, ()> {

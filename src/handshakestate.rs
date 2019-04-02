@@ -199,7 +199,7 @@ impl HandshakeState {
 
                     byte_index += self.symmetricstate.encrypt_and_mix_hash(
                         self.s.pubkey(),
-                        &mut message[byte_index..]);
+                        &mut message[byte_index..])?;
                 },
                 Token::Psk(n) => match self.psks[*n as usize] {
                     Some(psk) => {
@@ -231,7 +231,7 @@ impl HandshakeState {
         if byte_index + payload.len() + TAGLEN > message.len() {
             bail!(Error::Input);
         }
-        byte_index += self.symmetricstate.encrypt_and_mix_hash(payload, &mut message[byte_index..]);
+        byte_index += self.symmetricstate.encrypt_and_mix_hash(payload, &mut message[byte_index..])?;
         if byte_index > MAXMSGLEN {
             bail!(Error::Input);
         }

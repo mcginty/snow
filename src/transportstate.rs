@@ -52,7 +52,7 @@ impl TransportState {
         }
 
         let cipher = if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
-        Ok(cipher.encrypt(payload, message))
+        Ok(cipher.encrypt(payload, message)?)
     }
 
     pub fn read_transport_message(&mut self,

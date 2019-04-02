@@ -53,7 +53,7 @@ impl StatelessTransportState {
         }
 
         let cipher = if self.initiator { &self.cipherstates.0 } else { &self.cipherstates.1 };
-        Ok(cipher.encrypt(nonce, payload, message))
+        Ok(cipher.encrypt(nonce, payload, message)?)
     }
 
     pub fn read_transport_message(&self,
