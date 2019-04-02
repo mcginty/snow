@@ -34,7 +34,7 @@ pub struct HandshakeState {
 
 impl HandshakeState {
     #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
-    pub fn new<'a>(
+    pub fn new(
         rng             : Box<Random>,
         cipherstate     : CipherState,
         hasher          : Box<Hash>,
@@ -46,7 +46,7 @@ impl HandshakeState {
         initiator       : bool,
         params          : NoiseParams,
         psks            : [Option<[u8; PSKLEN]>; 10],
-        prologue        : &'a [u8],
+        prologue        : &[u8],
         cipherstates    : CipherStates) -> Result<HandshakeState, Error> {
 
         if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
