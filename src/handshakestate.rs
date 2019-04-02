@@ -66,33 +66,33 @@ impl HandshakeState {
         let dh_len = s.pub_len();
         if initiator {
             for token in tokens.premsg_pattern_i {
-                match *token {
-                    Token::S => {assert!(s.is_on()); symmetricstate.mix_hash(s.pubkey());},
-                    Token::E => {assert!(e.is_on()); symmetricstate.mix_hash(e.pubkey());},
+                symmetricstate.mix_hash(match *token {
+                    Token::S => s.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey(),
+                    Token::E => e.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey(),
                     _ => unreachable!()
-                }
+                });
             }
             for token in tokens.premsg_pattern_r {
-                match *token {
-                    Token::S => {assert!(rs.is_on()); symmetricstate.mix_hash(&rs[..dh_len]);},
-                    Token::E => {assert!(re.is_on()); symmetricstate.mix_hash(&re[..dh_len]);},
+                symmetricstate.mix_hash(match *token {
+                    Token::S => &rs.get().ok_or(StateProblem::MissingKeyMaterial)?[..dh_len],
+                    Token::E => &re.get().ok_or(StateProblem::MissingKeyMaterial)?[..dh_len],
                     _ => unreachable!()
-                }
+                });
             }
         } else {
             for token in tokens.premsg_pattern_i {
-                match *token {
-                    Token::S => {assert!(rs.is_on()); symmetricstate.mix_hash(&rs[..dh_len]);},
-                    Token::E => {assert!(re.is_on()); symmetricstate.mix_hash(&re[..dh_len]);},
+                symmetricstate.mix_hash(match *token {
+                    Token::S => &rs.get().ok_or(StateProblem::MissingKeyMaterial)?[..dh_len],
+                    Token::E => &re.get().ok_or(StateProblem::MissingKeyMaterial)?[..dh_len],
                     _ => unreachable!()
-                }
+                });
             }
             for token in tokens.premsg_pattern_r {
-                match *token {
-                    Token::S => {assert!(s.is_on()); symmetricstate.mix_hash(s.pubkey());},
-                    Token::E => {assert!(e.is_on()); symmetricstate.mix_hash(e.pubkey());},
+                symmetricstate.mix_hash(match *token {
+                    Token::S => s.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey(),
+                    Token::E => e.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey(),
                     _ => unreachable!()
-                }
+                });
             }
         }
 
@@ -361,7 +361,7 @@ impl HandshakeState {
     /// static key is not yet known (as can be the case in the `XX`
     /// pattern, for example).
     pub fn get_remote_static(&self) -> Option<&[u8]> {
-        self.rs.as_option_ref().map(|rs| &rs[..self.dh_len()])
+        self.rs.get().map(|rs| &rs[..self.dh_len()])
     }
 
     pub fn get_handshake_hash(&self) -> &[u8] {

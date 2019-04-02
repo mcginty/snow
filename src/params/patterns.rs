@@ -72,7 +72,6 @@ macro_rules! pattern_enum {
     }
 }
 
-
 /// The tokens which describe message patterns.
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns

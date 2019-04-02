@@ -41,7 +41,7 @@ impl<T> Toggle<T> {
         self.on
     }
 
-    pub fn as_option_ref(&self) -> Option<&T> {
+    pub fn get(&self) -> Option<&T> {
         if self.on {
             Some(&self.inner)
         } else {

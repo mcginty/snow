@@ -39,7 +39,7 @@ impl StatelessTransportState {
     }
 
     pub fn get_remote_static(&self) -> Option<&[u8]> {
-        self.rs.as_option_ref().map(|rs| &rs[..self.dh_len])
+        self.rs.get().map(|rs| &rs[..self.dh_len])
     }
 
     pub fn write_transport_message(&self,
