@@ -1,7 +1,8 @@
 use crate::error::{Error, StateProblem};
 use crate::handshakestate::HandshakeState;
 #[cfg(feature = "nightly")] use std::convert::{TryFrom, TryInto};
-#[cfg(not(feature = "nightly"))] use utils::{TryFrom, TryInto};
+#[allow(unused_imports)]
+#[cfg(not(feature = "nightly"))] use crate::utils::{TryFrom, TryInto};
 use crate::transportstate::TransportState;
 use crate::stateless_transportstate::StatelessTransportState;
 
