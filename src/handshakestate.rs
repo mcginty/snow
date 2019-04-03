@@ -3,7 +3,7 @@ use crate::utils::Toggle;
 use crate::types::{Dh, Hash, Random};
 use crate::cipherstate::{CipherState, CipherStates};
 #[cfg(feature = "nightly")] use std::convert::TryFrom;
-#[cfg(not(feature = "nightly"))] use utils::TryFrom;
+#[cfg(not(feature = "nightly"))] use crate::utils::TryFrom;
 use crate::symmetricstate::SymmetricState;
 use crate::params::{HandshakeTokens, MessagePatterns, NoiseParams, Token};
 use crate::error::{Error, InitStage, StateProblem};

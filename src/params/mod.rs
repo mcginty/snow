@@ -7,7 +7,7 @@ use std::convert::TryFrom;
 
 #[allow(unused_imports)]
 #[cfg(not(feature = "nightly"))]
-use utils::TryFrom;
+use crate::utils::TryFrom;
 
 use crate::error::{Error, PatternProblem};
 use std::str::FromStr;
