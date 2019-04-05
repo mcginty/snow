@@ -1,12 +1,10 @@
-extern crate ring;
-
 use super::CryptoResolver;
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
-use self::ring::aead;
-use self::ring::digest;
-use constants::TAGLEN;
-use params::{DHChoice, HashChoice, CipherChoice};
-use types::{Random, Dh, Hash, Cipher};
+use ring::aead;
+use ring::digest;
+use crate::constants::TAGLEN;
+use crate::params::{DHChoice, HashChoice, CipherChoice};
+use crate::types::{Random, Dh, Hash, Cipher};
 
 /// A resolver that chooses [ring](https://github.com/briansmith/ring)-backed
 /// primitives when available.

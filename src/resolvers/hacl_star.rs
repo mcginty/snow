@@ -1,12 +1,10 @@
-extern crate hacl_star;
-
 use std::mem;
 use super::CryptoResolver;
-use params::{DHChoice, HashChoice, CipherChoice};
-use types::{Random, Dh, Hash, Cipher};
-use self::hacl_star::curve25519::{self, SecretKey, PublicKey};
-use self::hacl_star::sha2::{Sha256, Sha512};
-use self::hacl_star::chacha20poly1305;
+use crate::params::{DHChoice, HashChoice, CipherChoice};
+use crate::types::{Random, Dh, Hash, Cipher};
+use hacl_star::curve25519::{self, SecretKey, PublicKey};
+use hacl_star::sha2::{Sha256, Sha512};
+use hacl_star::chacha20poly1305;
 
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -216,10 +214,10 @@ mod tests {
 
     extern crate hex;
 
-    use types::*;
+    use crate::types::*;
     use super::*;
     use self::hex::FromHex;
-    use super::hacl_star::poly1305::Poly1305;
+    use hacl_star::poly1305::Poly1305;
 
     #[test]
     fn test_sha256() {
