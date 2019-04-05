@@ -67,32 +67,32 @@ impl HandshakeState {
         if initiator {
             for token in tokens.premsg_pattern_i {
                 symmetricstate.mix_hash(match *token {
-                    Token::S => s.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey(),
-                    Token::E => e.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey(),
+                    Token::S => &s,
+                    Token::E => &e,
                     _ => unreachable!()
-                });
+                }.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey());
             }
             for token in tokens.premsg_pattern_r {
-                symmetricstate.mix_hash(match *token {
-                    Token::S => &rs.get().ok_or(StateProblem::MissingKeyMaterial)?[..dh_len],
-                    Token::E => &re.get().ok_or(StateProblem::MissingKeyMaterial)?[..dh_len],
+                symmetricstate.mix_hash(&match *token {
+                    Token::S => &rs,
+                    Token::E => &re,
                     _ => unreachable!()
-                });
+                }.get().ok_or(StateProblem::MissingKeyMaterial)?[..dh_len]);
             }
         } else {
             for token in tokens.premsg_pattern_i {
-                symmetricstate.mix_hash(match *token {
-                    Token::S => &rs.get().ok_or(StateProblem::MissingKeyMaterial)?[..dh_len],
-                    Token::E => &re.get().ok_or(StateProblem::MissingKeyMaterial)?[..dh_len],
+                symmetricstate.mix_hash(&match *token {
+                    Token::S => &rs,
+                    Token::E => &re,
                     _ => unreachable!()
-                });
+                }.get().ok_or(StateProblem::MissingKeyMaterial)?[..dh_len]);
             }
             for token in tokens.premsg_pattern_r {
                 symmetricstate.mix_hash(match *token {
-                    Token::S => s.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey(),
-                    Token::E => e.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey(),
+                    Token::S => &s,
+                    Token::E => &e,
                     _ => unreachable!()
-                });
+                }.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey());
             }
         }
 
