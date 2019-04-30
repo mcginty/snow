@@ -4,6 +4,6 @@ version = "0.1.0"
 authors = ["Jake McGinty <me@jake.su>"]
 
 [dependencies]
-honggfuzz = { git = "https://github.com/mcginty/honggfuzz-rs", branch = "assert-unwind" }
+honggfuzz =  "0.5"
 snow = { path = "../" }
 lazy_static = "*"
