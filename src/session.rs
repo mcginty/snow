@@ -28,7 +28,7 @@ use crate::stateless_transportstate::StatelessTransportState;
 #[derive(Debug)]
 pub enum Session {
     /// A session in the handshake stage (the starting state).
-    Handshake(HandshakeState),
+    Handshake(Box<HandshakeState>),
 
     /// A session after having completed a handshake, in general-purpose transport mode.
     Transport(TransportState),
@@ -336,7 +336,7 @@ impl Session {
                 if !state.is_finished() {
                     bail!(StateProblem::HandshakeNotFinished)
                 } else {
-                    Ok(Session::Transport(state.try_into()?))
+                    Ok(Session::Transport((*state).try_into()?))
                 }
             },
             _ => Ok(self)
@@ -371,7 +371,7 @@ impl Session {
                 if !state.is_finished() {
                     bail!(StateProblem::HandshakeNotFinished)
                 } else {
-                    Ok(Session::StatelessTransport(state.try_into()?))
+                    Ok(Session::StatelessTransport((*state).try_into()?))
                 }
             },
             _ => Ok(self)
@@ -381,7 +381,7 @@ impl Session {
 
 impl Into<Session> for HandshakeState {
     fn into(self) -> Session {
-        Session::Handshake(self)
+        Session::Handshake(Box::new(self))
     }
 }
 
