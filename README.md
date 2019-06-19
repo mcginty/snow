@@ -72,7 +72,7 @@ Similar to ring, if you enable the `hacl-accelerated` feature, Snow will default
 | CSPRNG     | ✔       |      |       |
 | 25519      | ✔       | ✔    | ✔     |
 | 448        |         |      |       |
-| AESGCM     | ✔       | ✔    |       |
+| AESGCM     |         | ✔    |       |
 | ChaChaPoly | ✔       | ✔    | ✔     |
 | SHA256     | ✔       | ✔    | ✔     |
 | SHA512     | ✔       | ✔    | ✔     |

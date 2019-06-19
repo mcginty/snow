@@ -14,7 +14,7 @@ use snow::types::*;
 use x25519_dalek as x25519;
 use rand_core::{CryptoRng, RngCore, impls};
  
- #[derive(Default)]
+#[derive(Default)]
 struct CountingRng(u64);
  
 impl RngCore for CountingRng {
@@ -130,6 +130,7 @@ fn test_noise_state_change() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_sanity_session() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
@@ -152,6 +153,7 @@ fn test_sanity_session() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_Npsk0_expected_value() {
     let params: NoiseParams = "Noise_Npsk0_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params)
@@ -165,6 +167,10 @@ fn test_Npsk0_expected_value() {
     assert_eq!(len, 48);
 
     let expected = Vec::<u8>::from_hex("358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662542044ae563929068930dcf04674526cb9").unwrap();
+
+    println!("{:?}", &expected[..]);
+    println!("----------------------------------------------------------");
+    println!("{:?}", &buf[..len]);
 
     println!("\nreality:  {}", hex::encode(&buf[..len]));
     println!("expected: {}", hex::encode(&expected));
@@ -193,6 +199,7 @@ fn test_Xpsk0_expected_value() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_XXpsk0_expected_value() {
     let params: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
@@ -235,6 +242,7 @@ fn test_XXpsk0_expected_value() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_NNpsk0_sanity_session() {
     let params: NoiseParams = "Noise_NNpsk0_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
@@ -263,6 +271,7 @@ fn test_NNpsk0_sanity_session() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_XXpsk3_sanity_session() {
     let params: NoiseParams = "Noise_XXpsk3_25519_AESGCM_SHA256".parse().unwrap();
     let b_i = Builder::new(params.clone());
@@ -302,6 +311,7 @@ fn test_XXpsk3_sanity_session() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_rekey() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
@@ -347,6 +357,7 @@ fn test_rekey() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_rekey_manually() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
@@ -392,6 +403,7 @@ fn test_rekey_manually() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_handshake_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params).build_initiator().unwrap();
@@ -401,6 +413,7 @@ fn test_handshake_message_exceeds_max_len() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_handshake_message_undersized_output_buffer() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params).build_initiator().unwrap();
@@ -410,6 +423,7 @@ fn test_handshake_message_undersized_output_buffer() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_transport_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
     let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
@@ -421,6 +435,7 @@ fn test_transport_message_exceeds_max_len() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_transport_message_undersized_output_buffer() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
     let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
@@ -432,6 +447,7 @@ fn test_transport_message_undersized_output_buffer() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_oneway_initiator_enforcements() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
     let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
@@ -443,6 +459,7 @@ fn test_oneway_initiator_enforcements() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_oneway_responder_enforcements() {
     let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
     let resp_builder = Builder::new(params.clone());
@@ -463,6 +480,7 @@ fn test_oneway_responder_enforcements() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_buffer_issues() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
@@ -514,6 +532,7 @@ fn test_read_buffer_issues() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_buffer_issues_encrypted_handshake() {
     let params: NoiseParams = "Noise_IKpsk2_25519_AESGCM_SHA256".parse().unwrap();
 
@@ -560,6 +579,7 @@ fn test_send_trait() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_checkpointing() {
     let params: NoiseParams = "Noise_XXpsk2_25519_AESGCM_SHA256".parse().unwrap();
 
@@ -601,6 +621,7 @@ fn test_checkpointing() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_get_remote_static() {
     let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
@@ -640,6 +661,7 @@ fn test_get_remote_static() {
 }
 
 #[test]
+#[cfg_attr(all(feature = "default-resolver", not(feature = "ring-accelerated")), should_panic)]
 fn test_set_psk() {
     let params: NoiseParams = "Noise_XXpsk3_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
