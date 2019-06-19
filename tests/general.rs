@@ -1,5 +1,5 @@
 #![cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
-#![cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
+#![allow(clippy::needless_range_loop)]
 #![allow(non_snake_case)]
 use hex;
 use snow;
@@ -14,7 +14,7 @@ use snow::types::*;
 use x25519_dalek as x25519;
 use rand_core::{CryptoRng, RngCore, impls};
  
- #[derive(Default)]
+#[derive(Default)]
 struct CountingRng(u64);
  
 impl RngCore for CountingRng {
@@ -111,7 +111,7 @@ fn test_protocol_name() {
 
 #[test]
 fn test_noise_state_change() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
 
@@ -131,7 +131,7 @@ fn test_noise_state_change() {
 
 #[test]
 fn test_sanity_session() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
 
@@ -153,7 +153,7 @@ fn test_sanity_session() {
 
 #[test]
 fn test_Npsk0_expected_value() {
-    let params: NoiseParams = "Noise_Npsk0_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_Npsk0_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params)
         .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
         .psk(0, &get_inc_key(1))
@@ -164,7 +164,11 @@ fn test_Npsk0_expected_value() {
     let len = h_i.write_message(&[], &mut buf).unwrap();
     assert_eq!(len, 48);
 
-    let expected = Vec::<u8>::from_hex("358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662542044ae563929068930dcf04674526cb9").unwrap();
+    let expected = Vec::<u8>::from_hex("358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd166254deb8a4f6190117dea09aad7546a4658c").unwrap();
+
+    println!("{:?}", &expected[..]);
+    println!("----------------------------------------------------------");
+    println!("{:?}", &buf[..len]);
 
     println!("\nreality:  {}", hex::encode(&buf[..len]));
     println!("expected: {}", hex::encode(&expected));
@@ -194,7 +198,7 @@ fn test_Xpsk0_expected_value() {
 
 #[test]
 fn test_XXpsk0_expected_value() {
-    let params: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_XXpsk0_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
         .local_private_key(&get_inc_key(0))
         .remote_public_key(&x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES))
@@ -228,7 +232,7 @@ fn test_XXpsk0_expected_value() {
     let len = h_r.read_message(&buf[..len], &mut buf2).unwrap();
     assert_eq!(len, 0);
 
-    let expected = Vec::<u8>::from_hex("1b6d7cc3b13bd02217f9cdb98c50870db96281193dca4df570bf6230a603b686fd90d2914c7e797d9276ef8fb34b0c9d87faa048ce4bc7e7af21b6a450352275").unwrap();
+    let expected = Vec::<u8>::from_hex("072b7bbd237ac602c4aa938db36998f31ca4750752d1758d59850c627d0bdbc51205592c3baa101b4a31f062695b7c1dbee99d5123fbd2ad03052078c570e028").unwrap();
     println!("\nreality:  {}", hex::encode(&buf[..64]));
     println!("expected: {}", hex::encode(&expected));
     assert_eq!(&buf[..64], &expected[..]);
@@ -236,7 +240,7 @@ fn test_XXpsk0_expected_value() {
 
 #[test]
 fn test_NNpsk0_sanity_session() {
-    let params: NoiseParams = "Noise_NNpsk0_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NNpsk0_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
         .psk(0, &[32u8; 32])
         .build_initiator()
@@ -264,7 +268,7 @@ fn test_NNpsk0_sanity_session() {
 
 #[test]
 fn test_XXpsk3_sanity_session() {
-    let params: NoiseParams = "Noise_XXpsk3_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_XXpsk3_25519_ChaChaPoly_SHA256".parse().unwrap();
     let b_i = Builder::new(params.clone());
     let b_r = Builder::new(params);
     let static_i = b_i.generate_keypair().unwrap();
@@ -303,7 +307,7 @@ fn test_XXpsk3_sanity_session() {
 
 #[test]
 fn test_rekey() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
 
@@ -348,7 +352,7 @@ fn test_rekey() {
 
 #[test]
 fn test_rekey_manually() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
 
@@ -393,7 +397,7 @@ fn test_rekey_manually() {
 
 #[test]
 fn test_handshake_message_exceeds_max_len() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 65535*2];
@@ -402,7 +406,7 @@ fn test_handshake_message_exceeds_max_len() {
 
 #[test]
 fn test_handshake_message_undersized_output_buffer() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 200];
@@ -411,7 +415,7 @@ fn test_handshake_message_undersized_output_buffer() {
 
 #[test]
 fn test_transport_message_exceeds_max_len() {
-    let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 65535*2];
@@ -422,7 +426,7 @@ fn test_transport_message_exceeds_max_len() {
 
 #[test]
 fn test_transport_message_undersized_output_buffer() {
-    let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 200];
@@ -433,7 +437,7 @@ fn test_transport_message_undersized_output_buffer() {
 
 #[test]
 fn test_oneway_initiator_enforcements() {
-    let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 1024];
@@ -444,7 +448,7 @@ fn test_oneway_initiator_enforcements() {
 
 #[test]
 fn test_oneway_responder_enforcements() {
-    let params: NoiseParams = "Noise_N_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse().unwrap();
     let resp_builder = Builder::new(params.clone());
     let rpk = resp_builder.generate_keypair().unwrap();
 
@@ -464,7 +468,7 @@ fn test_oneway_responder_enforcements() {
 
 #[test]
 fn test_buffer_issues() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
 
@@ -515,7 +519,7 @@ fn test_read_buffer_issues() {
 
 #[test]
 fn test_buffer_issues_encrypted_handshake() {
-    let params: NoiseParams = "Noise_IKpsk2_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_IKpsk2_25519_ChaChaPoly_SHA256".parse().unwrap();
 
     let b_i = Builder::new(params.clone());
     let b_r = Builder::new(params);
@@ -561,7 +565,7 @@ fn test_send_trait() {
 
 #[test]
 fn test_checkpointing() {
-    let params: NoiseParams = "Noise_XXpsk2_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_XXpsk2_25519_ChaChaPoly_SHA256".parse().unwrap();
 
     let b_i = Builder::new(params.clone());
     let b_r = Builder::new(params);
@@ -602,7 +606,7 @@ fn test_checkpointing() {
 
 #[test]
 fn test_get_remote_static() {
-    let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
         .local_private_key(&get_inc_key(0))
         .build_initiator().unwrap();
@@ -641,7 +645,7 @@ fn test_get_remote_static() {
 
 #[test]
 fn test_set_psk() {
-    let params: NoiseParams = "Noise_XXpsk3_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_XXpsk3_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
         .local_private_key(&get_inc_key(0))
         .build_initiator().unwrap();
@@ -673,7 +677,7 @@ fn test_set_psk() {
 
 #[test]
 fn test_stateless_sanity_session() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
 

@@ -1,11 +1,7 @@
 use arrayref::array_ref;
 use blake2_rfc::blake2b::Blake2b;
 use blake2_rfc::blake2s::Blake2s;
-use crypto::digest::Digest;
-use crypto::sha2::{Sha256, Sha512};
-use crypto::aes::KeySize;
-use crypto::aes_gcm::AesGcm;
-use crypto::aead::{AeadEncryptor, AeadDecryptor};
+use sha2::{Digest, Sha256, Sha512};
 use rand::rngs::OsRng;
 use x25519_dalek as x25519;
 
@@ -48,7 +44,7 @@ impl CryptoResolver for DefaultResolver {
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         match *choice {
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
-            CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
+            CipherChoice::AESGCM     => None,
         }
     }
 }
@@ -60,24 +56,18 @@ struct Dh25519 {
     pubkey:  [u8; 32],
 }
 
-/// Wraps `rust-crypto`'s AES implementation.
-#[derive(Default)]
-struct CipherAESGCM {
-    key: [u8; 32],
-}
-
 /// Wraps `chacha20_poly1305_aead`'s ChaCha20Poly1305 implementation.
 #[derive(Default)]
 struct CipherChaChaPoly {
     key: [u8; 32],
 }
 
-/// Wraps `rust-crypto`'s SHA-256 implementation.
+/// Wraps `RustCrypto`'s SHA-256 implementation.
 struct HashSHA256 {
     hasher: Sha256
 }
 
-/// Wraps `rust-crypto`'s SHA-512 implementation.
+/// Wraps `RustCrypto`'s SHA-512 implementation.
 struct HashSHA512 {
     hasher: Sha512
 }
@@ -131,42 +121,6 @@ impl Dh for Dh25519 {
         let result = x25519::x25519(self.privkey, *array_ref![pubkey, 0, 32]);
         copy_slices!(&result, out);
         Ok(())
-    }
-}
-
-impl Cipher for CipherAESGCM {
-
-    fn name(&self) -> &'static str {
-        static NAME: &'static str = "AESGCM";
-        NAME
-    }
-
-    fn set(&mut self, key: &[u8]) {
-        copy_slices!(key, &mut self.key);
-    }
-
-    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
-        let mut nonce_bytes = [0u8; 12];
-        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
-        let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
-        let mut tag = [0u8; TAGLEN];
-        cipher.encrypt(plaintext, &mut out[..plaintext.len()], &mut tag);
-        copy_slices!(&tag, &mut out[plaintext.len()..]);
-        plaintext.len() + TAGLEN
-    } 
-
-    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
-        let mut nonce_bytes = [0u8; 12];
-        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
-        let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
-        let text_len = ciphertext.len() - TAGLEN;
-        let mut tag = [0u8; TAGLEN];
-        copy_slices!(&ciphertext[text_len..], &mut tag);
-        if cipher.decrypt(&ciphertext[..text_len], &mut out[..text_len], &tag) {
-            Ok(text_len)
-        } else {
-            Err(())
-        }
     }
 }
 
@@ -249,7 +203,8 @@ impl Hash for HashSHA256 {
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        self.hasher.result(out);
+        let hash = self.hasher.clone().result();
+        copy_slices!(hash.as_slice(), &mut out[..Sha256::output_size()])
     }
 }
 
@@ -282,7 +237,8 @@ impl Hash for HashSHA512 {
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        self.hasher.result(out);
+        let hash = self.hasher.clone().result();
+        copy_slices!(hash.as_slice(), &mut out[..Sha512::output_size()])
     }
 }
 
@@ -363,8 +319,6 @@ mod tests {
     use crate::types::*;
     use super::*;
     use self::hex::FromHex;
-    use crypto::poly1305::Poly1305;
-    use crypto::mac::Mac;
 
     #[test]
     fn test_sha256() {
@@ -427,59 +381,6 @@ mod tests {
         let mut output = [0u8; 32];
         keypair.dh(&public, &mut output).unwrap();
         assert!(hex::encode(output) == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
-    }
-
-    #[test]
-    fn test_aes256_gcm() {
-    //AES256-GCM tests - gcm-spec.pdf
-        // Test Case 13
-        let key = [0u8; 32];
-        let nonce = 0u64;
-        let plaintext = [0u8; 0];
-        let authtext = [0u8; 0];
-        let mut ciphertext = [0u8; 16];
-        let mut cipher1: CipherAESGCM = Default::default();
-        cipher1.set(&key);
-        cipher1.encrypt(nonce, &authtext, &plaintext, &mut ciphertext);
-        assert!(hex::encode(ciphertext) == "530f8afbc74536b9a963b4f1c4cb738b");
-
-        let mut resulttext = [0u8; 1];
-        let mut cipher2: CipherAESGCM = Default::default();
-        cipher2.set(&key);
-        cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
-        assert!(resulttext[0] == 0);
-        ciphertext[0] ^= 1;
-        assert!(cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).is_err());
-
-        // Test Case 14
-        let plaintext2 = [0u8; 16];
-        let mut ciphertext2 = [0u8; 32];
-        let mut cipher3: CipherAESGCM = Default::default();
-        cipher3.set(&key);
-        cipher3.encrypt(nonce, &authtext, &plaintext2, &mut ciphertext2);
-        assert!(hex::encode(ciphertext2) == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919");
-
-        let mut resulttext2 = [1u8; 16];
-        let mut cipher4: CipherAESGCM = Default::default();
-        cipher4.set(&key);
-        cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).unwrap();
-        assert!(plaintext2 == resulttext2);
-        ciphertext2[0] ^= 1;
-        assert!(cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).is_err());
-    }
-
-    #[test]
-    fn test_poly1305() {
-    // Poly1305 internal test - RFC 7539
-        let key = Vec::<u8>::from_hex("85d6be7857556d337f4452fe42d506a80103808afb0db2fd4abff6af4149f51b").unwrap();
-        let msg = Vec::<u8>::from_hex("43727970746f6772617068696320466f\
-                   72756d2052657365617263682047726f\
-                   7570").unwrap();
-        let mut poly = Poly1305::new(&key);
-        poly.input(&msg);
-        let mut output = [0u8; 16];
-        poly.raw_result(&mut output);
-        assert!(hex::encode(output) == "a8061dc1305136c6c22b8baf0c0127a9");
     }
 
     #[test]
