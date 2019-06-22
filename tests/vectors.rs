@@ -1,18 +1,18 @@
 #![cfg(feature = "vector-tests")]
 #[macro_use] extern crate serde_derive;
 
-extern crate hex;
-extern crate snow;
-extern crate serde;
-extern crate serde_json;
-extern crate rand;
+use hex;
+
+
+use serde_json;
+use rand;
 
 use serde::de::{self, Deserialize, Deserializer, Visitor, Unexpected};
 use serde::ser::{Serialize, Serializer};
 use std::ops::Deref;
 use hex::FromHex;
 use rand::RngCore;
-use snow::{Builder, Keypair, HandshakeState, TransportState};
+use snow::{Builder, Keypair, HandshakeState};
 use snow::params::*;
 use std::fmt;
 use std::fs::{File, OpenOptions};
@@ -42,7 +42,7 @@ impl Deref for HexBytes {
 }
 
 impl fmt::Debug for HexBytes {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.original)
     }
 }
@@ -51,7 +51,7 @@ struct HexBytesVisitor;
 impl<'de> Visitor<'de> for HexBytesVisitor {
     type Value = HexBytes;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "a hex string")
     }
 
@@ -90,7 +90,7 @@ struct TestMessage {
 }
 
 impl fmt::Debug for TestMessage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Message")
     }
 }
@@ -306,8 +306,8 @@ fn generate_vector(params: NoiseParams) -> TestVector {
 
     let (is, ie, rs, re): (Keypair, Keypair, Keypair, Keypair);
 
-    let mut init_b: Builder = Builder::new(params.clone());
-    let mut resp_b: Builder = Builder::new(params.clone());
+    let mut init_b: Builder<'_> = Builder::new(params.clone());
+    let mut resp_b: Builder<'_> = Builder::new(params.clone());
 
     is = init_b.generate_keypair().unwrap();
     ie = init_b.generate_keypair().unwrap();
