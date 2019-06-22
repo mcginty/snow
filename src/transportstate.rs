@@ -4,7 +4,7 @@ use crate::cipherstate::CipherStates;
 use crate::constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
 use crate::utils::Toggle;
 use crate::handshakestate::HandshakeState;
-use std::fmt;
+use std::{convert::TryFrom, fmt};
 
 /// A state machine encompassing the transport phase of a Noise session, using the two
 /// `CipherState`s (for sending and receiving) that were spawned from the `SymmetricState`'s
@@ -21,7 +21,7 @@ pub struct TransportState {
 
 impl TransportState {
     pub fn new(handshake: HandshakeState) -> Result<Self, Error> {
-        if !handshake.is_finished() {
+        if !handshake.is_handshake_finished() {
             bail!(StateProblem::HandshakeNotFinished);
         }
 
@@ -42,7 +42,7 @@ impl TransportState {
         self.rs.get().map(|rs| &rs[..self.dh_len])
     }
 
-    pub fn write_transport_message(&mut self,
+    pub fn write_message(&mut self,
                                    payload: &[u8],
                                    message: &mut [u8]) -> Result<usize, Error> {
         if !self.initiator && self.pattern.is_oneway() {
@@ -55,7 +55,7 @@ impl TransportState {
         Ok(cipher.encrypt(payload, message)?)
     }
 
-    pub fn read_transport_message(&mut self,
+    pub fn read_message(&mut self,
                                    payload: &[u8],
                                    message: &mut [u8]) -> Result<usize, Error> {
         if self.initiator && self.pattern.is_oneway() {
@@ -65,6 +65,10 @@ impl TransportState {
         cipher.decrypt(payload, message).map_err(|_| Error::Decrypt)
     }
 
+    /// Generates a new key for the egress symmetric cipher according to Section 4.2
+    /// of the Noise Specification. Synchronizing timing of rekey between initiator and
+    /// responder is the responsibility of the application, as described in Section 11.3
+    /// of the Noise Specification.
     pub fn rekey_outgoing(&mut self) {
         if self.initiator {
             self.cipherstates.rekey_initiator()
@@ -73,6 +77,10 @@ impl TransportState {
         }
     }
 
+    /// Generates a new key for the ingress symmetric cipher according to Section 4.2
+    /// of the Noise Specification. Synchronizing timing of rekey between initiator and
+    /// responder is the responsibility of the application, as described in Section 11.3
+    /// of the Noise Specification.
     pub fn rekey_incoming(&mut self) {
         if self.initiator {
             self.cipherstates.rekey_responder()
@@ -81,10 +89,21 @@ impl TransportState {
         }
     }
 
+    pub fn rekey_manually(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) {
+        if let Some(key) = initiator {
+            self.rekey_initiator_manually(key);
+        }
+        if let Some(key) = responder {
+            self.rekey_responder_manually(key);
+        }
+    }
+
+    /// Set a new key for the initiator-egress symmetric cipher.
     pub fn rekey_initiator_manually(&mut self, key: &[u8]) {
         self.cipherstates.rekey_initiator_manually(key)
     }
 
+    /// Set a new key for the responder-egress symmetric cipher.
     pub fn rekey_responder_manually(&mut self, key: &[u8]) {
         self.cipherstates.rekey_responder_manually(key)
     }
@@ -98,7 +117,11 @@ impl TransportState {
         }
     }
 
-    /// Gets the *receiving* CipherState's nonce. Useful for using noise on lossy transports.
+    /// Get the forthcoming inbound nonce value.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::State` if not in transport mode.
     pub fn receiving_nonce(&self) -> u64 {
         if self.initiator {
             self.cipherstates.1.nonce()
@@ -107,6 +130,11 @@ impl TransportState {
         }
     }
 
+    /// Get the forthcoming outbound nonce value.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::State` if not in transport mode.
     pub fn sending_nonce(&self) -> u64 {
         if self.initiator {
             self.cipherstates.0.nonce()
@@ -123,5 +151,13 @@ impl TransportState {
 impl fmt::Debug for TransportState {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("TransportState").finish()
+    }
+}
+
+impl TryFrom<HandshakeState> for TransportState {
+    type Error = Error;
+
+    fn try_from(old: HandshakeState) -> Result<Self, Self::Error> {
+        TransportState::new(old)
     }
 }

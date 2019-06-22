@@ -12,7 +12,7 @@ use serde::ser::{Serialize, Serializer};
 use std::ops::Deref;
 use hex::FromHex;
 use rand::RngCore;
-use snow::{Builder, Keypair, Session};
+use snow::{Builder, Keypair, HandshakeState, TransportState};
 use snow::params::*;
 use std::fmt;
 use std::fs::{File, OpenOptions};
@@ -150,7 +150,7 @@ struct TestVectors {
     vectors: Vec<TestVector>,
 }
 
-fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), String> {
+fn build_session_pair(vector: &TestVector) -> Result<(HandshakeState, HandshakeState), String> {
     let params: NoiseParams = vector.protocol_name.parse().unwrap();
     let mut init_builder = Builder::new(params.clone());
     let mut resp_builder = Builder::new(params.clone());
@@ -197,7 +197,7 @@ fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), String>
     Ok((init, resp))
 }
 
-fn confirm_message_vectors(mut init: Session, mut resp: Session, messages_vec: &Vec<TestMessage>, is_oneway: bool) -> Result<(), String> {
+fn confirm_message_vectors(mut init: HandshakeState, mut resp: HandshakeState, messages_vec: &Vec<TestMessage>, is_oneway: bool) -> Result<(), String> {
     let (mut sendbuf, mut recvbuf) = ([0u8; 65535], [0u8; 65535]);
     let mut messages = messages_vec.iter().enumerate();
     while !init.is_handshake_finished() {
@@ -346,8 +346,8 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         resp_b = resp_b.remote_public_key(&is.public);
     }
 
-    let mut init: Session = init_b.build_initiator().unwrap();
-    let mut resp: Session = resp_b.build_responder().unwrap();
+    let mut init = init_b.build_initiator().unwrap();
+    let mut resp = resp_b.build_responder().unwrap();
 
     let (mut ibuf, mut obuf) = ([0u8; 65535], [0u8; 65535]);
     let mut messages = vec![];

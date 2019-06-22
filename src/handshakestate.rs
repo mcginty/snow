@@ -6,8 +6,10 @@ use crate::cipherstate::{CipherState, CipherStates};
 #[cfg(not(feature = "nightly"))] use crate::utils::TryFrom;
 use crate::symmetricstate::SymmetricState;
 use crate::params::{HandshakeTokens, MessagePatterns, NoiseParams, Token};
+use crate::transportstate::TransportState;
+use crate::stateless_transportstate::StatelessTransportState;
 use crate::error::{Error, InitStage, StateProblem};
-use std::fmt;
+use std::{convert::TryInto, fmt};
 
 /// A state machine encompassing the handshake phase of a Noise session.
 ///
@@ -34,7 +36,7 @@ pub struct HandshakeState {
 
 impl HandshakeState {
     #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
-    pub fn new(
+    pub(crate) fn new(
         rng             : Box<Random>,
         cipherstate     : CipherState,
         hasher          : Box<Hash>,
@@ -137,12 +139,36 @@ impl HandshakeState {
         Ok(dh_out)
     }
 
+    /// This method will return `true` if the *previous* write payload was encrypted.
+    ///
+    /// See [Payload Security Properties](http://noiseprotocol.org/noise.html#payload-security-properties)
+    /// for more information on the specific properties of your chosen handshake pattern.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// let mut session = Builder::new("Noise_NN_25519_AESGCM_SHA256".parse()?)
+    ///     .build_initiator()?;
+    ///
+    /// // write message...
+    ///
+    /// assert!(session.was_write_payload_encrypted());
+    /// ```
     pub fn was_write_payload_encrypted(&self) -> bool {
         self.symmetricstate.has_key()
     }
 
+    /// Construct a message from `payload` (and pending handshake tokens if in handshake state),
+    /// and writes it to the `output` buffer.
+    ///
+    /// Returns the size of the written payload.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::Input` if the size of the output exceeds the max message
+    /// length in the Noise Protocol (65535 bytes).
     #[must_use]
-    pub fn write_handshake_message(&mut self,
+    pub fn write_message(&mut self,
                                   message: &[u8],
                                   payload: &mut [u8]) -> Result<usize, Error> {
         let checkpoint = self.symmetricstate.checkpoint();
@@ -240,7 +266,19 @@ impl HandshakeState {
         Ok(byte_index)
     }
 
-    pub fn read_handshake_message(&mut self,
+    /// Reads a noise message from `input`
+    ///
+    /// Returns the size of the payload written to `payload`.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::Decrypt` if the contents couldn't be decrypted and/or the
+    /// authentication tag didn't verify.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if there is no key, or if there is a nonce overflow.
+    pub fn read_message(&mut self,
                                   message: &[u8],
                                   payload: &mut [u8]) -> Result<usize, Error> {
         let checkpoint = self.symmetricstate.checkpoint();
@@ -338,7 +376,14 @@ impl HandshakeState {
         Ok(payload_len)
     }
 
-    /// Set the PSK at the specified position.
+    /// Set the preshared key at the specified location. It is up to the caller
+    /// to correctly set the location based on the specified handshake - Snow
+    /// won't stop you from placing a PSK in an unused slot.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::Input` if the PSK is not the right length or the location is out of bounds.
+    /// Will result in `Error::State` if in transport mode.
     #[must_use]
     pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
         if key.len() != PSKLEN || self.psks.len() <= location {
@@ -362,6 +407,9 @@ impl HandshakeState {
         self.rs.get().map(|rs| &rs[..self.dh_len()])
     }
 
+    /// Get the handshake hash.
+    ///
+    /// Returns a slice of length `Hasher.hash_len()` (i.e. HASHLEN for the chosen Hash function).
     pub fn get_handshake_hash(&self) -> &[u8] {
         self.symmetricstate.handshake_hash()
     }
@@ -370,8 +418,16 @@ impl HandshakeState {
         self.initiator
     }
 
-    pub fn is_finished(&self) -> bool {
+    pub fn is_handshake_finished(&self) -> bool {
         self.pattern_position == self.message_patterns.len()
+    }
+
+    pub fn into_transport_mode(self) -> Result<TransportState, Error> {
+        Ok(self.try_into()?)
+    }
+
+    pub fn into_stateless_transport_mode(self) -> Result<StatelessTransportState, Error> {
+        Ok(self.try_into()?)
     }
 }
 

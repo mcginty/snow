@@ -306,11 +306,6 @@ fn test_rekey() {
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
 
-    assert!(h_i.rekey_incoming().is_err());
-    assert!(h_i.rekey_outgoing().is_err());
-    assert!(h_r.rekey_incoming().is_err());
-    assert!(h_r.rekey_outgoing().is_err());
-
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
@@ -328,23 +323,23 @@ fn test_rekey() {
     assert_eq!(&buffer_out[..len], b"hack the planet");
 
     // rekey outgoing on initiator
-    h_i.rekey_outgoing().unwrap();
+    h_i.rekey_outgoing();
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     assert!(h_r.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
 
     // rekey incoming on responder
-    h_r.rekey_incoming().unwrap();
+    h_r.rekey_incoming();
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 
     // rekey outgoing on responder
-    h_r.rekey_outgoing().unwrap();
+    h_r.rekey_outgoing();
     let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     assert!(h_i.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
 
     // rekey incoming on initiator
-    h_i.rekey_incoming().unwrap();
+    h_i.rekey_incoming();
     let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
@@ -355,9 +350,6 @@ fn test_rekey_manually() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
-
-    assert!(h_i.rekey_manually(None, None).is_err());
-    assert!(h_r.rekey_manually(None, None).is_err());
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
@@ -376,23 +368,23 @@ fn test_rekey_manually() {
     assert_eq!(&buffer_out[..len], b"hack the planet");
 
     // rekey initiator (on initiator)
-    h_i.rekey_manually(Some(&[1u8; 32]), None).unwrap();
+    h_i.rekey_manually(Some(&[1u8; 32]), None);
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     assert!(h_r.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
 
     // rekey initiator (on responder)
-    h_r.rekey_manually(Some(&[1u8; 32]), None).unwrap();
+    h_r.rekey_manually(Some(&[1u8; 32]), None);
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 
     // rekey responder (on responder)
-    h_r.rekey_manually(None, Some(&[1u8; 32])).unwrap();
+    h_r.rekey_manually(None, Some(&[1u8; 32]));
     let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     assert!(h_i.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
 
     // rekey responder (on initiator)
-    h_i.rekey_manually(None, Some(&[1u8; 32])).unwrap();
+    h_i.rekey_manually(None, Some(&[1u8; 32]));
     let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
@@ -423,7 +415,7 @@ fn test_transport_message_exceeds_max_len() {
 
     let mut buffer_out = [0u8; 65535*2];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
-    noise = noise.into_transport_mode().unwrap();
+    let mut noise = noise.into_transport_mode().unwrap();
     assert!(noise.write_message(&[0u8; 65534], &mut buffer_out).is_err());
 }
 
@@ -434,7 +426,7 @@ fn test_transport_message_undersized_output_buffer() {
 
     let mut buffer_out = [0u8; 200];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
-    noise = noise.into_transport_mode().unwrap();
+    let mut noise = noise.into_transport_mode().unwrap();
     assert!(noise.write_message(&[0u8; 300], &mut buffer_out).is_err());
 }
 
@@ -445,7 +437,7 @@ fn test_oneway_initiator_enforcements() {
 
     let mut buffer_out = [0u8; 1024];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
-    noise = noise.into_transport_mode().unwrap();
+    let mut noise = noise.into_transport_mode().unwrap();
     assert!(noise.read_message(&[0u8; 1024], &mut buffer_out).is_err());
 }
 
@@ -462,8 +454,8 @@ fn test_oneway_responder_enforcements() {
     let mut buffer_init = [0u8; 65535];
     let len = init.write_message(&[0u8; 0], &mut buffer_init).unwrap();
     resp.read_message(&buffer_init[..len], &mut buffer_resp).unwrap();
-    init = init.into_transport_mode().unwrap();
-    resp = resp.into_transport_mode().unwrap();
+    let mut init = init.into_transport_mode().unwrap();
+    let mut resp = resp.into_transport_mode().unwrap();
 
     assert!(init.read_message(&[0u8; 1024], &mut buffer_init).is_err());
     assert!(resp.write_message(&[0u8; 1024], &mut buffer_resp).is_err());
@@ -679,33 +671,6 @@ fn test_set_psk() {
 }
 
 #[test]
-fn test_stateless_seperation() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
-    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
-    let mut h_r = Builder::new(params).build_responder().unwrap();
-
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
-    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
-    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-
-    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
-    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-
-    let h_i = h_i.into_transport_mode().unwrap();
-    let h_r = h_r.into_transport_mode().unwrap();
-
-    match h_i.write_message_with_nonce(1, b"hack the planet", &mut buffer_msg) {
-        Err(Error::State(StateProblem::StatelessTransportMode)) => {},
-        _ => panic!("incorrect failure pattern.")
-    }
-    match h_r.read_message_with_nonce(1, &buffer_msg[..len], &mut buffer_out) {
-        Err(Error::State(StateProblem::StatelessTransportMode)) => {},
-        _ => panic!("incorrect failure pattern.")
-    }
-}
-
-#[test]
 fn test_stateless_sanity_session() {
     let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
@@ -722,17 +687,7 @@ fn test_stateless_sanity_session() {
     let mut h_i = h_i.into_stateless_transport_mode().unwrap();
     let mut h_r = h_r.into_stateless_transport_mode().unwrap();
 
-    match h_i.write_message(b"hack the planet", &mut buffer_msg) {
-        Err(Error::State(StateProblem::StatelessTransportMode)) => {},
-        _ => panic!("incorrect failure pattern.")
-    }
-
-    match h_r.read_message(&buffer_msg[..len], &mut buffer_out) {
-        Err(Error::State(StateProblem::StatelessTransportMode)) => {},
-        _ => panic!("incorrect failure pattern.")
-    }
-
-    let len = h_i.write_message_with_nonce(1337, b"hack the planet", &mut buffer_msg).unwrap();
-    let len = h_r.read_message_with_nonce(1337, &buffer_msg[..len], &mut buffer_out).unwrap();
+    let len = h_i.write_message(1337, b"hack the planet", &mut buffer_msg).unwrap();
+    let len = h_r.read_message(1337, &buffer_msg[..len], &mut buffer_out).unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 }

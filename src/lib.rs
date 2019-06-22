@@ -71,7 +71,6 @@ mod cipherstate;
 mod symmetricstate;
 mod handshakestate;
 mod builder;
-mod session;
 mod transportstate;
 mod stateless_transportstate;
 
@@ -81,4 +80,6 @@ pub mod resolvers;
 
 pub use crate::error::Error;
 pub use crate::builder::{Builder, Keypair};
-pub use crate::session::Session;
+pub use crate::handshakestate::HandshakeState;
+pub use crate::transportstate::TransportState;
+pub use crate::stateless_transportstate::StatelessTransportState;

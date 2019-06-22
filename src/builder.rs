@@ -1,7 +1,6 @@
 use crate::constants::{PSKLEN, MAXDHLEN};
 use crate::handshakestate::HandshakeState;
 use crate::cipherstate::{CipherState, CipherStates};
-use crate::session::Session;
 use crate::utils::Toggle;
 use crate::params::NoiseParams;
 use crate::resolvers::CryptoResolver;
@@ -140,16 +139,16 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Build a NoiseSession for the side who will initiate the handshake (send the first message)
-    pub fn build_initiator(self) -> Result<Session, Error> {
+    pub fn build_initiator(self) -> Result<HandshakeState, Error> {
         self.build(true)
     }
 
     /// Build a NoiseSession for the side who will be responder (receive the first message)
-    pub fn build_responder(self) -> Result<Session, Error> {
+    pub fn build_responder(self) -> Result<HandshakeState, Error> {
         self.build(false)
     }
 
-    fn build(self, initiator: bool) -> Result<Session, Error> {
+    fn build(self, initiator: bool) -> Result<HandshakeState, Error> {
         if self.s.is_none() && self.params.handshake.pattern.needs_local_static_key(initiator) {
             bail!(Prerequisite::LocalPrivateKey);
         }
@@ -213,7 +212,7 @@ impl<'builder> Builder<'builder> {
                                      psks,
                                      self.plog.unwrap_or_else(|| &[0u8; 0] ),
                                      cipherstates)?;
-        Ok(hs.into())
+        Ok(hs)
     }
 }
 

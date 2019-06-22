@@ -4,7 +4,7 @@ use crate::cipherstate::StatelessCipherStates;
 use crate::constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
 use crate::handshakestate::HandshakeState;
 use crate::utils::Toggle;
-use std::fmt;
+use std::{convert::TryFrom, fmt};
 
 /// A state machine encompassing the transport phase of a Noise session, using the two
 /// `CipherState`s (for sending and receiving) that were spawned from the `SymmetricState`'s
@@ -21,7 +21,7 @@ pub struct StatelessTransportState {
 
 impl StatelessTransportState {
     pub fn new(handshake: HandshakeState) -> Result<Self, Error> {
-        if !handshake.is_finished() {
+        if !handshake.is_handshake_finished() {
             bail!(StateProblem::HandshakeNotFinished);
         }
 
@@ -42,7 +42,11 @@ impl StatelessTransportState {
         self.rs.get().map(|rs| &rs[..self.dh_len])
     }
 
-    pub fn write_transport_message(&self,
+    /// Construct a message from `payload` with an explicitly provided nonce and write it to the
+    /// `output` buffer.
+    ///
+    /// Returns the size of the written payload.
+    pub fn write_message(&self,
                                    nonce: u64,
                                    payload: &[u8],
                                    message: &mut [u8]) -> Result<usize, Error> {
@@ -56,7 +60,11 @@ impl StatelessTransportState {
         Ok(cipher.encrypt(nonce, payload, message)?)
     }
 
-    pub fn read_transport_message(&self,
+    /// Construct a message from `payload` (and pending handshake tokens if in handshake state),
+    /// and writes it to the `output` buffer.
+    ///
+    /// Returns the size of the written payload.
+    pub fn read_message(&self,
                                   nonce: u64,
                                   payload: &[u8],
                                   message: &mut [u8]) -> Result<usize, Error> {
@@ -99,5 +107,13 @@ impl StatelessTransportState {
 impl fmt::Debug for StatelessTransportState {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         fmt.debug_struct("StatelessTransportState").finish()
+    }
+}
+
+impl TryFrom<HandshakeState> for StatelessTransportState {
+    type Error = Error;
+
+    fn try_from(old: HandshakeState) -> Result<Self, Self::Error> {
+        StatelessTransportState::new(old)
     }
 }
