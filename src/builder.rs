@@ -36,6 +36,7 @@ impl PartialEq for Keypair {
 /// # use snow::Builder;
 /// # let my_long_term_key = [0u8; 32];
 /// # let their_pub_key = [0u8; 32];
+/// # #[cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
 /// let noise = Builder::new("Noise_XX_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
 ///     .local_private_key(&my_long_term_key)
 ///     .remote_public_key(&their_pub_key)
@@ -217,6 +218,7 @@ impl<'builder> Builder<'builder> {
 }
 
 #[cfg(test)]
+#[cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
 mod tests {
     use super::*;
 

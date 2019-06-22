@@ -1,3 +1,4 @@
+#![cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
 #![cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
 #![allow(non_snake_case)]
 use hex;
