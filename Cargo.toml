@@ -34,11 +34,10 @@ travis-ci = { repository = "mcginty/snow", branch = "master" }
 appveyor = { repository = "mcginty/snow", branch = "master", service = "github" }
 
 [dependencies]
-arrayref = "0.3"
+arrayref = "0.3.5"
 byteorder = "1.3"
 rand_core = "0.4"
 smallvec = "^0.6.3"
-static_slice = "0.0.3"
 subtle = { version = "2.0", default-features = false }
 
 # default crypto provider

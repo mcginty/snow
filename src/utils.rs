@@ -6,6 +6,13 @@ macro_rules! copy_slices {
     };
 }
 
+macro_rules! static_slice {
+    ($_type:ty: $($item:expr),*) => ({
+        static STATIC_SLICE: &'static [$_type] = &[$($item),*];
+        STATIC_SLICE
+    });
+}
+
 /// Toggle is similar to Option, except that even in the Off/"None" case, there is still
 /// an owned allocated inner object. This is useful for holding onto pre-allocated objects
 /// that can be toggled as enabled.
