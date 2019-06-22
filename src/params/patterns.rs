@@ -1,7 +1,5 @@
-#[cfg(feature = "nightly")] use std::convert::{TryFrom};
-#[cfg(not(feature = "nightly"))] use crate::utils::{TryFrom};
 use crate::error::{Error, PatternProblem};
-use std::str::FromStr;
+use std::{convert::TryFrom, str::FromStr};
 use smallvec::SmallVec;
 
 /// A small helper macro that behaves similar to the `vec![]` standard macro,
