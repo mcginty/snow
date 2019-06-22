@@ -2,7 +2,7 @@ use crate::constants::TAGLEN;
 use crate::error::{Error, InitStage, StateProblem};
 use crate::types::Cipher;
 
-pub struct CipherState {
+pub(crate) struct CipherState {
     cipher : Box<dyn Cipher>,
     n : u64,
     has_key : bool,
@@ -72,7 +72,7 @@ impl CipherState {
     }
 }
 
-pub struct CipherStates(pub CipherState, pub CipherState);
+pub(crate) struct CipherStates(pub CipherState, pub CipherState);
 
 impl CipherStates {
     pub fn new(initiator: CipherState, responder: CipherState) -> Result<Self, Error> {
@@ -100,28 +100,12 @@ impl CipherStates {
     }
 }
 
-pub struct StatelessCipherState {
+pub(crate) struct StatelessCipherState {
     cipher : Box<dyn Cipher>,
     has_key : bool,
 }
 
 impl StatelessCipherState {
-    pub fn new(cipher: Box<dyn Cipher>) -> Self {
-        Self {
-            cipher,
-            has_key: false
-        }
-    }
-
-    pub fn name(&self) -> &'static str {
-        self.cipher.name()
-    }
-
-    pub fn set(&mut self, key: &[u8]) {
-        self.cipher.set(key);
-        self.has_key = true;
-    }
-
     // TODO: don't panic
     pub fn encrypt_ad(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> Result<usize, Error> {
         if !self.has_key {
@@ -164,7 +148,7 @@ impl From<CipherState> for StatelessCipherState {
     }
 }
 
-pub struct StatelessCipherStates(pub StatelessCipherState, pub StatelessCipherState);
+pub(crate) struct StatelessCipherStates(pub StatelessCipherState, pub StatelessCipherState);
 
 impl From<CipherStates> for StatelessCipherStates {
     fn from(other: CipherStates) -> Self {
@@ -173,14 +157,6 @@ impl From<CipherStates> for StatelessCipherStates {
 }
 
 impl StatelessCipherStates {
-    pub fn new(initiator: StatelessCipherState, responder: StatelessCipherState) -> Result<Self, Error> {
-        if initiator.name() != responder.name() {
-            bail!(InitStage::ValidateCipherTypes);
-        }
-
-        Ok(StatelessCipherStates(initiator, responder))
-    }
-
     pub fn rekey_initiator(&mut self) {
         self.0.rekey()
     }

@@ -29,10 +29,6 @@ impl<T> Toggle<T> {
         }
     }
 
-    pub fn into_inner(self) -> T {
-        self.inner
-    }
-
     pub fn enable(&mut self) {
         self.on = true;
     }

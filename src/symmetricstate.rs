@@ -20,7 +20,7 @@ impl Default for SymmetricStateData {
     }
 }
 
-pub struct SymmetricState {
+pub(crate) struct SymmetricState {
     cipherstate : CipherState,
     hasher      : Box<dyn Hash>,
     inner       : SymmetricStateData,

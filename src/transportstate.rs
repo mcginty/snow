@@ -12,15 +12,15 @@ use std::{convert::TryFrom, fmt};
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct TransportState {
-    pub cipherstates : CipherStates,
-    pattern          : HandshakePattern,
-    dh_len           : usize,
-    rs               : Toggle<[u8; MAXDHLEN]>,
-    initiator        : bool,
+    cipherstates : CipherStates,
+    pattern      : HandshakePattern,
+    dh_len       : usize,
+    rs           : Toggle<[u8; MAXDHLEN]>,
+    initiator    : bool,
 }
 
 impl TransportState {
-    pub fn new(handshake: HandshakeState) -> Result<Self, Error> {
+    pub(crate) fn new(handshake: HandshakeState) -> Result<Self, Error> {
         if !handshake.is_handshake_finished() {
             bail!(StateProblem::HandshakeNotFinished);
         }
@@ -38,10 +38,25 @@ impl TransportState {
         })
     }
 
+    /// Get the remote party's static public key, if available.
+    ///
+    /// Note: will return `None` if either the chosen Noise pattern
+    /// doesn't necessitate a remote static key, *or* if the remote
+    /// static key is not yet known (as can be the case in the `XX`
+    /// pattern, for example).
     pub fn get_remote_static(&self) -> Option<&[u8]> {
         self.rs.get().map(|rs| &rs[..self.dh_len])
     }
 
+    /// Construct a message from `payload` (and pending handshake tokens if in handshake state),
+    /// and writes it to the `output` buffer.
+    ///
+    /// Returns the size of the written payload.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::Input` if the size of the output exceeds the max message
+    /// length in the Noise Protocol (65535 bytes).
     pub fn write_message(&mut self,
                                    payload: &[u8],
                                    message: &mut [u8]) -> Result<usize, Error> {
@@ -55,6 +70,18 @@ impl TransportState {
         Ok(cipher.encrypt(payload, message)?)
     }
 
+    /// Reads a noise message from `input`
+    ///
+    /// Returns the size of the payload written to `payload`.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::Decrypt` if the contents couldn't be decrypted and/or the
+    /// authentication tag didn't verify.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if there is no key, or if there is a nonce overflow.
     pub fn read_message(&mut self,
                                    payload: &[u8],
                                    message: &mut [u8]) -> Result<usize, Error> {
@@ -89,6 +116,7 @@ impl TransportState {
         }
     }
 
+    /// Set a new key for the one or both of the initiator-egress and responder-egress symmetric ciphers.
     pub fn rekey_manually(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) {
         if let Some(key) = initiator {
             self.rekey_initiator_manually(key);
@@ -143,6 +171,7 @@ impl TransportState {
         }
     }
 
+    /// Check if this session was started with the "initiator" role.
     pub fn is_initiator(&self) -> bool {
         self.initiator
     }

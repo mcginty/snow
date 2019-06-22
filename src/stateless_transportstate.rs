@@ -12,7 +12,7 @@ use std::{convert::TryFrom, fmt};
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct StatelessTransportState {
-    pub cipherstates: StatelessCipherStates,
+    cipherstates: StatelessCipherStates,
     pattern: HandshakePattern,
     dh_len: usize,
     rs: Toggle<[u8; MAXDHLEN]>,
@@ -20,7 +20,7 @@ pub struct StatelessTransportState {
 }
 
 impl StatelessTransportState {
-    pub fn new(handshake: HandshakeState) -> Result<Self, Error> {
+    pub(crate) fn new(handshake: HandshakeState) -> Result<Self, Error> {
         if !handshake.is_handshake_finished() {
             bail!(StateProblem::HandshakeNotFinished);
         }
@@ -38,14 +38,25 @@ impl StatelessTransportState {
         })
     }
 
+    /// Get the remote party's static public key, if available.
+    ///
+    /// Note: will return `None` if either the chosen Noise pattern
+    /// doesn't necessitate a remote static key, *or* if the remote
+    /// static key is not yet known (as can be the case in the `XX`
+    /// pattern, for example).
     pub fn get_remote_static(&self) -> Option<&[u8]> {
         self.rs.get().map(|rs| &rs[..self.dh_len])
     }
 
-    /// Construct a message from `payload` with an explicitly provided nonce and write it to the
-    /// `output` buffer.
+    /// Construct a message from `payload` (and pending handshake tokens if in handshake state),
+    /// and writes it to the `output` buffer.
     ///
     /// Returns the size of the written payload.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::Input` if the size of the output exceeds the max message
+    /// length in the Noise Protocol (65535 bytes).
     pub fn write_message(&self,
                                    nonce: u64,
                                    payload: &[u8],
@@ -60,10 +71,18 @@ impl StatelessTransportState {
         Ok(cipher.encrypt(nonce, payload, message)?)
     }
 
-    /// Construct a message from `payload` (and pending handshake tokens if in handshake state),
-    /// and writes it to the `output` buffer.
+    /// Reads a noise message from `input`
     ///
-    /// Returns the size of the written payload.
+    /// Returns the size of the payload written to `payload`.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::Decrypt` if the contents couldn't be decrypted and/or the
+    /// authentication tag didn't verify.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if there is no key.
     pub fn read_message(&self,
                                   nonce: u64,
                                   payload: &[u8],
@@ -75,6 +94,10 @@ impl StatelessTransportState {
         cipher.decrypt(nonce, payload, message).map_err(|_| Error::Decrypt)
     }
 
+    /// Generates a new key for the egress symmetric cipher according to Section 4.2
+    /// of the Noise Specification. Synchronizing timing of rekey between initiator and
+    /// responder is the responsibility of the application, as described in Section 11.3
+    /// of the Noise Specification.
     pub fn rekey_outgoing(&mut self) {
         if self.initiator {
             self.cipherstates.rekey_initiator()
@@ -83,6 +106,10 @@ impl StatelessTransportState {
         }
     }
 
+    /// Generates a new key for the ingress symmetric cipher according to Section 4.2
+    /// of the Noise Specification. Synchronizing timing of rekey between initiator and
+    /// responder is the responsibility of the application, as described in Section 11.3
+    /// of the Noise Specification.
     pub fn rekey_incoming(&mut self) {
         if self.initiator {
             self.cipherstates.rekey_responder()
@@ -91,14 +118,27 @@ impl StatelessTransportState {
         }
     }
 
+    /// Set a new key for the one or both of the initiator-egress and responder-egress symmetric ciphers.
+    pub fn rekey_manually(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) {
+        if let Some(key) = initiator {
+            self.rekey_initiator_manually(key);
+        }
+        if let Some(key) = responder {
+            self.rekey_responder_manually(key);
+        }
+    }
+
+    /// Set a new key for the initiator-egress symmetric cipher.
     pub fn rekey_initiator_manually(&mut self, key: &[u8]) {
         self.cipherstates.rekey_initiator_manually(key)
     }
 
+    /// Set a new key for the responder-egress symmetric cipher.
     pub fn rekey_responder_manually(&mut self, key: &[u8]) {
         self.cipherstates.rekey_responder_manually(key)
     }
 
+    /// Check if this session was started with the "initiator" role.
     pub fn is_initiator(&self) -> bool {
         self.initiator
     }

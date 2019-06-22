@@ -169,10 +169,10 @@ impl HandshakeState {
     /// length in the Noise Protocol (65535 bytes).
     #[must_use]
     pub fn write_message(&mut self,
-                                  message: &[u8],
-                                  payload: &mut [u8]) -> Result<usize, Error> {
+                         message: &[u8],
+                         payload: &mut [u8]) -> Result<usize, Error> {
         let checkpoint = self.symmetricstate.checkpoint();
-        match self._write_handshake_message(message, payload) {
+        match self._write_message(message, payload) {
             Ok(res) => {
                 self.pattern_position += 1;
                 Ok(res)
@@ -184,9 +184,9 @@ impl HandshakeState {
         }
     }
 
-    fn _write_handshake_message(&mut self,
-                         payload: &[u8],
-                         message: &mut [u8]) -> Result<usize, Error> {
+    fn _write_message(&mut self,
+                      payload: &[u8],
+                      message: &mut [u8]) -> Result<usize, Error> {
         if !self.my_turn {
             bail!(StateProblem::NotTurnToWrite);
         } else if self.pattern_position >= self.message_patterns.len() {
@@ -279,10 +279,10 @@ impl HandshakeState {
     ///
     /// This function will panic if there is no key, or if there is a nonce overflow.
     pub fn read_message(&mut self,
-                                  message: &[u8],
-                                  payload: &mut [u8]) -> Result<usize, Error> {
+                        message: &[u8],
+                        payload: &mut [u8]) -> Result<usize, Error> {
         let checkpoint = self.symmetricstate.checkpoint();
-        match self._read_handshake_message(message, payload) {
+        match self._read_message(message, payload) {
             Ok(res) => {
                 self.pattern_position += 1;
                 Ok(res)
@@ -294,9 +294,9 @@ impl HandshakeState {
         }
     }
 
-    fn _read_handshake_message(&mut self,
-                               message: &[u8],
-                               payload: &mut [u8]) -> Result<usize, Error> {
+    fn _read_message(&mut self,
+                     message: &[u8],
+                     payload: &mut [u8]) -> Result<usize, Error> {
         if message.len() > MAXMSGLEN {
             bail!(Error::Input);
         }
@@ -383,7 +383,6 @@ impl HandshakeState {
     /// # Errors
     ///
     /// Will result in `Error::Input` if the PSK is not the right length or the location is out of bounds.
-    /// Will result in `Error::State` if in transport mode.
     #[must_use]
     pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
         if key.len() != PSKLEN || self.psks.len() <= location {
@@ -414,18 +413,22 @@ impl HandshakeState {
         self.symmetricstate.handshake_hash()
     }
 
+    /// Check if this session was started with the "initiator" role.
     pub fn is_initiator(&self) -> bool {
         self.initiator
     }
 
+    /// Check if the handshake is finished and `into_transport_mode()` can now be called.
     pub fn is_handshake_finished(&self) -> bool {
         self.pattern_position == self.message_patterns.len()
     }
 
+    /// Convert this `HandshakeState` into a `TransportState` with an internally stored nonce.
     pub fn into_transport_mode(self) -> Result<TransportState, Error> {
         Ok(self.try_into()?)
     }
 
+    /// Convert this `HandshakeState` into a `StatelessTransportState` without an internally stored nonce.
     pub fn into_stateless_transport_mode(self) -> Result<StatelessTransportState, Error> {
         Ok(self.try_into()?)
     }
