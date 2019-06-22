@@ -71,7 +71,6 @@ macro_rules! bail {
     };
 }
 
-#[cfg(any(feature = "default-resolver", feature = "hacl-star-resolver"))]
 pub mod error;
 mod utils;
 mod constants;
