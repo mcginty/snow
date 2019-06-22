@@ -221,11 +221,9 @@ impl HandshakeChoice {
     /// Parse and split a base HandshakePattern from its optional modifiers
     fn parse_pattern_and_modifier(s: &str) -> Result<(HandshakePattern, &str), Error> {
         for i in (1..=4).rev() {
-            if s.len() > i-1 {
-                if s.is_char_boundary(i) {
-                    if let Ok(p) = (&s[..i]).parse() {
-                        return Ok((p, &s[i..]));
-                    }
+            if s.len() > i-1 && s.is_char_boundary(i) {
+                if let Ok(p) = (&s[..i]).parse() {
+                    return Ok((p, &s[i..]));
                 }
             }
         }
