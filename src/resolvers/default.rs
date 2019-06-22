@@ -1,19 +1,13 @@
 use arrayref::array_ref;
-use crypto;
-use blake2_rfc;
-use chacha20_poly1305_aead;
-use x25519_dalek;
-use rand;
-
-use self::blake2_rfc::blake2b::Blake2b;
-use self::blake2_rfc::blake2s::Blake2s;
-use self::crypto::digest::Digest;
-use self::crypto::sha2::{Sha256, Sha512};
-use self::crypto::aes::KeySize;
-use self::crypto::aes_gcm::AesGcm;
-use self::crypto::aead::{AeadEncryptor, AeadDecryptor};
-use self::rand::rngs::OsRng;
-use self::x25519_dalek as x25519;
+use blake2_rfc::blake2b::Blake2b;
+use blake2_rfc::blake2s::Blake2s;
+use crypto::digest::Digest;
+use crypto::sha2::{Sha256, Sha512};
+use crypto::aes::KeySize;
+use crypto::aes_gcm::AesGcm;
+use crypto::aead::{AeadEncryptor, AeadDecryptor};
+use rand::rngs::OsRng;
+use x25519_dalek as x25519;
 
 use byteorder::{ByteOrder, BigEndian, LittleEndian};
 
@@ -371,8 +365,8 @@ mod tests {
     use crate::types::*;
     use super::*;
     use self::hex::FromHex;
-    use super::crypto::poly1305::Poly1305;
-    use super::crypto::mac::Mac;
+    use crypto::poly1305::Poly1305;
+    use crypto::mac::Mac;
 
     #[test]
     fn test_sha256() {
