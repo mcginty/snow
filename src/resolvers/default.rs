@@ -1,3 +1,4 @@
+use arrayref::array_ref;
 use crypto;
 use blake2_rfc;
 use chacha20_poly1305_aead;

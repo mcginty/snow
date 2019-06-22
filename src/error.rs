@@ -2,20 +2,6 @@
 
 use std::fmt;
 
-/// Exits a function early with an error.
-///
-/// The `err!` macro provides an easy way to exit a function. `err!(X)` is
-/// equivalent to writing:
-///
-/// ```rust,ignore
-/// return Err(X.into())
-/// ```
-macro_rules! bail {
-    ($e:expr) => {
-        return Err(($e).into());
-    };
-}
-
 /// All errors in snow will include an `ErrorKind`.
 #[allow(missing_docs)]
 #[derive(Debug)]

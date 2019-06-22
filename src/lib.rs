@@ -52,13 +52,27 @@
 
 #![warn(missing_docs)]
 
-#[cfg(any(feature = "default-resolver", feature = "hacl-star-resolver"))]
-#[macro_use]
-extern crate arrayref;
+macro_rules! copy_slices {
+    ($inslice:expr, $outslice:expr) => {
+        $outslice[..$inslice.len()].copy_from_slice(&$inslice[..])
+    };
+}
 
-#[macro_use]
+macro_rules! static_slice {
+    ($_type:ty: $($item:expr),*) => ({
+        static STATIC_SLICE: &'static [$_type] = &[$($item),*];
+        STATIC_SLICE
+    });
+}
+
+macro_rules! bail {
+    ($e:expr) => {
+        return Err(($e).into());
+    };
+}
+
+#[cfg(any(feature = "default-resolver", feature = "hacl-star-resolver"))]
 pub mod error;
-#[macro_use]
 mod utils;
 mod constants;
 mod cipherstate;

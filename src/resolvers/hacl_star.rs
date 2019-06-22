@@ -1,3 +1,4 @@
+use arrayref::{array_ref, array_mut_ref};
 use std::mem;
 use super::CryptoResolver;
 use crate::params::{DHChoice, HashChoice, CipherChoice};
