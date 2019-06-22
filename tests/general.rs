@@ -1,13 +1,13 @@
 #![cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
 #![allow(non_snake_case)]
-extern crate hex;
-extern crate snow;
-extern crate x25519_dalek;
-extern crate rand_core;
+use hex;
+use snow;
+use x25519_dalek;
+use rand_core;
 
 use hex::FromHex;
 use snow::{Builder, resolvers::{CryptoResolver, DefaultResolver}};
-use snow::error::*;
+
 use snow::params::*;
 use snow::types::*;
 use x25519_dalek as x25519;
@@ -64,20 +64,20 @@ impl TestResolver {
 }
 
 impl CryptoResolver for TestResolver {
-    fn resolve_rng(&self) -> Option<Box<Random>> {
+    fn resolve_rng(&self) -> Option<Box<dyn Random>> {
         let rng = CountingRng(self.next_byte as u64);
         Some(Box::new(rng))
     }
 
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh>> {
+    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>> {
         self.parent.resolve_dh(choice)
     }
 
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash>> {
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<dyn Hash>> {
         self.parent.resolve_hash(choice)
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         self.parent.resolve_cipher(choice)
     }
 }
@@ -684,8 +684,8 @@ fn test_stateless_sanity_session() {
     let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
     h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
-    let mut h_i = h_i.into_stateless_transport_mode().unwrap();
-    let mut h_r = h_r.into_stateless_transport_mode().unwrap();
+    let h_i = h_i.into_stateless_transport_mode().unwrap();
+    let h_r = h_r.into_stateless_transport_mode().unwrap();
 
     let len = h_i.write_message(1337, b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(1337, &buffer_msg[..len], &mut buffer_out).unwrap();

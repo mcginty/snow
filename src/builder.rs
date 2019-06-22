@@ -45,7 +45,7 @@ impl PartialEq for Keypair {
 /// ```
 pub struct Builder<'builder> {
     params:   NoiseParams,
-    resolver: Box<CryptoResolver>,
+    resolver: Box<dyn CryptoResolver>,
     s:        Option<&'builder [u8]>,
     e_fixed:  Option<&'builder [u8]>,
     rs:       Option<&'builder [u8]>,
@@ -79,7 +79,7 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Create a Builder with a custom crypto resolver.
-    pub fn with_resolver(params: NoiseParams, resolver: Box<CryptoResolver>) -> Self {
+    pub fn with_resolver(params: NoiseParams, resolver: Box<dyn CryptoResolver>) -> Self {
         Builder {
             params,
             resolver,

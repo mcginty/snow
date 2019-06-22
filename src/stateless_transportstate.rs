@@ -105,7 +105,7 @@ impl StatelessTransportState {
 }
 
 impl fmt::Debug for StatelessTransportState {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("StatelessTransportState").finish()
     }
 }

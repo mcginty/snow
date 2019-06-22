@@ -3,13 +3,13 @@ use crate::error::{Error, InitStage, StateProblem};
 use crate::types::Cipher;
 
 pub struct CipherState {
-    cipher : Box<Cipher>,
+    cipher : Box<dyn Cipher>,
     n : u64,
     has_key : bool,
 }
 
 impl CipherState {
-    pub fn new(cipher: Box<Cipher>) -> Self {
+    pub fn new(cipher: Box<dyn Cipher>) -> Self {
         Self {
             cipher,
             n: 0,
@@ -101,12 +101,12 @@ impl CipherStates {
 }
 
 pub struct StatelessCipherState {
-    cipher : Box<Cipher>,
+    cipher : Box<dyn Cipher>,
     has_key : bool,
 }
 
 impl StatelessCipherState {
-    pub fn new(cipher: Box<Cipher>) -> Self {
+    pub fn new(cipher: Box<dyn Cipher>) -> Self {
         Self {
             cipher,
             has_key: false

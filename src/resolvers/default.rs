@@ -1,8 +1,8 @@
-extern crate crypto;
-extern crate blake2_rfc;
-extern crate chacha20_poly1305_aead;
-extern crate x25519_dalek;
-extern crate rand;
+use crypto;
+use blake2_rfc;
+use chacha20_poly1305_aead;
+use x25519_dalek;
+use rand;
 
 use self::blake2_rfc::blake2b::Blake2b;
 use self::blake2_rfc::blake2s::Blake2s;
@@ -29,21 +29,21 @@ use super::CryptoResolver;
 pub struct DefaultResolver;
 
 impl CryptoResolver for DefaultResolver {
-    fn resolve_rng(&self) -> Option<Box<Random>> {
+    fn resolve_rng(&self) -> Option<Box<dyn Random>> {
         match OsRng::new() {
             Ok(rng) => Some(Box::new(rng)),
             _       => None
         }
     }
 
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh>> {
+    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>> {
         match *choice {
             DHChoice::Curve25519 => Some(Box::new(Dh25519::default())),
             _                    => None,
         }
     }
 
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash>> {
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<dyn Hash>> {
         match *choice {
             HashChoice::SHA256  => Some(Box::new(HashSHA256::default())),
             HashChoice::SHA512  => Some(Box::new(HashSHA512::default())),
@@ -52,7 +52,7 @@ impl CryptoResolver for DefaultResolver {
         }
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         match *choice {
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
             CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
@@ -121,7 +121,7 @@ impl Dh for Dh25519 {
         self.pubkey = x25519::x25519(self.privkey, x25519::X25519_BASEPOINT_BYTES);
     }
 
-    fn generate(&mut self, rng: &mut Random) {
+    fn generate(&mut self, rng: &mut dyn Random) {
         rng.fill_bytes(&mut self.privkey);
         self.pubkey = x25519::x25519(self.privkey, x25519::X25519_BASEPOINT_BYTES);
     }
@@ -365,7 +365,7 @@ impl Hash for HashBLAKE2s {
 #[cfg(test)]
 mod tests {
 
-    extern crate hex;
+    use hex;
 
     use crate::types::*;
     use super::*;

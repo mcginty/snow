@@ -27,7 +27,7 @@ pub struct SymmetricState {
 }
 
 impl SymmetricState {
-    pub fn new(cipherstate: CipherState, hasher: Box<Hash>) -> SymmetricState {
+    pub fn new(cipherstate: CipherState, hasher: Box<dyn Hash>) -> SymmetricState {
         SymmetricState {
             cipherstate,
             hasher,

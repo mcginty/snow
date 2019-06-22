@@ -21,7 +21,7 @@ pub trait Dh : Send + Sync {
     fn set(&mut self, privkey: &[u8]);
 
     /// Generate a new private key
-    fn generate(&mut self, rng: &mut Random);
+    fn generate(&mut self, rng: &mut dyn Random);
 
     /// Get the public key
     fn pubkey(&self) -> &[u8];

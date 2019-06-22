@@ -6,8 +6,8 @@
 //! as `cargo run --example simple` to see the magic happen.
 
 #[macro_use] extern crate lazy_static;
-extern crate clap;
-extern crate snow;
+
+
 
 use clap::App;
 use snow::Builder;
@@ -35,7 +35,7 @@ fn run_server() {
     let mut buf = vec![0u8; 65535];
 
     // Initialize our responder NoiseSession using a builder.
-    let builder: Builder = Builder::new(PARAMS.clone());
+    let builder: Builder<'_> = Builder::new(PARAMS.clone());
     let static_key = builder.generate_keypair().unwrap().private;
     let mut noise = builder
         .local_private_key(&static_key)
@@ -70,7 +70,7 @@ fn run_client() {
     let mut buf = vec![0u8; 65535];
 
     // Initialize our initiator NoiseSession using a builder.
-    let builder: Builder = Builder::new(PARAMS.clone());
+    let builder: Builder<'_> = Builder::new(PARAMS.clone());
     let static_key = builder.generate_keypair().unwrap().private;
     let mut noise = builder
         .local_private_key(&static_key)

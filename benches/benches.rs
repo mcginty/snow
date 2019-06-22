@@ -2,10 +2,10 @@
 #[macro_use]
 extern crate criterion;
 
-extern crate test;
-extern crate rand;
-extern crate snow;
-extern crate x25519_dalek;
+
+
+
+
 
 use criterion::{Benchmark, Criterion, Throughput};
 use snow::*;

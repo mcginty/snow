@@ -57,10 +57,10 @@
 extern crate arrayref;
 
 #[macro_use] extern crate static_slice;
-extern crate byteorder;
-extern crate smallvec;
-extern crate rand_core;
-extern crate subtle;
+
+
+
+
 
 #[macro_use]
 pub mod error;

@@ -18,11 +18,11 @@ use std::{convert::TryInto, fmt};
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct HandshakeState {
-    pub(crate) rng              : Box<Random>,
+    pub(crate) rng              : Box<dyn Random>,
     pub(crate) symmetricstate   : SymmetricState,
     pub(crate) cipherstates     : CipherStates,
-    pub(crate) s                : Toggle<Box<Dh>>,
-    pub(crate) e                : Toggle<Box<Dh>>,
+    pub(crate) s                : Toggle<Box<dyn Dh>>,
+    pub(crate) e                : Toggle<Box<dyn Dh>>,
     pub(crate) fixed_ephemeral  : bool,
     pub(crate) rs               : Toggle<[u8; MAXDHLEN]>,
     pub(crate) re               : Toggle<[u8; MAXDHLEN]>,
@@ -37,11 +37,11 @@ pub struct HandshakeState {
 impl HandshakeState {
     #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
     pub(crate) fn new(
-        rng             : Box<Random>,
+        rng             : Box<dyn Random>,
         cipherstate     : CipherState,
-        hasher          : Box<Hash>,
-        s               : Toggle<Box<Dh>>,
-        e               : Toggle<Box<Dh>>,
+        hasher          : Box<dyn Hash>,
+        s               : Toggle<Box<dyn Dh>>,
+        e               : Toggle<Box<dyn Dh>>,
         fixed_ephemeral : bool,
         rs              : Toggle<[u8; MAXDHLEN]>,
         re              : Toggle<[u8; MAXDHLEN]>,
@@ -432,7 +432,7 @@ impl HandshakeState {
 }
 
 impl fmt::Debug for HandshakeState {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("HandshakeState").finish()
     }
 }
