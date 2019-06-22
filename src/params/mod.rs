@@ -1,14 +1,6 @@
 //! All structures related to Noise parameter definitions (cryptographic primitive choices, protocol
 //! patterns/names)
 
-#[allow(unused_imports)]
-#[cfg(feature = "nightly")]
-use std::convert::TryFrom;
-
-#[allow(unused_imports)]
-#[cfg(not(feature = "nightly"))]
-use crate::utils::TryFrom;
-
 use crate::error::{Error, PatternProblem};
 use std::str::FromStr;
 mod patterns;
@@ -162,6 +154,7 @@ impl FromStr for NoiseParams {
 
 #[cfg(test)]
 mod tests {
+    use std::convert::TryFrom;
     use super::*;
 
     #[test]
