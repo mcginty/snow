@@ -1,15 +1,14 @@
 use crate::error::{Error, PatternProblem};
 use std::{convert::TryFrom, str::FromStr};
-use smallvec::SmallVec;
 
 /// A small helper macro that behaves similar to the `vec![]` standard macro,
-/// except it uses `SmallVec` to avoid heap allocations.
+/// except it allocates a bit extra to avoid resizing.
 macro_rules! message_vec {
     ($($item:expr),*) => ({
         let token_groups: &[&[Token]] = &[$($item),*];
-        let mut vec: MessagePatterns = SmallVec::new();
+        let mut vec: MessagePatterns = Vec::with_capacity(10);
         for group in token_groups {
-            let mut inner: SmallVec<[_; 10]> = SmallVec::new();
+            let mut inner = Vec::with_capacity(10);
             inner.extend_from_slice(group);
             vec.push(inner);
         }
@@ -164,7 +163,7 @@ impl FromStr for HandshakeModifier {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct HandshakeModifierList {
-    pub list: SmallVec<[HandshakeModifier; 10]>
+    pub list: Vec<HandshakeModifier>
 }
 
 impl FromStr for HandshakeModifierList {
@@ -172,10 +171,10 @@ impl FromStr for HandshakeModifierList {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
-            Ok(HandshakeModifierList{ list: SmallVec::new() })
+            Ok(HandshakeModifierList{ list: vec![] })
         } else {
             let modifier_names = s.split('+');
-            let mut modifiers = SmallVec::new();
+            let mut modifiers = vec![];
             for modifier_name in modifier_names {
                 modifiers.push(modifier_name.parse()?);
             }
@@ -244,7 +243,7 @@ impl FromStr for HandshakeChoice {
 }
 
 type PremessagePatterns = &'static [Token];
-pub(crate) type MessagePatterns = SmallVec<[SmallVec<[Token; 10]>; 10]>;
+pub(crate) type MessagePatterns = Vec<Vec<Token>>;
 
 /// The defined token patterns for a given handshake.
 ///
