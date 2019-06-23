@@ -43,7 +43,7 @@ impl CryptoResolver for DefaultResolver {
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         match *choice {
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
-            CipherChoice::AESGCM     => panic!("AES-GCM operation is not supported with the default resolver!"),
+            CipherChoice::AESGCM     => None,
         }
     }
 }
@@ -203,7 +203,7 @@ impl Hash for HashSHA256 {
 
     fn result(&mut self, out: &mut [u8]) {
         let hash = self.hasher.clone().result();
-        out[..32].copy_from_slice(hash.as_slice())
+        copy_slices!(hash.as_slice(), &mut out[..Sha256::output_size()])
     }
 }
 
@@ -237,7 +237,7 @@ impl Hash for HashSHA512 {
 
     fn result(&mut self, out: &mut [u8]) {
         let hash = self.hasher.clone().result();
-        out[..64].copy_from_slice(hash.as_slice())
+        copy_slices!(hash.as_slice(), &mut out[..Sha512::output_size()])
     }
 }
 
@@ -381,49 +381,6 @@ mod tests {
         keypair.dh(&public, &mut output).unwrap();
         assert!(hex::encode(output) == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
     }
-
-    /*
-    Currently does't exist in the default resolver anymore
-    #[test]
-    fn test_aes256_gcm() {
-    //AES256-GCM tests - gcm-spec.pdf
-        // Test Case 13
-        let key = [0u8; 32];
-        let nonce = 0u64;
-        let plaintext = [0u8; 0];
-        let authtext = [0u8; 0];
-        let mut ciphertext = [0u8; 16];
-        let mut cipher1: CipherAESGCM = Default::default();
-        cipher1.set(&key);
-        cipher1.encrypt(nonce, &authtext, &plaintext, &mut ciphertext);
-        assert!(hex::encode(ciphertext) == "530f8afbc74536b9a963b4f1c4cb738b");
-
-        let mut resulttext = [0u8; 1];
-        let mut cipher2: CipherAESGCM = Default::default();
-        cipher2.set(&key);
-        cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
-        assert!(resulttext[0] == 0);
-        ciphertext[0] ^= 1;
-        assert!(cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).is_err());
-
-        // Test Case 14
-        let plaintext2 = [0u8; 16];
-        let mut ciphertext2 = [0u8; 32];
-        let mut cipher3: CipherAESGCM = Default::default();
-        cipher3.set(&key);
-        cipher3.encrypt(nonce, &authtext, &plaintext2, &mut ciphertext2);
-        assert!(hex::encode(ciphertext2) == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919");
-
-        let mut resulttext2 = [1u8; 16];
-        let mut cipher4: CipherAESGCM = Default::default();
-        cipher4.set(&key);
-        cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).unwrap();
-        assert!(plaintext2 == resulttext2);
-        ciphertext2[0] ^= 1;
-        assert!(cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).is_err());
-    }
-    */
-
 
     #[test]
     fn test_chachapoly_empty() {
