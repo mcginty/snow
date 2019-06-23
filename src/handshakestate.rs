@@ -14,7 +14,7 @@ use std::{convert::{TryFrom, TryInto}, fmt};
 /// **Note:** you are probably looking for [`Builder`](struct.Builder.html) to
 /// get started.
 ///
-/// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
+/// See: [http://noiseprotocol.org/noise.html#the-handshakestate-object](http://noiseprotocol.org/noise.html#the-handshakestate-object)
 pub struct HandshakeState {
     pub(crate) rng              : Box<dyn Random>,
     pub(crate) symmetricstate   : SymmetricState,

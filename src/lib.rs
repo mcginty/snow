@@ -3,14 +3,14 @@
 //! Read the [Noise Protocol Framework Spec](http://noiseprotocol.org/noise.html) for more
 //! information.
 //!
-//! The typical usage flow is to use [`Builder`] to construct a [`Session`], which is main
-//! state machine you will want to interact with.
+//! The typical usage flow is to use [`Builder`] to construct a [`HandshakeState`], where you
+//! will complete the handshake phase and convert into either a [`TransportState`] or
+//! [`StatelessTransportState`].
 //!
 //! # Examples
 //! See `examples/simple.rs` for a more complete TCP client/server example with static keys.
 //!
 //! ```
-//! # extern crate snow;
 //! # use snow::Error;
 //! #
 //! # #[cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
@@ -50,9 +50,6 @@
 //! #     try_main().unwrap();
 //! # }
 //! ```
-//!
-//! [`Builder`]: struct.Builder.html
-//! [`Session`]: enum.Session.html
 
 #![warn(missing_docs)]
 

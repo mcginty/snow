@@ -7,7 +7,7 @@ use crate::resolvers::CryptoResolver;
 use crate::error::{Error, InitStage, Prerequisite};
 use subtle::ConstantTimeEq;
 
-/// A keypair object returned by [`generate_keypair()`]
+/// A keypair object returned by [`Builder::generate_keypair()`]
 ///
 /// [`generate_keypair()`]: #method.generate_keypair
 pub struct Keypair {
@@ -27,7 +27,7 @@ impl PartialEq for Keypair {
     }
 }
 
-/// Generates a `Session` and also validate that all the prerequisites for
+/// Generates a [`HandshakeState`] and also validates that all the prerequisites for
 /// the given parameters are satisfied.
 ///
 /// # Examples
@@ -139,12 +139,12 @@ impl<'builder> Builder<'builder> {
         Ok(Keypair { private, public })
     }
 
-    /// Build a NoiseSession for the side who will initiate the handshake (send the first message)
+    /// Build a [`HandshakeState`] for the side who will initiate the handshake (send the first message)
     pub fn build_initiator(self) -> Result<HandshakeState, Error> {
         self.build(true)
     }
 
-    /// Build a NoiseSession for the side who will be responder (receive the first message)
+    /// Build a [`HandshakeState`] for the side who will be responder (receive the first message)
     pub fn build_responder(self) -> Result<HandshakeState, Error> {
         self.build(false)
     }

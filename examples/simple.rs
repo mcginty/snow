@@ -44,7 +44,7 @@ fn main() {
 fn run_server() {
     let mut buf = vec![0u8; 65535];
 
-    // Initialize our responder NoiseSession using a builder.
+    // Initialize our responder using a builder.
     let builder: Builder<'_> = Builder::new(PARAMS.clone());
     let static_key = builder.generate_keypair().unwrap().private;
     let mut noise = builder
@@ -80,7 +80,7 @@ fn run_server() {
 fn run_client() {
     let mut buf = vec![0u8; 65535];
 
-    // Initialize our initiator NoiseSession using a builder.
+    // Initialize our initiator using a builder.
     let builder: Builder<'_> = Builder::new(PARAMS.clone());
     let static_key = builder.generate_keypair().unwrap().private;
     let mut noise = builder
