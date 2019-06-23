@@ -10,7 +10,7 @@ lazy_static! {
 }
 
 fn main() {
-    let mut out_buf = [0u8; 64000];
+    let mut out_buf = vec![0u8; 128 * 1024 * 1024];
     loop {
         fuzz!(|data: &[u8]| {
             let builder = snow::Builder::new(PARAMS.clone());
