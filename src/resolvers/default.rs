@@ -9,8 +9,6 @@ use crypto::aead::{AeadEncryptor, AeadDecryptor};
 use rand::rngs::OsRng;
 use x25519_dalek as x25519;
 
-use byteorder::{ByteOrder, BigEndian, LittleEndian};
-
 use crate::types::{Cipher, Dh, Hash, Random};
 use crate::constants::TAGLEN;
 use crate::params::{CipherChoice, DHChoice, HashChoice};
@@ -149,7 +147,7 @@ impl Cipher for CipherAESGCM {
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
         let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
         let mut tag = [0u8; TAGLEN];
         cipher.encrypt(plaintext, &mut out[..plaintext.len()], &mut tag);
@@ -159,7 +157,7 @@ impl Cipher for CipherAESGCM {
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
         let mut cipher = AesGcm::new(KeySize::KeySize256, &self.key, &nonce_bytes, authtext);
         let text_len = ciphertext.len() - TAGLEN;
         let mut tag = [0u8; TAGLEN];
@@ -184,7 +182,7 @@ impl Cipher for CipherChaChaPoly {
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
-        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
         let mut buf = Cursor::new(out);
         let tag = chacha20_poly1305_aead::encrypt(&self.key, &nonce_bytes, authtext, plaintext, &mut buf);
@@ -199,7 +197,7 @@ impl Cipher for CipherChaChaPoly {
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
-        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
         let mut buf = Cursor::new(out);
         let result = chacha20_poly1305_aead::decrypt(

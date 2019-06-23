@@ -1,5 +1,4 @@
 use super::CryptoResolver;
-use byteorder::{ByteOrder, BigEndian, LittleEndian};
 use ring::aead;
 use ring::digest;
 use crate::constants::TAGLEN;
@@ -63,7 +62,7 @@ impl Cipher for CipherAESGCM {
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
@@ -75,7 +74,7 @@ impl Cipher for CipherAESGCM {
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
         let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
         if out.len() >= ciphertext.len() {
@@ -122,7 +121,7 @@ impl Cipher for CipherChaChaPoly {
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
-        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
         let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
         out[..plaintext.len()].copy_from_slice(plaintext);
@@ -133,7 +132,7 @@ impl Cipher for CipherChaChaPoly {
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
-        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
         let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
         if out.len() >= ciphertext.len() {

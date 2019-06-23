@@ -7,8 +7,6 @@ use hacl_star::curve25519::{self, SecretKey, PublicKey};
 use hacl_star::sha2::{Sha256, Sha512};
 use hacl_star::chacha20poly1305;
 
-use byteorder::{ByteOrder, LittleEndian};
-
 /// A resolver that chooses HACL*-backed
 /// primitives when available.
 #[derive(Default)]
@@ -121,7 +119,7 @@ impl Cipher for CipherChaChaPoly {
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
-        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
         let (out, tag) = out.split_at_mut(plaintext.len());
         let tag = array_mut_ref!(tag, 0, chacha20poly1305::MAC_LENGTH);
@@ -136,7 +134,7 @@ impl Cipher for CipherChaChaPoly {
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
-        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
         let len = ciphertext.len();
         let (ciphertext, tag) = ciphertext.split_at(len - chacha20poly1305::MAC_LENGTH);
