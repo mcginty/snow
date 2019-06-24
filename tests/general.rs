@@ -1,5 +1,5 @@
 #![cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
-#![cfg_attr(feature = "cargo-clippy", allow(needless_range_loop))]
+#![allow(clippy::needless_range_loop)]
 #![allow(non_snake_case)]
 use hex;
 use snow;
@@ -111,7 +111,7 @@ fn test_protocol_name() {
 
 #[test]
 fn test_noise_state_change() {
-    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
 

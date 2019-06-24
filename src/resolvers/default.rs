@@ -1,3 +1,4 @@
+use arrayref::array_ref;
 use blake2_rfc::blake2b::Blake2b;
 use blake2_rfc::blake2s::Blake2s;
 use sha2::{Digest, Sha256, Sha512};
