@@ -23,7 +23,10 @@ pub struct DefaultResolver;
 
 impl CryptoResolver for DefaultResolver {
     fn resolve_rng(&self) -> Option<Box<dyn Random>> {
-        Some(Box::new(OsRng::default()))
+        match OsRng::new() {
+            Ok(rng) => Some(Box::new(rng)),
+            _       => None
+        }
     }
 
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>> {
