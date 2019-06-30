@@ -209,8 +209,8 @@ fn confirm_message_vectors(mut init: HandshakeState, mut resp: HandshakeState, m
         };
 
         let len = send.write_message(&*message.payload, &mut sendbuf).map_err(|_| format!("write_message failed on message {}", i))?;
-        recv.read_message(&sendbuf[..len], &mut recvbuf).map_err(|_| format!("read_message failed on message {}", i))?;
-        if &sendbuf[..len] != &(*message.ciphertext)[..] {
+        let recv_len = recv.read_message(&sendbuf[..len], &mut recvbuf).map_err(|_| format!("read_message failed on message {}", i))?;
+        if &sendbuf[..len] != &(*message.ciphertext)[..] || *message.payload != &recvbuf[..recv_len] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
             s.push_str(&format!("plaintext: {}\n", hex::encode(&*message.payload)));
@@ -229,13 +229,14 @@ fn confirm_message_vectors(mut init: HandshakeState, mut resp: HandshakeState, m
         };
 
         let len = send.write_message(&*message.payload, &mut sendbuf).unwrap();
-        recv.read_message(&sendbuf[..len], &mut recvbuf).unwrap();
-        if &sendbuf[..len] != &(*message.ciphertext)[..] {
+        let recv_len = recv.read_message(&sendbuf[..len], &mut recvbuf).unwrap();
+        if &sendbuf[..len] != &(*message.ciphertext)[..] || *message.payload != &recvbuf[..recv_len] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
-            s.push_str(&format!("plaintext: {}\n", hex::encode(&*message.payload)));
-            s.push_str(&format!("expected:  {}\n", hex::encode(&*message.ciphertext)));
-            s.push_str(&format!("actual:    {}", hex::encode(&sendbuf[..message.ciphertext.len()].to_owned())));
+            s.push_str(&format!("plaintext          : {}\n", hex::encode(&*message.payload)));
+            s.push_str(&format!("expected ciphertext: {}\n", hex::encode(&*message.ciphertext)));
+            s.push_str(&format!("actual ciphertext  : {}\n", hex::encode(&sendbuf[..message.ciphertext.len()].to_owned())));
+            s.push_str(&format!("actual plaintext   : {}", hex::encode(&recvbuf[..recv_len].to_owned())));
             return Err(s)
         }
     }

@@ -146,7 +146,7 @@ impl Cipher for CipherChaChaPoly {
             .nonce(&nonce_bytes)
             .decrypt(authtext, &mut out[..len], tag)
         {
-            Ok(out.len())
+            Ok(len)
         } else {
             Err(())
         }
