@@ -204,7 +204,7 @@ impl Hash for HashSHA256 {
 
     fn result(&mut self, out: &mut [u8]) {
         let hash = self.hasher.clone().result();
-        copy_slices!(hash.as_slice(), &mut out[..Sha256::output_size()])
+        copy_slices!(hash.as_slice(), out)
     }
 }
 
@@ -238,7 +238,7 @@ impl Hash for HashSHA512 {
 
     fn result(&mut self, out: &mut [u8]) {
         let hash = self.hasher.clone().result();
-        copy_slices!(hash.as_slice(), &mut out[..Sha512::output_size()])
+        copy_slices!(hash.as_slice(), out)
     }
 }
 

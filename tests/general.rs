@@ -166,10 +166,6 @@ fn test_Npsk0_expected_value() {
 
     let expected = Vec::<u8>::from_hex("358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd166254deb8a4f6190117dea09aad7546a4658c").unwrap();
 
-    println!("{:?}", &expected[..]);
-    println!("----------------------------------------------------------");
-    println!("{:?}", &buf[..len]);
-
     println!("\nreality:  {}", hex::encode(&buf[..len]));
     println!("expected: {}", hex::encode(&expected));
     assert_eq!(&buf[..len], &expected[..]);

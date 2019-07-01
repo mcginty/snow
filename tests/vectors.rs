@@ -253,7 +253,7 @@ fn test_vectors_from_json(json: &str) {
     for vector in test_vectors.vectors {
         let params: NoiseParams = vector.protocol_name.parse().unwrap();
 
-        if !cfg!(feature = "ring-accelerated") || !cfg!(feature = "ring-resolver") {
+        if !cfg!(feature = "ring-accelerated") {
             if params.cipher == CipherChoice::AESGCM {
                 ignored += 1;
                 continue

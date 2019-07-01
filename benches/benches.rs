@@ -2,11 +2,6 @@
 #[macro_use]
 extern crate criterion;
 
-
-
-
-
-
 use criterion::{Benchmark, Criterion, Throughput};
 use snow::*;
 use snow::params::*;
@@ -20,7 +15,6 @@ pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
 
     data.len()
 }
-
 
 fn benchmarks(c: &mut Criterion) {
     c.bench("builder", Benchmark::new("skeleton", |b| {

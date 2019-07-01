@@ -13,6 +13,8 @@ matrix:
 cache: cargo
 
 script:
+  - cargo check --benches
+  - cargo test --features "vector-tests"
   - cargo test --features "hacl-star-resolver vector-tests"
   - cargo test --features "hacl-star-accelerated vector-tests"
   - cargo test --features "ring-resolver vector-tests"
