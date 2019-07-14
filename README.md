@@ -59,14 +59,14 @@ If you enable the `ring-accelerated` feature, Snow will default to choosing `rin
 
 ### Resolver primitives supported
 
-|            | default | ring | hacl* |
-|-----------:|:-------:|:----:|:-----:|
-| CSPRNG     | ✔       |      |       |
-| 25519      | ✔       | ✔    | ✔     |
-| 448        |         |      |       |
-| AESGCM     |         | ✔    |       |
-| ChaChaPoly | ✔       | ✔    | ✔     |
-| SHA256     | ✔       | ✔    | ✔     |
-| SHA512     | ✔       | ✔    | ✔     |
-| BLAKE2s    | ✔       |      |       |
-| BLAKE2b    | ✔       |      |       |
+|            | default | ring |
+|-----------:|:-------:|:----:|
+| CSPRNG     | ✔       |      |
+| 25519      | ✔       | ✔    |
+| 448        |         |      |
+| AESGCM     |         | ✔    |
+| ChaChaPoly | ✔       | ✔    |
+| SHA256     | ✔       | ✔    |
+| SHA512     | ✔       | ✔    |
+| BLAKE2s    | ✔       |      |
+| BLAKE2b    | ✔       |      |
