@@ -3,8 +3,6 @@
 
 /// The default primitive resolver.
 #[cfg(feature = "default-resolver")]   mod default;
-/// A HACL* primitive resolver.
-#[cfg(feature = "hacl-star-resolver")] mod hacl_star;
 /// A ring primitive resolver.
 #[cfg(feature = "ring-resolver")]      mod ring;
 
@@ -12,7 +10,6 @@ use crate::params::{CipherChoice, DHChoice, HashChoice};
 use crate::types::{Cipher, Dh, Hash, Random};
 
 #[cfg(feature = "default-resolver")]   pub use self::default::DefaultResolver;
-#[cfg(feature = "hacl-star-resolver")] pub use self::hacl_star::HaclStarResolver;
 #[cfg(feature = "ring-resolver")]      pub use self::ring::RingResolver;
 
 /// An object that resolves the providers of Noise crypto choices

@@ -2,7 +2,6 @@
     not(any(
         feature = "default-resolver",
         feature = "ring-accelerated",
-        feature = "hacl-star-accelerated",
     )),
     allow(dead_code, unused_extern_crates, unused_imports)
 )]
@@ -28,7 +27,7 @@ lazy_static! {
 }
 
 
-#[cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
+#[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
     let matches = App::new("simple").args_from_usage("-s --server 'Server mode'").get_matches();
 
@@ -40,7 +39,7 @@ fn main() {
     println!("all done.");
 }
 
-#[cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
+#[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn run_server() {
     let mut buf = vec![0u8; 65535];
 
@@ -76,7 +75,7 @@ fn run_server() {
     println!("connection closed.");
 }
 
-#[cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
+#[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn run_client() {
     let mut buf = vec![0u8; 65535];
 
@@ -131,7 +130,7 @@ fn send(stream: &mut TcpStream, buf: &[u8]) {
     stream.write_all(buf).unwrap();
 }
 
-#[cfg(not(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated")))]
+#[cfg(not(any(feature = "default-resolver", feature = "ring-accelerated")))]
 fn main() {
     panic!("Example must be compiled with some cryptographic provider.");
 }

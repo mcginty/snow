@@ -13,7 +13,7 @@
 //! ```
 //! # use snow::Error;
 //! #
-//! # #[cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
+//! # #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 //! # fn try_main() -> Result<(), Error> {
 //! static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
 //!
@@ -43,7 +43,7 @@
 //! #     Ok(())
 //! # }
 //! #
-//! # #[cfg(not(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated")))]
+//! # #[cfg(not(any(feature = "default-resolver", feature = "ring-accelerated")))]
 //! # fn try_main() -> Result<(), ()> { Ok(()) }
 //! #
 //! # fn main() {

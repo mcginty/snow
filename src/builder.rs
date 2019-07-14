@@ -36,7 +36,7 @@ impl PartialEq for Keypair {
 /// # use snow::Builder;
 /// # let my_long_term_key = [0u8; 32];
 /// # let their_pub_key = [0u8; 32];
-/// # #[cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
+/// # #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 /// let noise = Builder::new("Noise_XX_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
 ///     .local_private_key(&my_long_term_key)
 ///     .remote_public_key(&their_pub_key)
@@ -56,7 +56,7 @@ pub struct Builder<'builder> {
 
 impl<'builder> Builder<'builder> {
     /// Create a Builder with the default crypto resolver.
-    #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated", feature = "hacl-star-accelerated"))))]
+    #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated"))))]
     pub fn new(params: NoiseParams) -> Self {
         use crate::resolvers::DefaultResolver;
 
@@ -69,14 +69,6 @@ impl<'builder> Builder<'builder> {
         use crate::resolvers::{FallbackResolver, DefaultResolver, RingResolver};
 
         Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(RingResolver), Box::new(DefaultResolver))))
-    }
-
-    /// Create a Builder with the HACL* resolver and default resolver as a fallback.
-    #[cfg(feature = "hacl-star-accelerated")]
-    pub fn new(params: NoiseParams) -> Self {
-        use crate::resolvers::{FallbackResolver, DefaultResolver, HaclStarResolver};
-
-        Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(HaclStarResolver), Box::new(DefaultResolver))))
     }
 
     /// Create a Builder with a custom crypto resolver.
@@ -218,7 +210,7 @@ impl<'builder> Builder<'builder> {
 }
 
 #[cfg(test)]
-#[cfg(any(feature = "default-resolver", feature = "ring-accelerated", feature = "hacl-star-accelerated"))]
+#[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 mod tests {
     use super::*;
 

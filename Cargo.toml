@@ -19,8 +19,6 @@ edition = "2018"
 default = ["default-resolver"]
 nightly = ["blake2-rfc/simd_opt", "chacha20-poly1305-aead/simd_opt", "x25519-dalek/nightly", "subtle/nightly"]
 default-resolver = ["chacha20-poly1305-aead", "blake2-rfc", "sha2", "x25519-dalek", "rand"]
-hacl-star-resolver = ["hacl-star"]
-hacl-star-accelerated = ["hacl-star-resolver", "default-resolver"]
 ring-resolver = ["ring"]
 ring-accelerated = ["ring-resolver", "default-resolver"]
 vector-tests = []
@@ -48,9 +46,6 @@ x25519-dalek = { version = "0.5", optional = true }
 # ring crypto proivder
 ring = { version = "0.14", optional = true }
 
-# hacl-star crypto provider
-hacl-star = { version = "0.1.0", optional = true }
-
 [dev-dependencies]
 clap = "2"
 criterion = "0.2"
@@ -64,7 +59,7 @@ lazy_static = "1.3"
 rustc_version = "0.2"
 
 [package.metadata.docs.rs]
-features = [ "ring-resolver", "hacl-star-resolver" ]
+features = [ "ring-resolver" ]
 all-features = false
 no-default-features = false
 

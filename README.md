@@ -57,14 +57,6 @@ If you enable the `ring-resolver` feature, Snow will include a `ring_wrapper` mo
 
 If you enable the `ring-accelerated` feature, Snow will default to choosing `ring`'s crypto implementations when available.
 
-#### HACL*
-
-[HACL*](https://github.com/mitls/hacl-star) is a formally verified cryptographic library, accessed via the [`rust-hacl-star`](https://github.com/quininer/rust-hacl-star) wrapper crate.
-
-If you enable the `hacl-resolver` feature, Snow will include a `hacl_wrapper` module as well as a `HaclStarResolver` available to be used with `Builder::with_resolver()`.
-
-Similar to ring, if you enable the `hacl-accelerated` feature, Snow will default to choosing HACL* implementations when available.
-
 ### Resolver primitives supported
 
 |            | default | ring | hacl* |
