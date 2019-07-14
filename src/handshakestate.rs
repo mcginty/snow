@@ -33,7 +33,7 @@ pub struct HandshakeState {
 }
 
 impl HandshakeState {
-    #[cfg_attr(feature = "cargo-clippy", allow(too_many_arguments))]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         rng             : Box<dyn Random>,
         cipherstate     : CipherState,

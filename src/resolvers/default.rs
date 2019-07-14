@@ -87,7 +87,7 @@ impl Random for OsRng {}
 impl Dh for Dh25519 {
 
     fn name(&self) -> &'static str {
-        static NAME: &'static str = "25519";
+        static NAME: &str = "25519";
         NAME
     }
 

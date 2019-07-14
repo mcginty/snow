@@ -263,6 +263,7 @@ type Patterns = (PremessagePatterns, PremessagePatterns, MessagePatterns);
 impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
     type Error = Error;
 
+    #[allow(clippy::cognitive_complexity)]
     fn try_from(handshake: &'a HandshakeChoice) -> Result<Self, Self::Error> {
         let mut patterns: Patterns = match handshake.pattern {
             N  => (
