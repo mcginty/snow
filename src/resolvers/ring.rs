@@ -1,6 +1,7 @@
 use super::CryptoResolver;
 use ring::aead::{self, LessSafeKey, UnboundKey};
 use ring::digest;
+use ring::rand::{SystemRandom, SecureRandom};
 use crate::constants::TAGLEN;
 use crate::params::{DHChoice, HashChoice, CipherChoice};
 use crate::types::{Random, Dh, Hash, Cipher};
@@ -13,7 +14,7 @@ pub struct RingResolver;
 #[cfg(feature = "ring")]
 impl CryptoResolver for RingResolver {
     fn resolve_rng(&self) -> Option<Box<dyn Random>> {
-        None
+        Some(Box::new(RingRng::default()))
     }
 
     fn resolve_dh(&self, _choice: &DHChoice) -> Option<Box<dyn Dh>> {
@@ -35,6 +36,40 @@ impl CryptoResolver for RingResolver {
         }
     }
 }
+
+struct RingRng {
+    rng: SystemRandom,
+}
+
+impl Default for RingRng {
+    fn default() -> Self {
+        Self {
+            rng: SystemRandom::new()
+        }
+    }
+}
+
+impl rand_core::RngCore for RingRng {
+    fn next_u32(&mut self) -> u32 {
+        rand_core::impls::next_u32_via_fill(self)
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        rand_core::impls::next_u64_via_fill(self)
+    }
+
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        self.try_fill_bytes(dest).unwrap();
+    }
+
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+        self.rng.fill(dest).map_err(|e| rand_core::Error::new(e))
+    }
+}
+
+impl rand_core::CryptoRng for RingRng {}
+
+impl Random for RingRng {}
 
 struct CipherAESGCM {
     // NOTE: LessSafeKey is chosen here because nonce atomicity is handled outside of this structure.
@@ -219,5 +254,25 @@ impl Hash for HashSHA512 {
 
     fn result(&mut self, out: &mut [u8]) {
         out[..64].copy_from_slice(self.context.clone().finish().as_ref());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::*;
+    use rand_core::RngCore;
+
+    #[test]
+    fn test_randomness_sanity() {
+        use std::collections::HashSet;
+
+        let mut samples = HashSet::new();
+        let mut rng = RingRng::default();
+        for _ in 0..100_000 {
+            let mut buf = vec![0u8; 128];
+            rng.fill_bytes(&mut buf);
+            assert!(samples.insert(buf));
+        }
     }
 }

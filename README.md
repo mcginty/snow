@@ -61,7 +61,7 @@ If you enable the `ring-accelerated` feature, Snow will default to choosing `rin
 
 |            | default | ring |
 |-----------:|:-------:|:----:|
-| CSPRNG     | ✔       |      |
+| CSPRNG     | ✔       | ✔    |
 | 25519      | ✔       | ✔    |
 | 448        |         |      |
 | AESGCM     |         | ✔    |
