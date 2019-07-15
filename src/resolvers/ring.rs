@@ -260,7 +260,6 @@ impl Hash for HashSHA512 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::*;
     use rand_core::RngCore;
 
     #[test]
