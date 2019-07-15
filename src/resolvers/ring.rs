@@ -1,5 +1,5 @@
 use super::CryptoResolver;
-use ring::aead;
+use ring::aead::{self, LessSafeKey, UnboundKey};
 use ring::digest;
 use crate::constants::TAGLEN;
 use crate::params::{DHChoice, HashChoice, CipherChoice};
@@ -37,15 +37,15 @@ impl CryptoResolver for RingResolver {
 }
 
 struct CipherAESGCM {
-    sealing: aead::SealingKey,
-    opening: aead::OpeningKey,
+    // NOTE: LessSafeKey is chosen here because nonce atomicity is handled outside of this structure.
+    // See ring documentation for more details on the naming choices.
+    key: LessSafeKey,
 }
 
 impl Default for CipherAESGCM {
     fn default() -> Self {
         CipherAESGCM {
-            sealing: aead::SealingKey::new(&aead::AES_256_GCM, &[0u8; 32]).unwrap(),
-            opening: aead::OpeningKey::new(&aead::AES_256_GCM, &[0u8; 32]).unwrap(),
+            key: LessSafeKey::new(UnboundKey::new(&aead::AES_256_GCM, &[0u8; 32]).unwrap()),
         }
     }
 }
@@ -56,8 +56,7 @@ impl Cipher for CipherAESGCM {
     }
 
     fn set(&mut self, key: &[u8]) {
-        self.sealing = aead::SealingKey::new(&aead::AES_256_GCM, key).unwrap();
-        self.opening = aead::OpeningKey::new(&aead::AES_256_GCM, key).unwrap();
+        self.key = aead::LessSafeKey::new(UnboundKey::new(&aead::AES_256_GCM, key).unwrap());
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
@@ -68,7 +67,7 @@ impl Cipher for CipherAESGCM {
 
         let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
-        aead::seal_in_place(&self.sealing, nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
+        self.key.seal_in_place(nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
         plaintext.len() + TAGLEN
     }
 
@@ -81,14 +80,14 @@ impl Cipher for CipherAESGCM {
             let in_out = &mut out[..ciphertext.len()];
             in_out.copy_from_slice(ciphertext);
 
-            let len = aead::open_in_place(&self.opening, nonce, aead::Aad::from(authtext), 0, in_out).map_err(|_| ())?
+            let len = self.key.open_in_place(nonce, aead::Aad::from(authtext), 0, in_out).map_err(|_| ())?
                 .len();
 
             Ok(len)
         } else {
             let mut in_out = ciphertext.to_vec();
 
-            let out0 = aead::open_in_place(&self.opening, nonce, aead::Aad::from(authtext), 0, &mut in_out).map_err(|_| ())?;
+            let out0 = self.key.open_in_place(nonce, aead::Aad::from(authtext), 0, &mut in_out).map_err(|_| ())?;
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
@@ -96,15 +95,15 @@ impl Cipher for CipherAESGCM {
 }
 
 struct CipherChaChaPoly {
-    sealing: aead::SealingKey,
-    opening: aead::OpeningKey,
+    // NOTE: LessSafeKey is chosen here because nonce atomicity is to be ensured outside of this structure.
+    // See ring documentation for more details on the naming choices.
+    key: aead::LessSafeKey,
 }
 
 impl Default for CipherChaChaPoly {
     fn default() -> Self {
         Self {
-            sealing: aead::SealingKey::new(&aead::CHACHA20_POLY1305, &[0u8; 32]).unwrap(),
-            opening: aead::OpeningKey::new(&aead::CHACHA20_POLY1305, &[0u8; 32]).unwrap(),
+            key: LessSafeKey::new(UnboundKey::new(&aead::CHACHA20_POLY1305, &[0u8; 32]).unwrap()),
         }
     }
 }
@@ -115,8 +114,7 @@ impl Cipher for CipherChaChaPoly {
     }
 
     fn set(&mut self, key: &[u8]) {
-        self.sealing = aead::SealingKey::new(&aead::CHACHA20_POLY1305, key).unwrap();
-        self.opening = aead::OpeningKey::new(&aead::CHACHA20_POLY1305, key).unwrap();
+        self.key = LessSafeKey::new(UnboundKey::new(&aead::CHACHA20_POLY1305, key).unwrap());
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
@@ -126,7 +124,7 @@ impl Cipher for CipherChaChaPoly {
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
-        aead::seal_in_place(&self.sealing, nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
+        self.key.seal_in_place(nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
         plaintext.len() + TAGLEN
     }
 
@@ -139,14 +137,14 @@ impl Cipher for CipherChaChaPoly {
             let in_out = &mut out[..ciphertext.len()];
             in_out.copy_from_slice(ciphertext);
 
-            let len = aead::open_in_place(&self.opening, nonce, aead::Aad::from(authtext), 0, in_out).map_err(|_| ())?
+            let len = self.key.open_in_place(nonce, aead::Aad::from(authtext), 0, in_out).map_err(|_| ())?
                 .len();
 
             Ok(len)
         } else {
             let mut in_out = ciphertext.to_vec();
 
-            let out0 = aead::open_in_place(&self.opening, nonce, aead::Aad::from(authtext), 0, &mut in_out).map_err(|_| ())?;
+            let out0 = self.key.open_in_place(nonce, aead::Aad::from(authtext), 0, &mut in_out).map_err(|_| ())?;
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
