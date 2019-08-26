@@ -102,7 +102,9 @@ impl Cipher for CipherAESGCM {
 
         let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
-        self.key.seal_in_place(nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
+        let tag = self.key.seal_in_place_separate_tag(nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()]).unwrap();
+        &mut out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
+
         plaintext.len() + TAGLEN
     }
 
@@ -115,14 +117,14 @@ impl Cipher for CipherAESGCM {
             let in_out = &mut out[..ciphertext.len()];
             in_out.copy_from_slice(ciphertext);
 
-            let len = self.key.open_in_place(nonce, aead::Aad::from(authtext), 0, in_out).map_err(|_| ())?
+            let len = self.key.open_in_place(nonce, aead::Aad::from(authtext), in_out).map_err(|_| ())?
                 .len();
 
             Ok(len)
         } else {
             let mut in_out = ciphertext.to_vec();
 
-            let out0 = self.key.open_in_place(nonce, aead::Aad::from(authtext), 0, &mut in_out).map_err(|_| ())?;
+            let out0 = self.key.open_in_place(nonce, aead::Aad::from(authtext), &mut in_out).map_err(|_| ())?;
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
@@ -159,7 +161,9 @@ impl Cipher for CipherChaChaPoly {
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
-        self.key.seal_in_place(nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
+        let tag = self.key.seal_in_place_separate_tag(nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()]).unwrap();
+        &mut out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
+
         plaintext.len() + TAGLEN
     }
 
@@ -172,14 +176,14 @@ impl Cipher for CipherChaChaPoly {
             let in_out = &mut out[..ciphertext.len()];
             in_out.copy_from_slice(ciphertext);
 
-            let len = self.key.open_in_place(nonce, aead::Aad::from(authtext), 0, in_out).map_err(|_| ())?
+            let len = self.key.open_in_place(nonce, aead::Aad::from(authtext), in_out).map_err(|_| ())?
                 .len();
 
             Ok(len)
         } else {
             let mut in_out = ciphertext.to_vec();
 
-            let out0 = self.key.open_in_place(nonce, aead::Aad::from(authtext), 0, &mut in_out).map_err(|_| ())?;
+            let out0 = self.key.open_in_place(nonce, aead::Aad::from(authtext), &mut in_out).map_err(|_| ())?;
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
