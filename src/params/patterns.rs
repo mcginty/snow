@@ -74,7 +74,29 @@ macro_rules! pattern_enum {
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub(crate) enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8) }
+pub(crate) enum Token {
+    E,
+    S,
+    Dhee,
+    Dhes,
+    Dhse,
+    Dhss,
+    Psk(u8),
+    #[cfg(feature = "hfs")]
+    E1,
+    #[cfg(feature = "hfs")]
+    Ekem1,
+}
+
+#[cfg(feature = "hfs")]
+impl Token {
+    fn is_dh(&self) -> bool {
+        match *self {
+            Dhee | Dhes | Dhse | Dhss => true,
+            _ => false,
+        }
+    }
+}
 
 // See the documentation in the macro above.
 pattern_enum! {
@@ -142,12 +164,32 @@ pub enum HandshakeModifier {
     Psk(u8),
 
     /// Modify the base pattern to its "fallback" form
-    Fallback
+    Fallback,
+
+    #[cfg(feature = "hfs")]
+    /// Modify the base pattern to use Hybrid-Forward-Secrecy
+    Hfs,
 }
 
 impl FromStr for HandshakeModifier {
     type Err = Error;
 
+    #[cfg(feature = "hfs")]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.starts_with("psk") {
+            Ok(HandshakeModifier::Psk((&s[3..])
+                .parse()
+                .map_err(|_| PatternProblem::InvalidPsk)?))
+        } else if s == "fallback" {
+            Ok(HandshakeModifier::Fallback)
+        } else if s == "hfs" {
+            Ok(HandshakeModifier::Hfs)
+        } else {
+            bail!(PatternProblem::UnsupportedModifier);
+        }
+    }
+
+    #[cfg(not(feature = "hfs"))]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("psk") {
             Ok(HandshakeModifier::Psk((&s[3..])
@@ -265,6 +307,9 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
 
     #[allow(clippy::cognitive_complexity)]
     fn try_from(handshake: &'a HandshakeChoice) -> Result<Self, Self::Error> {
+        // Hfs cannot be combined with one-way handshake patterns
+        check_hfs_nor_oneway(handshake)?;
+
         let mut patterns: Patterns = match handshake.pattern {
             N  => (
                 static_slice![Token: ],
@@ -458,17 +503,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
             ),
         };
 
-        for modifier in handshake.modifiers.list.iter() {
-            if let HandshakeModifier::Psk(n) = modifier {
-                match n {
-                    0 => { patterns.2[0].insert(0, Token::Psk(*n)); },
-                    _ => {
-                        let i = (*n as usize) - 1;
-                        patterns.2[i].push(Token::Psk(*n));
-                    }
-                }
-            }
-        }
+        apply_modifiers(&mut patterns, &handshake.modifiers);
 
         Ok(HandshakeTokens {
             premsg_pattern_i: patterns.0,
@@ -476,4 +511,95 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
             msg_patterns: patterns.2,
         })
     }
+}
+
+#[cfg(feature = "hfs")]
+fn check_hfs_nor_oneway(handshake: &HandshakeChoice) -> Result<(), Error> {
+    if handshake.modifiers.list.contains(&HandshakeModifier::Hfs) && handshake.pattern.is_oneway() {
+        Err(Error::from(PatternProblem::UnsupportedModifier))
+    } else {
+        Ok(())
+    }
+}
+
+#[cfg(not(feature = "hfs"))]
+fn check_hfs_nor_oneway(_: &HandshakeChoice) -> Result<(), Error> { Ok(()) }
+
+#[cfg(feature = "hfs")]
+fn apply_modifiers(patterns: &mut Patterns, modifiers: &HandshakeModifierList) {
+    for modifier in modifiers.list.iter() {
+        match modifier {
+            HandshakeModifier::Psk(n) => apply_psk_modifier(patterns, *n),
+            HandshakeModifier::Hfs => apply_hfs_modifier(patterns),
+            _ => (),
+        };
+    }
+}
+
+#[cfg(not(feature = "hfs"))]
+fn apply_modifiers(patterns: &mut Patterns, modifiers: &HandshakeModifierList) {
+    for modifier in modifiers.list.iter() {
+        match modifier {
+            HandshakeModifier::Psk(n) => apply_psk_modifier(patterns, *n),
+            _ => (),
+        };
+    }
+}
+
+fn apply_psk_modifier(patterns: &mut Patterns, n: u8) {
+    match n {
+        0 => { patterns.2[0].insert(0, Token::Psk(n)); },
+        _ => {
+            let i = (n as usize) - 1;
+            patterns.2[i].push(Token::Psk(n));
+        }
+    }
+}
+
+#[cfg(feature = "hfs")]
+fn apply_hfs_modifier(patterns: &mut Patterns) {
+    // From the HFS spec, Section 5:
+    //
+    //     Add an "e1" token directly following the first occurence of "e",
+    //     unless there is a DH operation in this same message, in which case
+    //     the "hfs" [should be "e1"?] token is placed directly after thid DH
+    //     (so that the public key will be encrypted).
+    //
+    //     The "hfs" modifier also adds an "ekem2" token directly following the
+    //     first occurrence of "ee".
+
+    // Add the e1 token
+    let mut e1_insert_idx = None;
+    for msg in patterns.2.iter_mut() {
+        if let Some(e_idx) = msg.iter().position(|x| *x == Token::E) {
+            if let Some(dh_idx) = msg.iter().position(|x| x.is_dh()) {
+                e1_insert_idx = Some(dh_idx + 1);
+            } else {
+                e1_insert_idx = Some(e_idx + 1);
+            }
+        }
+        if let Some(idx) = e1_insert_idx {
+            msg.insert(idx, Token::E1);
+            break;
+        }
+    }
+
+    // Add the ekem1 token
+    let mut ee_insert_idx = None;
+    for msg in patterns.2.iter_mut() {
+        if let Some(ee_idx) = msg.iter().position(|x| *x == Token::Dhee) {
+            ee_insert_idx = Some(ee_idx + 1)
+        }
+        if let Some(idx) = ee_insert_idx {
+            msg.insert(idx, Token::Ekem1);
+            break;
+        }
+    }
+
+    // This should not be possible, because the caller verified that the
+    // HandshakePattern is not one-way.
+    assert!(
+        !(e1_insert_idx.is_some() ^ ee_insert_idx.is_some()),
+        "handshake messages contain one of the {{'e1', 'ekem1'}} tokens, but not the other",
+    );
 }

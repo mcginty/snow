@@ -247,6 +247,9 @@ impl HandshakeState {
                     let dh_out = self.dh(true, true)?;
                     self.symmetricstate.mix_key(&dh_out[..dh_len]);
                 }
+                _ => {
+                    unimplemented!();
+                }
             }
         }
 
@@ -346,22 +349,26 @@ impl HandshakeState {
                             }
                         }
                     },
-                Token::Dhee => {
-                    let dh_out = self.dh(false, false)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                },
-                Token::Dhes => {
-                    let dh_out = self.dh(true, false)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
-                Token::Dhse => {
-                    let dh_out = self.dh(false, true)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
-                Token::Dhss => {
-                    let dh_out = self.dh(true, true)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
+                    Token::Dhee => {
+                        let dh_out = self.dh(false, false)?;
+                        self.symmetricstate.mix_key(&dh_out[..dh_len]);
+                    }
+                    Token::Dhes => {
+                        let dh_out = self.dh(true, false)?;
+                        self.symmetricstate.mix_key(&dh_out[..dh_len]);
+                    }
+                    Token::Dhse => {
+                        let dh_out = self.dh(false, true)?;
+                        self.symmetricstate.mix_key(&dh_out[..dh_len]);
+                    }
+                    Token::Dhss => {
+                        let dh_out = self.dh(true, true)?;
+                        self.symmetricstate.mix_key(&dh_out[..dh_len]);
+                    }
+                    _ => {
+                        unimplemented!();
+                    }
+
             }
         }
 

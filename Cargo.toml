@@ -22,6 +22,7 @@ default-resolver = ["chacha20-poly1305-aead", "blake2-rfc", "sha2", "x25519-dale
 ring-resolver = ["ring"]
 ring-accelerated = ["ring-resolver", "default-resolver"]
 vector-tests = []
+hfs = []
 
 [[bench]]
 name = "benches"
