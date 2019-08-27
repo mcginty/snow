@@ -539,10 +539,9 @@ fn apply_modifiers(patterns: &mut Patterns, modifiers: &HandshakeModifierList) {
 #[cfg(not(feature = "hfs"))]
 fn apply_modifiers(patterns: &mut Patterns, modifiers: &HandshakeModifierList) {
     for modifier in modifiers.list.iter() {
-        match modifier {
-            HandshakeModifier::Psk(n) => apply_psk_modifier(patterns, *n),
-            _ => (),
-        };
+        if let HandshakeModifier::Psk(n) = modifier {
+            apply_psk_modifier(patterns, *n);
+        }
     }
 }
 

@@ -194,7 +194,7 @@ impl HandshakeState {
         let mut byte_index = 0;
         let message_patterns = std::mem::replace(&mut self.message_patterns, Default::default());
         for token in message_patterns[self.pattern_position].iter() {
-            byte_index += self._write_message_token(&mut message[byte_index..], token)?;
+            byte_index += self._write_message_token(&mut message[byte_index..], *token)?;
         }
         // Give message_patterns back to self
         self.message_patterns = message_patterns;
@@ -214,8 +214,8 @@ impl HandshakeState {
     }
 
     #[cfg(feature = "hfs")]
-    fn _write_message_token(&mut self, message: &mut [u8], token: &Token) -> Result<usize, Error> {
-        match *token {
+    fn _write_message_token(&mut self, message: &mut [u8], token: Token) -> Result<usize, Error> {
+        match token {
             Token::E => self._write_message_token_e(message),
             Token::S => self._write_message_token_s(message),
             Token::Psk(n) => self._write_message_token_psk(n),
@@ -229,8 +229,8 @@ impl HandshakeState {
     }
 
     #[cfg(not(feature = "hfs"))]
-    fn _write_message_token(&mut self, message: &mut [u8], token: &Token) -> Result<usize, Error> {
-        match *token {
+    fn _write_message_token(&mut self, message: &mut [u8], token: Token) -> Result<usize, Error> {
+        match token {
             Token::E => self._write_message_token_e(message),
             Token::S => self._write_message_token_s(message),
             Token::Psk(n) => self._write_message_token_psk(n),
@@ -249,15 +249,18 @@ impl HandshakeState {
         if !self.fixed_ephemeral {
             self.e.generate(&mut *self.rng);
         }
-        self.e.enable();
 
-        let pubkey = self.e.pubkey();
-        message[..pubkey.len()].copy_from_slice(pubkey);
-        self.symmetricstate.mix_hash(pubkey);
-        if self.params.handshake.is_psk() {
-            self.symmetricstate.mix_key(pubkey);
-        }
-        Ok(pubkey.len())
+        let pubkey_len = {
+            let pubkey = self.e.pubkey();
+            message[..pubkey.len()].copy_from_slice(self.e.pubkey());
+            self.symmetricstate.mix_hash(pubkey);
+            if self.params.handshake.is_psk() {
+                self.symmetricstate.mix_key(pubkey);
+            }
+            pubkey.len()
+        };
+        self.e.enable();
+        Ok(pubkey_len)
     }
 
     fn _write_message_token_s(&mut self, message: &mut [u8]) -> Result<usize, Error> {
@@ -336,7 +339,7 @@ impl HandshakeState {
         let mut ptr = message;
         let message_patterns = std::mem::replace(&mut self.message_patterns, Default::default());
         for token in message_patterns[self.pattern_position].iter() {
-            let bytes_read = self._read_message_token(ptr, token)?;
+            let bytes_read = self._read_message_token(ptr, *token)?;
             ptr = &ptr[bytes_read..];
         }
         // Give message_patterns back to self
@@ -352,8 +355,8 @@ impl HandshakeState {
     }
 
     #[cfg(feature = "hfs")]
-    fn _read_message_token(&mut self, ptr: &[u8], token: &Token) -> Result<usize, Error> {
-        match *token {
+    fn _read_message_token(&mut self, ptr: &[u8], token: Token) -> Result<usize, Error> {
+        match token {
             Token::E => self._read_message_token_e(ptr),
             Token::S => self._read_message_token_s(ptr),
             Token::Psk(n) => self._read_message_token_psk(n),
@@ -367,8 +370,8 @@ impl HandshakeState {
     }
 
     #[cfg(not(feature = "hfs"))]
-    fn _read_message_token(&mut self, ptr: &[u8], token: &Token) -> Result<usize, Error> {
-        match *token {
+    fn _read_message_token(&mut self, ptr: &[u8], token: Token) -> Result<usize, Error> {
+        match token {
             Token::E => self._read_message_token_e(ptr),
             Token::S => self._read_message_token_s(ptr),
             Token::Psk(n) => self._read_message_token_psk(n),
@@ -449,12 +452,12 @@ impl HandshakeState {
     }
 
     #[cfg(feature = "hfs")]
-    fn _read_message_token_e1(&mut self, ptr: &[u8]) -> Result<usize, Error> {
+    fn _read_message_token_e1(&mut self, _ptr: &[u8]) -> Result<usize, Error> {
         unimplemented!()
     }
 
     #[cfg(feature = "hfs")]
-    fn _read_message_token_ekem1(&mut self, ptr: &[u8]) -> Result<usize, Error> {
+    fn _read_message_token_ekem1(&mut self, _ptr: &[u8]) -> Result<usize, Error> {
         unimplemented!()
     }
 
