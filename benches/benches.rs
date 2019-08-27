@@ -98,7 +98,7 @@ fn benchmarks(c: &mut Criterion) {
                 let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
                 let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
             })
-        }).throughput(Throughput::Bytes(MSG_SIZE as u32 * 2)));
+        }).throughput(Throughput::Bytes(MSG_SIZE as u64 * 2)));
     }
     
     c.bench("transport", Benchmark::new("ChaChaPoly_BLAKE2s throughput", |b| {
@@ -125,7 +125,7 @@ fn benchmarks(c: &mut Criterion) {
             let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
             let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
         })
-    }).throughput(Throughput::Bytes(MSG_SIZE as u32 * 2)));
+    }).throughput(Throughput::Bytes(MSG_SIZE as u64 * 2)));
 }
 
 criterion_group!(benches, benchmarks);
