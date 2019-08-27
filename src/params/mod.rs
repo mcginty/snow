@@ -100,6 +100,26 @@ impl FromStr for HashChoice {
     }
 }
 
+/// One of the supported Kems provided for unstable HFS extension.
+#[cfg(feature = "hfs")]
+#[allow(missing_docs)]
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum KemChoice {
+    Kyber1024
+}
+
+#[cfg(feature = "hfs")]
+impl FromStr for KemChoice {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use self::KemChoice::*;
+        match s {
+            "Kyber1024" => Ok(Kyber1024),
+            _           => bail!(PatternProblem::UnsupportedKemType)
+        }
+    }
+}
+
 /// The set of choices (as specified in the Noise spec) that constitute a full protocol definition.
 ///
 /// See: [Chapter 11: Protocol Names](http://noiseprotocol.org/noise.html#protocol-names).
@@ -120,12 +140,14 @@ pub struct NoiseParams {
     pub base: BaseChoice,
     pub handshake: HandshakeChoice,
     pub dh: DHChoice,
+    #[cfg(feature = "hfs")] pub kem: Option<KemChoice>,
     pub cipher: CipherChoice,
     pub hash: HashChoice,
 }
 
 impl NoiseParams {
 
+    #[cfg(not(feature = "hfs"))]
     /// Construct a new NoiseParams via specifying enums directly.
     pub fn new(name: String,
                base: BaseChoice,
@@ -136,11 +158,25 @@ impl NoiseParams {
     {
         NoiseParams { name, base, handshake, dh, cipher, hash }
     }
+
+    #[cfg(feature = "hfs")]
+    /// Construct a new NoiseParams via specifying enums directly.
+    pub fn new(name: String,
+               base: BaseChoice,
+               handshake: HandshakeChoice,
+               dh: DHChoice,
+               kem: Option<KemChoice>,
+               cipher: CipherChoice,
+               hash: HashChoice) -> Self
+    {
+        NoiseParams { name, base, handshake, dh, kem, cipher, hash }
+    }
 }
 
 impl FromStr for NoiseParams {
     type Err = Error;
 
+    #[cfg(not(feature = "hfs"))]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split('_');
         Ok(NoiseParams::new(s.to_owned(),
@@ -149,6 +185,27 @@ impl FromStr for NoiseParams {
                             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
                             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
                             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?))
+    }
+
+    #[cfg(feature = "hfs")]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut split = s.split('_').peekable();
+        let p = NoiseParams::new(s.to_owned(),
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.peek().ok_or(PatternProblem::TooFewParameters)?
+                                      .splitn(2, '+').nth(0)
+                                      .ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?
+                                      .splitn(2, '+').nth(1).map(|s| s.parse()).transpose()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?);
+
+        // Validate that a KEM is specified iff the hfs modifier is present
+        if p.handshake.is_hfs() != p.kem.is_some() {
+            bail!(PatternProblem::TooFewParameters);
+        }
+        Ok(p)
     }
 }
 

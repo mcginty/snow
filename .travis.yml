@@ -17,5 +17,7 @@ script:
   - cargo test --features "vector-tests"
   - cargo test --features "ring-resolver vector-tests"
   - cargo test --features "ring-accelerated vector-tests"
+  - cargo test --features "hfs pqclean_kyber1024 vector-tests"
+  - cargo test --features "ring-resolver hfs pqclean_kyber1024 vector-tests"
   - cargo test --no-default-features
 

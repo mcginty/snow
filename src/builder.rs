@@ -3,6 +3,7 @@ use crate::handshakestate::HandshakeState;
 use crate::cipherstate::{CipherState, CipherStates};
 use crate::utils::Toggle;
 use crate::params::NoiseParams;
+#[cfg(feature = "hfs")] use crate::params::HandshakeModifier;
 use crate::resolvers::CryptoResolver;
 use crate::error::{Error, InitStage, Prerequisite};
 use subtle::ConstantTimeEq;
@@ -198,14 +199,34 @@ impl<'builder> Builder<'builder> {
             }
         }
 
-        let hs = HandshakeState::new(rng, handshake_cipherstate, hash,
+        let mut hs = HandshakeState::new(rng, handshake_cipherstate, hash,
                                      s, e, self.e_fixed.is_some(), rs, re,
                                      initiator,
                                      self.params,
                                      psks,
                                      self.plog.unwrap_or_else(|| &[0u8; 0] ),
                                      cipherstates)?;
+        Self::resolve_kem(self.resolver, &mut hs)?;
         Ok(hs)
+    }
+
+    #[cfg(not(feature = "hfs"))]
+    fn resolve_kem(_: Box<dyn CryptoResolver>, _: &mut HandshakeState) -> Result<(), Error> {
+        // HFS is disabled, return nothing
+        Ok(())
+    }
+
+    #[cfg(feature = "hfs")]
+    fn resolve_kem(resolver: Box<dyn CryptoResolver>, hs: &mut HandshakeState) -> Result<(), Error> {
+        if hs.params.handshake.modifiers.list.contains(&HandshakeModifier::Hfs) {
+            if let Some(kem_choice) = hs.params.kem {
+                let kem = resolver.resolve_kem(&kem_choice).ok_or(InitStage::GetKemImpl)?;
+                hs.set_kem(kem);
+            } else {
+                bail!(InitStage::GetKemImpl)
+            }
+        }
+        Ok(())
     }
 }
 

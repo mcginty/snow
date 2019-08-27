@@ -27,6 +27,9 @@ pub enum Error {
     /// Decryption failed.
     Decrypt,
 
+    /// Key-encapsulation failed
+    #[cfg(feature = "hfs")]
+    Kem,
 
     /// This enum may grow additional variants, so this makes sure clients
     /// don't count on exhaustive matching. (Otherwise, adding a new variant
@@ -48,6 +51,8 @@ pub enum PatternProblem {
     UnsupportedCipherType,
     InvalidPsk,
     UnsupportedModifier,
+    #[cfg(feature = "hfs")]
+    UnsupportedKemType,
 }
 
 impl From<PatternProblem> for Error {
@@ -68,6 +73,8 @@ pub enum InitStage {
     GetDhImpl,
     GetCipherImpl,
     GetHashImpl,
+    #[cfg(feature = "hfs")]
+    GetKemImpl,
     ValidatePskPosition,
 }
 
@@ -121,6 +128,7 @@ impl fmt::Display for Error {
             Error::Input => write!(f, "input error"),
             Error::Dh => write!(f, "diffie-hellman error"),
             Error::Decrypt => write!(f, "decrypt error"),
+            #[cfg(feature = "hfs")] Error::Kem => write!(f, "kem error"),
             Error::__Nonexhaustive => write!(f, "Nonexhaustive"),
         }
     }

@@ -7,7 +7,9 @@
 #[cfg(feature = "ring-resolver")]      mod ring;
 
 use crate::params::{CipherChoice, DHChoice, HashChoice};
+#[cfg(feature = "hfs")] use crate::params::KemChoice;
 use crate::types::{Cipher, Dh, Hash, Random};
+#[cfg(feature = "hfs")] use crate::types::Kem;
 
 #[cfg(feature = "default-resolver")]   pub use self::default::DefaultResolver;
 #[cfg(feature = "ring-resolver")]      pub use self::ring::RingResolver;
@@ -25,6 +27,10 @@ pub trait CryptoResolver {
 
     /// Provide an implementation of the Cipher trait for the given CipherChoice or None if unavailable.
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>>;
+
+    /// Provide an implementation of the Kem trait for the given KemChoice or None if unavailable
+    #[cfg(feature = "hfs")]
+    fn resolve_kem(&self, _choice: &KemChoice) -> Option<Box<dyn Kem>> { None }
 }
 
 /// A helper struct that helps to opportunistically use one resolver, but

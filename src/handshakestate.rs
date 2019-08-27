@@ -1,6 +1,8 @@
 use crate::constants::{PSKLEN, TAGLEN, MAXMSGLEN, MAXDHLEN};
+#[cfg(feature = "hfs")] use crate::constants::{MAXKEMPUBLEN, MAXKEMCTLEN, MAXKEMSSLEN};
 use crate::utils::Toggle;
 use crate::types::{Dh, Hash, Random};
+#[cfg(feature = "hfs")] use crate::types::Kem;
 use crate::cipherstate::{CipherState, CipherStates};
 use crate::symmetricstate::SymmetricState;
 use crate::params::{HandshakeTokens, MessagePatterns, NoiseParams, Token};
@@ -27,6 +29,10 @@ pub struct HandshakeState {
     pub(crate) initiator        : bool,
     pub(crate) params           : NoiseParams,
     pub(crate) psks             : [Option<[u8; PSKLEN]>; 10],
+    #[cfg(feature = "hfs")]
+    pub(crate) kem              : Option<Box<dyn Kem>>,
+    #[cfg(feature = "hfs")]
+    pub(crate) kem_re           : Option<[u8; MAXKEMPUBLEN]>,
     pub(crate) my_turn          : bool,
     pub(crate) message_patterns : MessagePatterns,
     pub(crate) pattern_position : usize,
@@ -108,6 +114,10 @@ impl HandshakeState {
             initiator,
             params,
             psks,
+            #[cfg(feature = "hfs")]
+            kem: None,
+            #[cfg(feature = "hfs")]
+            kem_re: None,
             my_turn: initiator,
             message_patterns: tokens.msg_patterns,
             pattern_position: 0,
@@ -116,6 +126,11 @@ impl HandshakeState {
 
     pub(crate) fn dh_len(&self) -> usize {
         self.s.pub_len()
+    }
+
+    #[cfg(feature = "hfs")]
+    pub(crate) fn set_kem(&mut self, kem: Box<dyn Kem>) {
+        self.kem = Some(kem);
     }
 
     fn dh(&self, local_s: bool, remote_s: bool) -> Result<[u8; MAXDHLEN], Error> {
@@ -247,6 +262,36 @@ impl HandshakeState {
                     let dh_out = self.dh(true, true)?;
                     self.symmetricstate.mix_key(&dh_out[..dh_len]);
                 }
+                #[cfg(feature = "hfs")]
+                Token::E1 => {
+                    let kem = self.kem.as_mut().ok_or(Error::Input)?;
+                    if kem.pub_len() > message.len() {
+                        bail!(Error::Input);
+                    }
+
+                    kem.generate(&mut *self.rng);
+                    byte_index += self.symmetricstate.encrypt_and_mix_hash(kem.pubkey(), &mut message[byte_index..])?;
+                },
+                #[cfg(feature = "hfs")]
+                Token::Ekem1 => {
+                    let kem = self.kem.as_mut().unwrap();
+                    let mut kem_output_buf = [0; MAXKEMSSLEN];
+                    let mut ciphertext_buf = [0; MAXKEMCTLEN];
+
+                    if kem.ciphertext_len() > message.len() {
+                        bail!(Error::Input);
+                    }
+
+                    let kem_output = &mut kem_output_buf[..kem.shared_secret_len()];
+                    let ciphertext = &mut ciphertext_buf[..kem.ciphertext_len()];
+                    let pubkey = &self.kem_re.as_ref().unwrap()[..kem.pub_len()];
+                    if kem.encapsulate(pubkey, kem_output, ciphertext).is_err() {
+                        bail!(Error::Kem);
+                    }
+
+                    byte_index += self.symmetricstate.encrypt_and_mix_hash(&ciphertext[..kem.ciphertext_len()], &mut message[byte_index..])?;
+                    self.symmetricstate.mix_key(&kem_output[..kem.shared_secret_len()]);
+                },
             }
         }
 
@@ -361,6 +406,42 @@ impl HandshakeState {
                 Token::Dhss => {
                     let dh_out = self.dh(true, true)?;
                     self.symmetricstate.mix_key(&dh_out[..dh_len]);
+                }
+                #[cfg(feature = "hfs")]
+                Token::E1 => {
+                    let kem = self.kem.as_ref().ok_or(Error::Kem)?;
+                    let read_len = if self.symmetricstate.has_key() {
+                        kem.pub_len() + TAGLEN
+                    } else {
+                        kem.pub_len()
+                    };
+                    if ptr.len() < read_len {
+                        bail!(Error::Input);
+                    }
+                    let mut kem_re = [0; MAXKEMPUBLEN];
+                    self.symmetricstate.decrypt_and_mix_hash(&ptr[..read_len], &mut kem_re[..kem.pub_len()]).map_err(|_| Error::Decrypt)?;
+                    self.kem_re = Some(kem_re);
+                    ptr = &ptr[read_len..];
+                }
+                #[cfg(feature = "hfs")]
+                Token::Ekem1 => {
+                    let kem = self.kem.as_ref().unwrap();
+                    let read_len = if self.symmetricstate.has_key() {
+                        kem.ciphertext_len() + TAGLEN
+                    } else {
+                        kem.ciphertext_len()
+                    };
+                    if ptr.len() < read_len {
+                        bail!(Error::Input);
+                    }
+                    let mut ciphertext_buf = [0; MAXKEMCTLEN];
+                    let ciphertext = &mut ciphertext_buf[..kem.ciphertext_len()];
+                    self.symmetricstate.decrypt_and_mix_hash(&ptr[..read_len], ciphertext).map_err(|_| Error::Decrypt)?;
+                    let mut kem_output_buf = [0; MAXKEMSSLEN];
+                    let kem_output = &mut kem_output_buf[..kem.shared_secret_len()];
+                    kem.decapsulate(ciphertext, kem_output).map_err(|_| Error::Kem)?;
+                    self.symmetricstate.mix_key(&kem_output[..kem.shared_secret_len()]);
+                    ptr = &ptr[read_len..];
                 }
             }
         }

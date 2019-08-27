@@ -193,6 +193,36 @@ fn test_Xpsk0_expected_value() {
 }
 
 #[test]
+#[cfg(feature = "hfs")]
+#[cfg(feature = "pqclean_kyber1024")]
+fn test_NNhfs_sanity_session() {
+    // Due to how PQClean is implemented, we cannot to deterministic testing of the protocol.
+    // Instead, we will see if the protocol runs smoothly.
+    let params: NoiseParams = "Noise_NNhfs_25519+Kyber1024_ChaChaPoly_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone())
+        .build_initiator()
+        .unwrap();
+    let mut h_r = Builder::new(params)
+        .build_responder()
+        .unwrap();
+
+    let mut buffer_msg = [0u8; 4096];
+    let mut buffer_out = [0u8; 4096];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let mut h_i = h_i.into_transport_mode().unwrap();
+    let mut h_r = h_r.into_transport_mode().unwrap();
+
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[..len], b"hack the planet");
+}
+
+#[test]
 fn test_XXpsk0_expected_value() {
     let params: NoiseParams = "Noise_XXpsk0_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
