@@ -516,7 +516,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
 #[cfg(feature = "hfs")]
 fn check_hfs_nor_oneway(handshake: &HandshakeChoice) -> Result<(), Error> {
     if handshake.modifiers.list.contains(&HandshakeModifier::Hfs) && handshake.pattern.is_oneway() {
-        Err(Error::from(PatternProblem::UnsupportedModifier))
+        bail!(PatternProblem::UnsupportedModifier)
     } else {
         Ok(())
     }
@@ -565,7 +565,7 @@ fn apply_hfs_modifier(patterns: &mut Patterns) {
     //     the "hfs" [should be "e1"?] token is placed directly after thid DH
     //     (so that the public key will be encrypted).
     //
-    //     The "hfs" modifier also adds an "ekem2" token directly following the
+    //     The "hfs" modifier also adds an "ekem1" token directly following the
     //     first occurrence of "ee".
 
     // Add the e1 token

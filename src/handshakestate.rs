@@ -192,66 +192,12 @@ impl HandshakeState {
         }
 
         let mut byte_index = 0;
-        let dh_len = self.dh_len();
-        for token in self.message_patterns[self.pattern_position].iter() {
-            match token {
-                Token::E => {
-                    if byte_index + self.e.pub_len() > message.len() {
-                        bail!(Error::Input)
-                    }
-
-                    if !self.fixed_ephemeral {
-                        self.e.generate(&mut *self.rng);
-                    }
-                    let pubkey = self.e.pubkey();
-                    message[byte_index..byte_index+pubkey.len()].copy_from_slice(pubkey);
-                    byte_index += pubkey.len();
-                    self.symmetricstate.mix_hash(pubkey);
-                    if self.params.handshake.is_psk() {
-                        self.symmetricstate.mix_key(pubkey);
-                    }
-                    self.e.enable();
-                },
-                Token::S => {
-                    if !self.s.is_on() {
-                        bail!(StateProblem::MissingKeyMaterial);
-                    } else if byte_index + self.s.pub_len() > message.len() {
-                        bail!(Error::Input)
-                    }
-
-                    byte_index += self.symmetricstate.encrypt_and_mix_hash(
-                        self.s.pubkey(),
-                        &mut message[byte_index..])?;
-                },
-                Token::Psk(n) => match self.psks[*n as usize] {
-                    Some(psk) => {
-                        self.symmetricstate.mix_key_and_hash(&psk);
-                    },
-                    None => {
-                        bail!(StateProblem::MissingPsk);
-                    }
-                },
-                Token::Dhee => {
-                    let dh_out = self.dh(false, false)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                },
-                Token::Dhes => {
-                    let dh_out = self.dh(false, true)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
-                Token::Dhse => {
-                    let dh_out = self.dh(true, false)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
-                Token::Dhss => {
-                    let dh_out = self.dh(true, true)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
-                _ => {
-                    unimplemented!();
-                }
-            }
+        let message_patterns = std::mem::replace(&mut self.message_patterns, Default::default());
+        for token in message_patterns[self.pattern_position].iter() {
+            byte_index += self._write_message_token(&mut message[byte_index..], token)?;
         }
+        // Give message_patterns back to self
+        self.message_patterns = message_patterns;
 
         if byte_index + payload.len() + TAGLEN > message.len() {
             bail!(Error::Input);
@@ -265,6 +211,91 @@ impl HandshakeState {
         }
         self.my_turn = false;
         Ok(byte_index)
+    }
+
+    #[cfg(feature = "hfs")]
+    fn _write_message_token(&mut self, message: &mut [u8], token: &Token) -> Result<usize, Error> {
+        match *token {
+            Token::E => self._write_message_token_e(message),
+            Token::S => self._write_message_token_s(message),
+            Token::Psk(n) => self._write_message_token_psk(n),
+            Token::Dhee => self._write_message_token_dh(false, false),
+            Token::Dhes => self._write_message_token_dh(false, true),
+            Token::Dhse => self._write_message_token_dh(true, false),
+            Token::Dhss => self._write_message_token_dh(true, true),
+            Token::E1 => self._write_message_token_e1(message),
+            Token::Ekem1 => self._write_message_token_ekem1(message),
+        }
+    }
+
+    #[cfg(not(feature = "hfs"))]
+    fn _write_message_token(&mut self, message: &mut [u8], token: &Token) -> Result<usize, Error> {
+        match *token {
+            Token::E => self._write_message_token_e(message),
+            Token::S => self._write_message_token_s(message),
+            Token::Psk(n) => self._write_message_token_psk(n),
+            Token::Dhee => self._write_message_token_dh(false, false),
+            Token::Dhes => self._write_message_token_dh(false, true),
+            Token::Dhse => self._write_message_token_dh(true, false),
+            Token::Dhss => self._write_message_token_dh(true, true),
+        }
+    }
+
+    fn _write_message_token_e(&mut self, message: &mut [u8]) -> Result<usize, Error> {
+        if self.e.pub_len() > message.len() {
+            bail!(Error::Input)
+        }
+
+        if !self.fixed_ephemeral {
+            self.e.generate(&mut *self.rng);
+        }
+        self.e.enable();
+
+        let pubkey = self.e.pubkey();
+        message[..pubkey.len()].copy_from_slice(pubkey);
+        self.symmetricstate.mix_hash(pubkey);
+        if self.params.handshake.is_psk() {
+            self.symmetricstate.mix_key(pubkey);
+        }
+        Ok(pubkey.len())
+    }
+
+    fn _write_message_token_s(&mut self, message: &mut [u8]) -> Result<usize, Error> {
+        if !self.s.is_on() {
+            bail!(StateProblem::MissingKeyMaterial);
+        } else if self.s.pub_len() > message.len() {
+            bail!(Error::Input)
+        }
+
+        self.symmetricstate.encrypt_and_mix_hash(self.s.pubkey(), message)
+    }
+
+    fn _write_message_token_psk(&mut self, n: u8) -> Result<usize, Error> {
+        match self.psks[usize::from(n)] {
+            Some(psk) => {
+                self.symmetricstate.mix_key_and_hash(&psk);
+            }
+            None => {
+                bail!(StateProblem::MissingPsk);
+            }
+        };
+        Ok(0)
+    }
+
+    fn _write_message_token_dh(&mut self, local_s: bool, remote_s: bool) -> Result<usize, Error> {
+        let dh_out = self.dh(local_s, remote_s)?;
+        self.symmetricstate.mix_key(&dh_out[..self.dh_len()]);
+        Ok(0)
+    }
+
+    #[cfg(feature = "hfs")]
+    fn _write_message_token_e1(&mut self, _message: &mut [u8]) -> Result<usize, Error> {
+        unimplemented!()
+    }
+
+    #[cfg(feature = "hfs")]
+    fn _write_message_token_ekem1(&mut self, _message: &mut [u8]) -> Result<usize, Error> {
+        unimplemented!()
     }
 
     /// Reads a noise message from `input`
@@ -302,83 +333,129 @@ impl HandshakeState {
             bail!(Error::Input);
         }
 
-        let last = self.pattern_position == (self.message_patterns.len() - 1);
-
-        let dh_len = self.dh_len();
         let mut ptr = message;
-            for token in self.message_patterns[self.pattern_position].iter() {
-                match *token {
-                    Token::E => {
-                        if ptr.len() < dh_len {
-                            bail!(Error::Input);
-                        }
-                        self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
-                        ptr = &ptr[dh_len..];
-                        self.symmetricstate.mix_hash(&self.re[..dh_len]);
-                        if self.params.handshake.is_psk() {
-                            self.symmetricstate.mix_key(&self.re[..dh_len]);
-                        }
-                        self.re.enable();
-                    },
-                    Token::S => {
-                        let data = if self.symmetricstate.has_key() {
-                            if ptr.len() < dh_len + TAGLEN {
-                                bail!(Error::Input);
-                            }
-                            let temp = &ptr[..dh_len + TAGLEN];
-                            ptr = &ptr[dh_len + TAGLEN..];
-                            temp
-                        } else {
-                            if ptr.len() < dh_len {
-                                bail!(Error::Input);
-                            }
-                            let temp = &ptr[..dh_len];
-                            ptr = &ptr[dh_len..];
-                            temp
-                        };
-                        self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| Error::Decrypt)?;
-                        self.rs.enable();
-                    },
-                    Token::Psk(n) => {
-                        match self.psks[n as usize] {
-                            Some(psk) => {
-                                self.symmetricstate.mix_key_and_hash(&psk);
-                            },
-                            None => {
-                                bail!(StateProblem::MissingPsk);
-                            }
-                        }
-                    },
-                    Token::Dhee => {
-                        let dh_out = self.dh(false, false)?;
-                        self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                    }
-                    Token::Dhes => {
-                        let dh_out = self.dh(true, false)?;
-                        self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                    }
-                    Token::Dhse => {
-                        let dh_out = self.dh(false, true)?;
-                        self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                    }
-                    Token::Dhss => {
-                        let dh_out = self.dh(true, true)?;
-                        self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                    }
-                    _ => {
-                        unimplemented!();
-                    }
-
-            }
+        let message_patterns = std::mem::replace(&mut self.message_patterns, Default::default());
+        for token in message_patterns[self.pattern_position].iter() {
+            let bytes_read = self._read_message_token(ptr, token)?;
+            ptr = &ptr[bytes_read..];
         }
+        // Give message_patterns back to self
+        self.message_patterns = message_patterns;
 
         self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| Error::Decrypt)?;
         self.my_turn = true;
-        if last {
+        if self.pattern_position == (self.message_patterns.len() - 1) {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
         }
         let payload_len = if self.symmetricstate.has_key() { ptr.len() - TAGLEN } else { ptr.len() };
         Ok(payload_len)
+    }
+
+    #[cfg(feature = "hfs")]
+    fn _read_message_token(&mut self, ptr: &[u8], token: &Token) -> Result<usize, Error> {
+        match *token {
+            Token::E => self._read_message_token_e(ptr),
+            Token::S => self._read_message_token_s(ptr),
+            Token::Psk(n) => self._read_message_token_psk(n),
+            Token::Dhee => self._read_message_token_dh(false, false),
+            Token::Dhes => self._read_message_token_dh(true, false),
+            Token::Dhse => self._read_message_token_dh(false, true),
+            Token::Dhss => self._read_message_token_dh(true, true),
+            Token::E1 => self._read_message_token_e1(ptr),
+            Token::Ekem1 => self._read_message_token_ekem1(ptr),
+        }
+    }
+
+    #[cfg(not(feature = "hfs"))]
+    fn _read_message_token(&mut self, ptr: &[u8], token: &Token) -> Result<usize, Error> {
+        match *token {
+            Token::E => self._read_message_token_e(ptr),
+            Token::S => self._read_message_token_s(ptr),
+            Token::Psk(n) => self._read_message_token_psk(n),
+            Token::Dhee => self._read_message_token_dh(false, false),
+            Token::Dhes => self._read_message_token_dh(true, false),
+            Token::Dhse => self._read_message_token_dh(false, true),
+            Token::Dhss => self._read_message_token_dh(true, true),
+        }
+    }
+
+    fn _read_message_token_e(&mut self, ptr: &[u8]) -> Result<usize, Error> {
+        if ptr.len() < self.dh_len() {
+            bail!(Error::Input);
+        }
+        let dh_len = self.dh_len();
+
+        self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
+        self.symmetricstate.mix_hash(&self.re[..dh_len]);
+        if self.params.handshake.is_psk() {
+            self.symmetricstate.mix_key(&self.re[..dh_len]);
+        }
+        self.re.enable();
+        Ok(dh_len)
+    }
+
+    fn _read_message_token_s(&mut self, ptr: &[u8]) -> Result<usize, Error> {
+        let dh_len = self.dh_len();
+        let read_len = if self.symmetricstate.has_key() {
+            dh_len + TAGLEN
+        } else {
+            dh_len
+        };
+
+        if ptr.len() < read_len {
+            bail!(Error::Input);
+        }
+
+        let data = &ptr[..read_len];
+        self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| Error::Decrypt)?;
+        self.rs.enable();
+        Ok(read_len)
+    }
+
+    fn _read_message_token_psk(&mut self, n: u8) -> Result<usize, Error> {
+        match self.psks[n as usize] {
+            Some(psk) => {
+                self.symmetricstate.mix_key_and_hash(&psk);
+            },
+            None => {
+                bail!(StateProblem::MissingPsk);
+            }
+        }
+        Ok(0)
+    }
+
+    fn _read_message_token_dh(&mut self, local_s: bool, remote_s: bool) -> Result<usize, Error> {
+        let dh_out = self.dh(local_s, remote_s)?;
+        self.symmetricstate.mix_key(&dh_out[..self.dh_len()]);
+        Ok(0)
+    }
+
+    fn _read_message_token_dhes(&mut self) -> Result<usize, Error> {
+        let dh_out = self.dh(true, false)?;
+        self.symmetricstate.mix_key(&dh_out[..self.dh_len()]);
+        Ok(0)
+    }
+
+    fn _read_message_token_dhse(&mut self) -> Result<usize, Error> {
+        let dh_out = self.dh(false, true)?;
+        self.symmetricstate.mix_key(&dh_out[..self.dh_len()]);
+        Ok(0)
+    }
+
+    fn _read_message_token_dhss(&mut self) -> Result<usize, Error> {
+        let dh_out = self.dh(true, true)?;
+        self.symmetricstate.mix_key(&dh_out[..self.dh_len()]);
+        Ok(0)
+    }
+
+    #[cfg(feature = "hfs")]
+    fn _read_message_token_e1(&mut self, ptr: &[u8]) -> Result<usize, Error> {
+        unimplemented!()
+    }
+
+    #[cfg(feature = "hfs")]
+    fn _read_message_token_ekem1(&mut self, ptr: &[u8]) -> Result<usize, Error> {
+        unimplemented!()
     }
 
     /// Set the preshared key at the specified location. It is up to the caller
