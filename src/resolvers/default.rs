@@ -4,10 +4,14 @@ use blake2_rfc::blake2s::Blake2s;
 use sha2::{Digest, Sha256, Sha512};
 use rand::rngs::OsRng;
 use x25519_dalek as x25519;
+#[cfg(feature = "kyber1024")] use pqcrypto_kyber::kyber1024;
+#[cfg(feature = "kyber1024")] use pqcrypto_traits::kem::{PublicKey, SecretKey, SharedSecret, Ciphertext};
 
 use crate::types::{Cipher, Dh, Hash, Random};
+#[cfg(feature = "kyber1024")] use crate::types::KEM;
 use crate::constants::TAGLEN;
 use crate::params::{CipherChoice, DHChoice, HashChoice};
+#[cfg(feature = "kyber1024")] use crate::params::KEMChoice;
 use std::io::{Cursor, Write};
 use super::CryptoResolver;
 
@@ -44,6 +48,14 @@ impl CryptoResolver for DefaultResolver {
             CipherChoice::AESGCM     => None,
         }
     }
+
+    #[cfg(feature = "kyber1024")]
+    fn resolve_kem(&self, choice: &KEMChoice) -> Option<Box<dyn KEM>> {
+        match *choice {
+            KEMChoice::Kyber1024 => Some(Box::new(Kyber1024::default()))
+        }
+    }
+
 }
 
 /// Wraps x25519-dalek.
@@ -77,6 +89,13 @@ struct HashBLAKE2b {
 /// Wraps `blake2-rfc`'s implementation.
 struct HashBLAKE2s {
     hasher: Blake2s
+}
+
+/// Wraps `kyber1024`'s implementation
+#[cfg(feature = "kyber1024")]
+struct Kyber1024 {
+    privkey: kyber1024::SecretKey,
+    pubkey:  kyber1024::PublicKey,
 }
 
 impl Random for OsRng {}
@@ -193,7 +212,7 @@ impl Hash for HashSHA256 {
 
     fn reset(&mut self) {
         self.hasher = Sha256::new();
-    }   
+    }
 
     fn input(&mut self, data: &[u8]) {
         self.hasher.input(data);
@@ -227,7 +246,7 @@ impl Hash for HashSHA512 {
 
     fn reset(&mut self) {
         self.hasher = Sha512::new();
-    }   
+    }
 
     fn input(&mut self, data: &[u8]) {
         self.hasher.input(data);
@@ -261,7 +280,7 @@ impl Hash for HashBLAKE2b {
 
     fn reset(&mut self) {
         self.hasher = Blake2b::new(64);
-    }   
+    }
 
     fn input(&mut self, data: &[u8]) {
         self.hasher.update(data);
@@ -304,6 +323,71 @@ impl Hash for HashBLAKE2s {
     fn result(&mut self, out: &mut [u8]) {
         let hash = self.hasher.clone().finalize();
         out[..32].copy_from_slice(hash.as_bytes());
+    }
+}
+
+#[cfg(feature = "kyber1024")]
+impl Default for Kyber1024 {
+    fn default() -> Self {
+        Kyber1024 {
+            pubkey:  kyber1024::PublicKey::from_bytes(&[0; 1568]).unwrap(),
+            privkey: kyber1024::SecretKey::from_bytes(&[0; 3168]).unwrap(),
+        }
+    }
+}
+
+#[cfg(feature = "kyber1024")]
+impl KEM for Kyber1024 {
+
+    fn name(&self) -> &'static str {
+        "Kyber1024"
+    }
+
+    /// The length in bytes of a public key for this primitive
+    fn pub_len(&self) -> usize {
+        kyber1024::public_key_bytes()
+    }
+
+    /// The length in bytes the KEM cipherthext for this primitive
+    fn ciphertext_len(&self) -> usize {
+        kyber1024::ciphertext_bytes()
+    }
+
+    /// Shared secret length in bytes that this KEM encapsulates
+    fn shared_secret_len(&self) -> usize {
+        kyber1024::shared_secret_bytes()
+    }
+
+    /// Generate a new private key
+    fn generate(&mut self, _rng: &mut dyn Random) {
+        // PQClean uses their own random generator
+        let (pk, sk) = kyber1024::keypair();
+        self.pubkey = pk;
+        self.privkey = sk;
+    }
+
+    /// Get the public key
+    fn pubkey(&self) -> &[u8] {
+        self.pubkey.as_bytes()
+    }
+
+    /// Generate a shared secret and encapsulate it using this KEM
+    #[must_use]
+    fn encapsulate(&self, pubkey: &[u8], shared_secret_out: &mut [u8], ciphertext_out: &mut [u8]) -> Result<(usize, usize), ()> {
+        let pubkey = kyber1024::PublicKey::from_bytes(pubkey).map_err(|_| ())?;
+        let (shared_secret, ciphertext) = kyber1024::encapsulate(&pubkey);
+        shared_secret_out.copy_from_slice(shared_secret.as_bytes());
+        ciphertext_out.copy_from_slice(ciphertext.as_bytes());
+        Ok((shared_secret.as_bytes().len(), ciphertext.as_bytes().len()))
+    }
+
+    /// Decapsulate a ciphertext producing a shared secret
+    #[must_use]
+    fn decapsulate(&self, ciphertext: &[u8], shared_secret_out: &mut [u8]) -> Result<usize, ()> {
+        let ciphertext = kyber1024::Ciphertext::from_bytes(ciphertext).map_err(|_| ())?;
+        let shared_secret = kyber1024::decapsulate(&ciphertext, &self.privkey);
+        shared_secret_out.copy_from_slice(shared_secret.as_bytes());
+        Ok(shared_secret.as_bytes().len())
     }
 }
 
@@ -471,5 +555,50 @@ mod tests {
                                  2fe2809c776f726b20696e2070726f67\
                                  726573732e2fe2809d";
         assert!(hex::encode(out[..ciphertext.len()].to_owned()) == desired_plaintext);
+    }
+
+    #[test]
+    #[cfg(feature = "kyber1024")]
+    fn test_kyber1024() {
+        let mut rng = OsRng::default();
+        let mut kem_1 = Kyber1024::default();
+        let kem_2 = Kyber1024::default();
+
+        let mut shared_secret_1 = vec![0; kem_1.shared_secret_len()];
+        let mut shared_secret_2 = vec![0; kem_2.shared_secret_len()];
+        let mut ciphertext = vec![0; kem_1.ciphertext_len()];
+
+        kem_1.generate(&mut rng);
+        let (ss1_len, ct_len) = kem_2.encapsulate(kem_1.pubkey(), &mut shared_secret_1, &mut ciphertext).unwrap();
+        let ss2_len = kem_1.decapsulate(&mut ciphertext, &mut shared_secret_2).unwrap();
+
+        assert_eq!(shared_secret_1, shared_secret_2);
+        assert_eq!(ss1_len, shared_secret_1.len());
+        assert_eq!(ss2_len, shared_secret_2.len());
+        assert_eq!(ss1_len, ss2_len);
+        assert_eq!(ct_len, ciphertext.len());
+    }
+
+    #[test]
+    #[cfg(feature = "kyber1024")]
+    fn test_kyber1024_fail() {
+        let mut rng = OsRng::default();
+        let mut kem_1 = Kyber1024::default();
+        let kem_2 = Kyber1024::default();
+
+        let mut shared_secret_1 = vec![0; kem_1.shared_secret_len()];
+        let mut shared_secret_2 = vec![0; kem_2.shared_secret_len()];
+        let mut ciphertext = vec![0; kem_1.ciphertext_len()];
+        let mut bad_ciphertext = vec![0; kem_1.ciphertext_len()];
+
+        kem_1.generate(&mut rng);
+        let (ss1_len, ct_len) = kem_2.encapsulate(kem_1.pubkey(), &mut shared_secret_1, &mut ciphertext).unwrap();
+        let ss2_len = kem_1.decapsulate(&mut bad_ciphertext, &mut shared_secret_2).unwrap();
+
+        assert_ne!(shared_secret_1, shared_secret_2);
+        assert_eq!(ss1_len, shared_secret_1.len());
+        assert_eq!(ss2_len, shared_secret_2.len());
+        assert_eq!(ss1_len, ss2_len);
+        assert_eq!(ct_len, ciphertext.len());
     }
 }

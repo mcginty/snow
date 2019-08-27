@@ -129,3 +129,33 @@ pub trait Hash : Send + Sync {
         self.hmac(&temp_key, &in3[..=hash_len], out3);
     }
 }
+
+/// KEM operations
+#[cfg(feature = "hfs")]
+pub trait KEM : Send + Sync {
+    /// The string that the Noise spec defines for the primitive
+    fn name(&self) -> &'static str;
+
+    /// The length in bytes of a public key for this primitive
+    fn pub_len(&self) -> usize;
+
+    /// The length in bytes the KEM cipherthext for this primitive
+    fn ciphertext_len(&self) -> usize;
+
+    /// Shared secret length in bytes that this KEM encapsulates
+    fn shared_secret_len(&self) -> usize;
+
+    /// Generate a new private key
+    fn generate(&mut self, rng: &mut dyn Random);
+
+    /// Get the public key
+    fn pubkey(&self) -> &[u8];
+
+    /// Generate a shared secret and encapsulate it using this KEM
+    #[must_use]
+    fn encapsulate(&self, pubkey: &[u8], shared_secret_out: &mut [u8], ciphertext_out: &mut [u8]) -> Result<(usize, usize), ()>;
+
+    /// Decapsulate a ciphertext producing a shared secret
+    #[must_use]
+    fn decapsulate(&self, ciphertext: &[u8], shared_secret_out: &mut [u8]) -> Result<usize, ()>;
+}

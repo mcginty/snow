@@ -48,6 +48,8 @@ pub enum PatternProblem {
     UnsupportedCipherType,
     InvalidPsk,
     UnsupportedModifier,
+    #[cfg(feature = "hfs")]
+    UnsupportedKEMType,
 }
 
 impl From<PatternProblem> for Error {

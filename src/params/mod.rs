@@ -100,6 +100,26 @@ impl FromStr for HashChoice {
     }
 }
 
+/// One of the supported KEMs provided for unstable HFS extension.
+#[cfg(feature = "hfs")]
+#[allow(missing_docs)]
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum KEMChoice {
+    Kyber1024
+}
+
+#[cfg(feature = "hfs")]
+impl FromStr for KEMChoice {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use self::KEMChoice::*;
+        match s {
+            "Kyber1024" => Ok(Kyber1024),
+            _           => bail!(PatternProblem::UnsupportedKEMType)
+        }
+    }
+}
+
 /// The set of choices (as specified in the Noise spec) that constitute a full protocol definition.
 ///
 /// See: [Chapter 11: Protocol Names](http://noiseprotocol.org/noise.html#protocol-names).
