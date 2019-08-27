@@ -48,7 +48,7 @@ ring = { version = "0.15", optional = true }
 
 [dev-dependencies]
 clap = "2"
-criterion = "0.2"
+criterion = "0.3"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
