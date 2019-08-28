@@ -4,14 +4,14 @@ use blake2_rfc::blake2s::Blake2s;
 use sha2::{Digest, Sha256, Sha512};
 use rand::rngs::OsRng;
 use x25519_dalek as x25519;
-#[cfg(feature = "kyber1024")] use pqcrypto_kyber::kyber1024;
-#[cfg(feature = "kyber1024")] use pqcrypto_traits::kem::{PublicKey, SecretKey, SharedSecret, Ciphertext};
+#[cfg(feature = "pqclean_kyber1024")] use pqcrypto_kyber::kyber1024;
+#[cfg(feature = "pqclean_kyber1024")] use pqcrypto_traits::kem::{PublicKey, SecretKey, SharedSecret, Ciphertext};
 
 use crate::types::{Cipher, Dh, Hash, Random};
-#[cfg(feature = "kyber1024")] use crate::types::KEM;
+#[cfg(feature = "pqclean_kyber1024")] use crate::types::KEM;
 use crate::constants::TAGLEN;
 use crate::params::{CipherChoice, DHChoice, HashChoice};
-#[cfg(feature = "kyber1024")] use crate::params::KEMChoice;
+#[cfg(feature = "pqclean_kyber1024")] use crate::params::KEMChoice;
 use std::io::{Cursor, Write};
 use super::CryptoResolver;
 
@@ -49,7 +49,7 @@ impl CryptoResolver for DefaultResolver {
         }
     }
 
-    #[cfg(feature = "kyber1024")]
+    #[cfg(feature = "pqclean_kyber1024")]
     fn resolve_kem(&self, choice: &KEMChoice) -> Option<Box<dyn KEM>> {
         match *choice {
             KEMChoice::Kyber1024 => Some(Box::new(Kyber1024::default()))
@@ -92,7 +92,7 @@ struct HashBLAKE2s {
 }
 
 /// Wraps `kyber1024`'s implementation
-#[cfg(feature = "kyber1024")]
+#[cfg(feature = "pqclean_kyber1024")]
 struct Kyber1024 {
     privkey: kyber1024::SecretKey,
     pubkey:  kyber1024::PublicKey,
@@ -326,7 +326,7 @@ impl Hash for HashBLAKE2s {
     }
 }
 
-#[cfg(feature = "kyber1024")]
+#[cfg(feature = "pqclean_kyber1024")]
 impl Default for Kyber1024 {
     fn default() -> Self {
         Kyber1024 {
@@ -336,7 +336,7 @@ impl Default for Kyber1024 {
     }
 }
 
-#[cfg(feature = "kyber1024")]
+#[cfg(feature = "pqclean_kyber1024")]
 impl KEM for Kyber1024 {
 
     fn name(&self) -> &'static str {
@@ -558,7 +558,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "kyber1024")]
+    #[cfg(feature = "pqclean_kyber1024")]
     fn test_kyber1024() {
         let mut rng = OsRng::default();
         let mut kem_1 = Kyber1024::default();
@@ -580,7 +580,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "kyber1024")]
+    #[cfg(feature = "pqclean_kyber1024")]
     fn test_kyber1024_fail() {
         let mut rng = OsRng::default();
         let mut kem_1 = Kyber1024::default();

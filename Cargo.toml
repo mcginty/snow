@@ -23,7 +23,7 @@ ring-resolver = ["ring"]
 ring-accelerated = ["ring-resolver", "default-resolver"]
 vector-tests = []
 hfs = []
-kyber1024 = ["pqcrypto-kyber", "pqcrypto-traits", "hfs", "default-resolver"]
+pqclean_kyber1024 = ["pqcrypto-kyber", "pqcrypto-traits", "hfs", "default-resolver"]
 
 [[bench]]
 name = "benches"
