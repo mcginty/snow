@@ -1,4 +1,5 @@
 use crate::constants::{PSKLEN, TAGLEN, MAXMSGLEN, MAXDHLEN};
+#[cfg(feature = "hfs")] use crate::constants::{MAXKEMPUBLEN, MAXKEMCTLEN, MAXKEMSSLEN};
 use crate::utils::Toggle;
 use crate::types::{Dh, Hash, Random};
 #[cfg(feature = "hfs")] use crate::types::Kem;
@@ -30,6 +31,8 @@ pub struct HandshakeState {
     pub(crate) psks             : [Option<[u8; PSKLEN]>; 10],
     #[cfg(feature = "hfs")]
     pub(crate) kem              : Option<Box<dyn Kem>>,
+    #[cfg(feature = "hfs")]
+    pub(crate) kem_re           : Option<[u8; MAXKEMPUBLEN]>,
     pub(crate) my_turn          : bool,
     pub(crate) message_patterns : MessagePatterns,
     pub(crate) pattern_position : usize,
@@ -123,6 +126,7 @@ impl HandshakeState {
             params,
             psks,
             kem,
+            kem_re: None,
             my_turn: initiator,
             message_patterns: tokens.msg_patterns,
             pattern_position: 0,
@@ -365,13 +369,36 @@ impl HandshakeState {
     }
 
     #[cfg(feature = "hfs")]
-    fn _write_message_token_e1(&mut self, _message: &mut [u8]) -> Result<usize, Error> {
-        unimplemented!()
+    fn _write_message_token_e1(&mut self, message: &mut [u8]) -> Result<usize, Error> {
+        let kem = self.kem.as_mut().unwrap();
+        if kem.pub_len() > message.len() {
+            bail!(Error::Input);
+        }
+
+        kem.generate(&mut *self.rng);
+        self.symmetricstate.encrypt_and_mix_hash(kem.pubkey(), message)
     }
 
     #[cfg(feature = "hfs")]
-    fn _write_message_token_ekem1(&mut self, _message: &mut [u8]) -> Result<usize, Error> {
-        unimplemented!()
+    fn _write_message_token_ekem1(&mut self, message: &mut [u8]) -> Result<usize, Error> {
+        let mut kem_output_buf = [0; MAXKEMSSLEN];
+        let mut ciphertext_buf = [0; MAXKEMCTLEN];
+
+        let kem = self.kem.as_mut().unwrap();
+        if kem.ciphertext_len() > message.len() {
+            bail!(Error::Input);
+        }
+
+        let kem_output = &mut kem_output_buf[..kem.shared_secret_len()];
+        let ciphertext = &mut ciphertext_buf[..kem.ciphertext_len()];
+        let pubkey = &self.kem_re.as_ref().unwrap()[..kem.pub_len()];
+        if kem.encapsulate(pubkey, kem_output, ciphertext).is_err() {
+            bail!(Error::Kem);
+        }
+
+        let bytes_written = self.symmetricstate.encrypt_and_mix_hash(&ciphertext[..kem.ciphertext_len()], message);
+        self.symmetricstate.mix_key(&kem_output[..kem.shared_secret_len()]);
+        bytes_written
     }
 
     /// Reads a noise message from `input`
@@ -482,8 +509,7 @@ impl HandshakeState {
             bail!(Error::Input);
         }
 
-        let data = &ptr[..read_len];
-        self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len]).map_err(|_| Error::Decrypt)?;
+        self.symmetricstate.decrypt_and_mix_hash(&ptr[..read_len], &mut self.rs[..dh_len]).map_err(|_| Error::Decrypt)?;
         self.rs.enable();
         Ok(read_len)
     }
@@ -525,13 +551,50 @@ impl HandshakeState {
     }
 
     #[cfg(feature = "hfs")]
-    fn _read_message_token_e1(&mut self, _ptr: &[u8]) -> Result<usize, Error> {
-        unimplemented!()
+    fn _read_message_token_e1(&mut self, ptr: &[u8]) -> Result<usize, Error> {
+        let kem = self.kem.as_ref().unwrap();
+
+        let read_len = if self.symmetricstate.has_key() {
+            kem.pub_len() + TAGLEN
+        } else {
+            kem.pub_len()
+        };
+
+        if ptr.len() < read_len {
+            bail!(Error::Input);
+        }
+
+        let mut kem_re = [0; MAXKEMPUBLEN];
+        self.symmetricstate.decrypt_and_mix_hash(&ptr[..read_len], &mut kem_re[..kem.pub_len()]).map_err(|_| Error::Decrypt)?;
+        self.kem_re = Some(kem_re);
+        Ok(read_len)
     }
 
     #[cfg(feature = "hfs")]
-    fn _read_message_token_ekem1(&mut self, _ptr: &[u8]) -> Result<usize, Error> {
-        unimplemented!()
+    fn _read_message_token_ekem1(&mut self, ptr: &[u8]) -> Result<usize, Error> {
+        let kem = self.kem.as_ref().unwrap();
+
+        let read_len = if self.symmetricstate.has_key() {
+            kem.ciphertext_len() + TAGLEN
+        } else {
+            kem.ciphertext_len()
+        };
+
+        if ptr.len() < read_len {
+            bail!(Error::Input);
+        }
+
+        let mut ciphertext_buf = [0; MAXKEMCTLEN];
+        let ciphertext = &mut ciphertext_buf[..kem.ciphertext_len()];
+        self.symmetricstate.decrypt_and_mix_hash(&ptr[..read_len], ciphertext).map_err(|_| Error::Decrypt)?;
+
+        let mut kem_output_buf = [0; MAXKEMSSLEN];
+        let kem_output = &mut kem_output_buf[..kem.shared_secret_len()];
+        if kem.decapsulate(ciphertext, kem_output).is_err() {
+            bail!(Error::Kem);
+        }
+        self.symmetricstate.mix_key(&kem_output[..kem.shared_secret_len()]);
+        Ok(read_len)
     }
 
     /// Set the preshared key at the specified location. It is up to the caller
