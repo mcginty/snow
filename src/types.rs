@@ -130,19 +130,19 @@ pub trait Hash : Send + Sync {
     }
 }
 
-/// KEM operations
+/// Kem operations
 #[cfg(feature = "hfs")]
-pub trait KEM : Send + Sync {
+pub trait Kem : Send + Sync {
     /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
 
     /// The length in bytes of a public key for this primitive
     fn pub_len(&self) -> usize;
 
-    /// The length in bytes the KEM cipherthext for this primitive
+    /// The length in bytes the Kem cipherthext for this primitive
     fn ciphertext_len(&self) -> usize;
 
-    /// Shared secret length in bytes that this KEM encapsulates
+    /// Shared secret length in bytes that this Kem encapsulates
     fn shared_secret_len(&self) -> usize;
 
     /// Generate a new private key
@@ -151,7 +151,7 @@ pub trait KEM : Send + Sync {
     /// Get the public key
     fn pubkey(&self) -> &[u8];
 
-    /// Generate a shared secret and encapsulate it using this KEM
+    /// Generate a shared secret and encapsulate it using this Kem
     #[must_use]
     fn encapsulate(&self, pubkey: &[u8], shared_secret_out: &mut [u8], ciphertext_out: &mut [u8]) -> Result<(usize, usize), ()>;
 

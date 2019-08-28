@@ -2,9 +2,11 @@ use crate::constants::{PSKLEN, MAXDHLEN};
 use crate::handshakestate::HandshakeState;
 use crate::cipherstate::{CipherState, CipherStates};
 use crate::utils::Toggle;
-use crate::params::NoiseParams;
+use crate::params::{NoiseParams, HandshakeModifier};
+#[cfg(feature = "hfs")] use crate::params::KemChoice;
 use crate::resolvers::CryptoResolver;
 use crate::error::{Error, InitStage, Prerequisite};
+#[cfg(feature = "hfs")] use crate::types::Kem;
 use subtle::ConstantTimeEq;
 
 /// A keypair object returned by [`Builder::generate_keypair()`]
@@ -45,13 +47,15 @@ impl PartialEq for Keypair {
 ///     .unwrap();
 /// ```
 pub struct Builder<'builder> {
-    params:   NoiseParams,
-    resolver: Box<dyn CryptoResolver>,
-    s:        Option<&'builder [u8]>,
-    e_fixed:  Option<&'builder [u8]>,
-    rs:       Option<&'builder [u8]>,
-    psks:     [Option<&'builder [u8]>; 10],
-    plog:     Option<&'builder [u8]>,
+    params:     NoiseParams,
+    resolver:   Box<dyn CryptoResolver>,
+    s:          Option<&'builder [u8]>,
+    e_fixed:    Option<&'builder [u8]>,
+    rs:         Option<&'builder [u8]>,
+    psks:       [Option<&'builder [u8]>; 10],
+    #[cfg(feature = "hfs")]
+    kem_choice: Option<KemChoice>,
+    plog:       Option<&'builder [u8]>,
 }
 
 impl<'builder> Builder<'builder> {
@@ -72,6 +76,7 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Create a Builder with a custom crypto resolver.
+    #[cfg(not(feature = "hfs"))]
     pub fn with_resolver(params: NoiseParams, resolver: Box<dyn CryptoResolver>) -> Self {
         Builder {
             params,
@@ -84,36 +89,53 @@ impl<'builder> Builder<'builder> {
         }
     }
 
+    /// Create a Builder with a custom crypto resolver.
+    #[cfg(feature = "hfs")]
+    pub fn with_resolver(params: NoiseParams, resolver: Box<dyn CryptoResolver>) -> Self {
+        Builder {
+            params,
+            resolver,
+            s: None,
+            e_fixed: None,
+            rs: None,
+            plog: None,
+            psks: [None; 10],
+            kem_choice: None,
+        }
+    }
+
     /// Specify a PSK (only used with `NoisePSK` base parameter)
     pub fn psk(mut self, location: u8, key: &'builder [u8]) -> Self {
         self.psks[location as usize] = Some(key);
         self
     }
 
+    /// Specify the use of a key-encapsulation mechanism for Hybrid Forward Secrecy.
+    #[cfg(feature = "hfs")]
+    pub fn kem(self, choice: KemChoice) -> Self {
+        Self { kem_choice: Some(choice), ..self }
+    }
+
     /// Your static private key (can be generated with [`generate_keypair()`]).
     ///
     /// [`generate_keypair()`]: #method.generate_keypair
-    pub fn local_private_key(mut self, key: &'builder [u8]) -> Self {
-        self.s = Some(key);
-        self
+    pub fn local_private_key(self, key: &'builder [u8]) -> Self {
+        Self { s: Some(key), ..self }
     }
 
     #[doc(hidden)]
-    pub fn fixed_ephemeral_key_for_testing_only(mut self, key: &'builder [u8]) -> Self {
-        self.e_fixed = Some(key);
-        self
+    pub fn fixed_ephemeral_key_for_testing_only(self, key: &'builder [u8]) -> Self {
+        Self { e_fixed: Some(key), ..self }
     }
 
     /// Arbitrary data to be hashed in to the handshake hash value.
-    pub fn prologue(mut self, key: &'builder [u8]) -> Self {
-        self.plog = Some(key);
-        self
+    pub fn prologue(self, key: &'builder [u8]) -> Self {
+        Self { plog: Some(key), ..self }
     }
 
     /// The responder's static public key.
-    pub fn remote_public_key(mut self, pub_key: &'builder [u8]) -> Self {
-        self.rs = Some(pub_key);
-        self
+    pub fn remote_public_key(self, pub_key: &'builder [u8]) -> Self {
+        Self { rs: Some(pub_key), ..self }
     }
 
     // TODO: performance issue w/ creating a new RNG and DH instance per call.
@@ -159,6 +181,7 @@ impl<'builder> Builder<'builder> {
         let cipher2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
         let handshake_cipherstate = CipherState::new(cipher);
         let cipherstates = CipherStates::new(CipherState::new(cipher1), CipherState::new(cipher2))?;
+        let kem = self.resolve_kem()?;
 
         let s = match self.s {
             Some(k) => {
@@ -203,9 +226,30 @@ impl<'builder> Builder<'builder> {
                                      initiator,
                                      self.params,
                                      psks,
+                                     kem,
                                      self.plog.unwrap_or_else(|| &[0u8; 0] ),
                                      cipherstates)?;
         Ok(hs)
+    }
+
+    #[cfg(not(feature = "hfs"))]
+    fn resolve_kem(&self) -> Result<(), Error> {
+        // HFS is disabled, return nothing
+        Ok(())
+    }
+
+    #[cfg(feature = "hfs")]
+    fn resolve_kem(&self) -> Result<Option<Box<dyn Kem>>, Error> {
+        if self.params.handshake.modifiers.list.contains(&HandshakeModifier::Hfs) {
+            if let Some(kem_choice) = self.kem_choice {
+                let kem = self.resolver.resolve_kem(&kem_choice).ok_or(InitStage::GetKemImpl)?;
+                Ok(Some(kem))
+            } else {
+                bail!(InitStage::GetKemImpl)
+            }
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -262,7 +306,7 @@ mod tests {
             private: vec![0x01; 32],
             public: vec![0x01; 32],
         };
-        
+
         // If both private and public are the same, return true
         assert_eq!(keypair_1 == keypair_2, true);
 

@@ -1,6 +1,7 @@
 use crate::constants::{PSKLEN, TAGLEN, MAXMSGLEN, MAXDHLEN};
 use crate::utils::Toggle;
 use crate::types::{Dh, Hash, Random};
+#[cfg(feature = "hfs")] use crate::types::Kem;
 use crate::cipherstate::{CipherState, CipherStates};
 use crate::symmetricstate::SymmetricState;
 use crate::params::{HandshakeTokens, MessagePatterns, NoiseParams, Token};
@@ -27,12 +28,15 @@ pub struct HandshakeState {
     pub(crate) initiator        : bool,
     pub(crate) params           : NoiseParams,
     pub(crate) psks             : [Option<[u8; PSKLEN]>; 10],
+    #[cfg(feature = "hfs")]
+    pub(crate) kem              : Option<Box<dyn Kem>>,
     pub(crate) my_turn          : bool,
     pub(crate) message_patterns : MessagePatterns,
     pub(crate) pattern_position : usize,
 }
 
 impl HandshakeState {
+    #[cfg(not(feature = "hfs"))]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         rng             : Box<dyn Random>,
@@ -46,23 +50,108 @@ impl HandshakeState {
         initiator       : bool,
         params          : NoiseParams,
         psks            : [Option<[u8; PSKLEN]>; 10],
+        _kem            : (),
         prologue        : &[u8],
         cipherstates    : CipherStates) -> Result<HandshakeState, Error> {
 
-        if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
-        || (s.is_on() && rs.is_on() && s.pub_len() >  rs.len())
-        || (s.is_on() && re.is_on() && s.pub_len() >  re.len())
-        {
-            bail!(InitStage::ValidateKeyLengths);
-        }
+        Self::validate_key_lengths(&s, &e, &rs, &re)?;
 
         let tokens = HandshakeTokens::try_from(&params.handshake)?;
 
         let mut symmetricstate = SymmetricState::new(cipherstate, hasher);
-
         symmetricstate.initialize(&params.name);
         symmetricstate.mix_hash(prologue);
 
+        Self::init_symmetricstate(&s, &e, &rs, &re, initiator, &tokens, &mut symmetricstate)?;
+
+        Ok(HandshakeState {
+            rng,
+            symmetricstate,
+            cipherstates,
+            s,
+            e,
+            fixed_ephemeral,
+            rs,
+            re,
+            initiator,
+            params,
+            psks,
+            my_turn: initiator,
+            message_patterns: tokens.msg_patterns,
+            pattern_position: 0,
+        })
+    }
+
+    #[cfg(feature = "hfs")]
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        rng             : Box<dyn Random>,
+        cipherstate     : CipherState,
+        hasher          : Box<dyn Hash>,
+        s               : Toggle<Box<dyn Dh>>,
+        e               : Toggle<Box<dyn Dh>>,
+        fixed_ephemeral : bool,
+        rs              : Toggle<[u8; MAXDHLEN]>,
+        re              : Toggle<[u8; MAXDHLEN]>,
+        initiator       : bool,
+        params          : NoiseParams,
+        psks            : [Option<[u8; PSKLEN]>; 10],
+        kem             : Option<Box<dyn Kem>>,
+        prologue        : &[u8],
+        cipherstates    : CipherStates) -> Result<HandshakeState, Error> {
+
+        Self::validate_key_lengths(&s, &e, &rs, &re)?;
+
+        let tokens = HandshakeTokens::try_from(&params.handshake)?;
+
+        let mut symmetricstate = SymmetricState::new(cipherstate, hasher);
+        symmetricstate.initialize(&params.name);
+        symmetricstate.mix_hash(prologue);
+
+        Self::init_symmetricstate(&s, &e, &rs, &re, initiator, &tokens, &mut symmetricstate)?;
+
+        Ok(HandshakeState {
+            rng,
+            symmetricstate,
+            cipherstates,
+            s,
+            e,
+            fixed_ephemeral,
+            rs,
+            re,
+            initiator,
+            params,
+            psks,
+            kem,
+            my_turn: initiator,
+            message_patterns: tokens.msg_patterns,
+            pattern_position: 0,
+        })
+    }
+
+    fn validate_key_lengths(
+        s: &Toggle<Box<dyn Dh>>,
+        e: &Toggle<Box<dyn Dh>>,
+        rs: &Toggle<[u8; MAXDHLEN]>,
+        re: &Toggle<[u8; MAXDHLEN]>,
+    ) -> Result<(), Error> {
+        if (s.is_on() && e.is_on()  && s.pub_len() != e.pub_len())
+        || (s.is_on() && rs.is_on() && s.pub_len() >  rs.len())
+        || (s.is_on() && re.is_on() && s.pub_len() >  re.len()) {
+            bail!(InitStage::ValidateKeyLengths);
+        }
+        Ok(())
+    }
+
+    fn init_symmetricstate(
+        s: &Toggle<Box<dyn Dh>>,
+        e: &Toggle<Box<dyn Dh>>,
+        rs: &Toggle<[u8; MAXDHLEN]>,
+        re: &Toggle<[u8; MAXDHLEN]>,
+        initiator: bool,
+        tokens: &HandshakeTokens,
+        symmetricstate: &mut SymmetricState,
+    ) -> Result<(), Error> {
         let dh_len = s.pub_len();
         if initiator {
             for token in tokens.premsg_pattern_i {
@@ -95,23 +184,7 @@ impl HandshakeState {
                 }.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey());
             }
         }
-
-        Ok(HandshakeState {
-            rng,
-            symmetricstate,
-            cipherstates,
-            s,
-            e,
-            fixed_ephemeral,
-            rs,
-            re,
-            initiator,
-            params,
-            psks,
-            my_turn: initiator,
-            message_patterns: tokens.msg_patterns,
-            pattern_position: 0,
-        })
+        Ok(())
     }
 
     pub(crate) fn dh_len(&self) -> usize {

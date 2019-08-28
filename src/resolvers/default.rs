@@ -8,10 +8,10 @@ use x25519_dalek as x25519;
 #[cfg(feature = "pqclean_kyber1024")] use pqcrypto_traits::kem::{PublicKey, SecretKey, SharedSecret, Ciphertext};
 
 use crate::types::{Cipher, Dh, Hash, Random};
-#[cfg(feature = "pqclean_kyber1024")] use crate::types::KEM;
+#[cfg(feature = "pqclean_kyber1024")] use crate::types::Kem;
 use crate::constants::TAGLEN;
 use crate::params::{CipherChoice, DHChoice, HashChoice};
-#[cfg(feature = "pqclean_kyber1024")] use crate::params::KEMChoice;
+#[cfg(feature = "pqclean_kyber1024")] use crate::params::KemChoice;
 use std::io::{Cursor, Write};
 use super::CryptoResolver;
 
@@ -50,9 +50,9 @@ impl CryptoResolver for DefaultResolver {
     }
 
     #[cfg(feature = "pqclean_kyber1024")]
-    fn resolve_kem(&self, choice: &KEMChoice) -> Option<Box<dyn KEM>> {
+    fn resolve_kem(&self, choice: &KemChoice) -> Option<Box<dyn Kem>> {
         match *choice {
-            KEMChoice::Kyber1024 => Some(Box::new(Kyber1024::default()))
+            KemChoice::Kyber1024 => Some(Box::new(Kyber1024::default()))
         }
     }
 
@@ -337,7 +337,7 @@ impl Default for Kyber1024 {
 }
 
 #[cfg(feature = "pqclean_kyber1024")]
-impl KEM for Kyber1024 {
+impl Kem for Kyber1024 {
 
     fn name(&self) -> &'static str {
         "Kyber1024"
@@ -348,12 +348,12 @@ impl KEM for Kyber1024 {
         kyber1024::public_key_bytes()
     }
 
-    /// The length in bytes the KEM cipherthext for this primitive
+    /// The length in bytes the Kem cipherthext for this primitive
     fn ciphertext_len(&self) -> usize {
         kyber1024::ciphertext_bytes()
     }
 
-    /// Shared secret length in bytes that this KEM encapsulates
+    /// Shared secret length in bytes that this Kem encapsulates
     fn shared_secret_len(&self) -> usize {
         kyber1024::shared_secret_bytes()
     }
@@ -371,7 +371,7 @@ impl KEM for Kyber1024 {
         self.pubkey.as_bytes()
     }
 
-    /// Generate a shared secret and encapsulate it using this KEM
+    /// Generate a shared secret and encapsulate it using this Kem
     #[must_use]
     fn encapsulate(&self, pubkey: &[u8], shared_secret_out: &mut [u8], ciphertext_out: &mut [u8]) -> Result<(usize, usize), ()> {
         let pubkey = kyber1024::PublicKey::from_bytes(pubkey).map_err(|_| ())?;

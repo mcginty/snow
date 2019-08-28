@@ -49,7 +49,7 @@ pub enum PatternProblem {
     InvalidPsk,
     UnsupportedModifier,
     #[cfg(feature = "hfs")]
-    UnsupportedKEMType,
+    UnsupportedKemType,
 }
 
 impl From<PatternProblem> for Error {
@@ -70,6 +70,8 @@ pub enum InitStage {
     GetDhImpl,
     GetCipherImpl,
     GetHashImpl,
+    #[cfg(feature = "hfs")]
+    GetKemImpl,
     ValidatePskPosition,
 }
 

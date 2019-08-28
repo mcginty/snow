@@ -100,22 +100,22 @@ impl FromStr for HashChoice {
     }
 }
 
-/// One of the supported KEMs provided for unstable HFS extension.
+/// One of the supported Kems provided for unstable HFS extension.
 #[cfg(feature = "hfs")]
 #[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
-pub enum KEMChoice {
+pub enum KemChoice {
     Kyber1024
 }
 
 #[cfg(feature = "hfs")]
-impl FromStr for KEMChoice {
+impl FromStr for KemChoice {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use self::KEMChoice::*;
+        use self::KemChoice::*;
         match s {
             "Kyber1024" => Ok(Kyber1024),
-            _           => bail!(PatternProblem::UnsupportedKEMType)
+            _           => bail!(PatternProblem::UnsupportedKemType)
         }
     }
 }
