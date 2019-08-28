@@ -257,6 +257,17 @@ impl HandshakeChoice {
         false
     }
 
+    /// Whether the handshake choice includes the hfs modifier.
+    #[cfg(feature = "hfs")]
+    pub fn is_hfs(&self) -> bool {
+        for modifier in &self.modifiers.list {
+            if HandshakeModifier::Hfs == *modifier {
+                return true;
+            }
+        }
+        false
+    }
+
     /// Parse and split a base HandshakePattern from its optional modifiers
     fn parse_pattern_and_modifier(s: &str) -> Result<(HandshakePattern, &str), Error> {
         for i in (1..=4).rev() {
