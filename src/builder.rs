@@ -4,7 +4,6 @@ use crate::cipherstate::{CipherState, CipherStates};
 use crate::utils::Toggle;
 use crate::params::NoiseParams;
 #[cfg(feature = "hfs")] use crate::params::HandshakeModifier;
-#[cfg(feature = "hfs")] use crate::params::KemChoice;
 use crate::resolvers::CryptoResolver;
 use crate::error::{Error, InitStage, Prerequisite};
 #[cfg(feature = "hfs")] use crate::types::Kem;
@@ -54,8 +53,6 @@ pub struct Builder<'builder> {
     e_fixed:    Option<&'builder [u8]>,
     rs:         Option<&'builder [u8]>,
     psks:       [Option<&'builder [u8]>; 10],
-    #[cfg(feature = "hfs")]
-    kem_choice: Option<KemChoice>,
     plog:       Option<&'builder [u8]>,
 }
 
@@ -77,7 +74,6 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Create a Builder with a custom crypto resolver.
-    #[cfg(not(feature = "hfs"))]
     pub fn with_resolver(params: NoiseParams, resolver: Box<dyn CryptoResolver>) -> Self {
         Builder {
             params,
@@ -87,21 +83,6 @@ impl<'builder> Builder<'builder> {
             rs: None,
             plog: None,
             psks: [None; 10],
-        }
-    }
-
-    /// Create a Builder with a custom crypto resolver.
-    #[cfg(feature = "hfs")]
-    pub fn with_resolver(params: NoiseParams, resolver: Box<dyn CryptoResolver>) -> Self {
-        Builder {
-            params,
-            resolver,
-            s: None,
-            e_fixed: None,
-            rs: None,
-            plog: None,
-            psks: [None; 10],
-            kem_choice: None,
         }
     }
 
@@ -109,12 +90,6 @@ impl<'builder> Builder<'builder> {
     pub fn psk(mut self, location: u8, key: &'builder [u8]) -> Self {
         self.psks[location as usize] = Some(key);
         self
-    }
-
-    /// Specify the use of a key-encapsulation mechanism for Hybrid Forward Secrecy.
-    #[cfg(feature = "hfs")]
-    pub fn kem(self, choice: KemChoice) -> Self {
-        Self { kem_choice: Some(choice), ..self }
     }
 
     /// Your static private key (can be generated with [`generate_keypair()`]).
@@ -242,7 +217,7 @@ impl<'builder> Builder<'builder> {
     #[cfg(feature = "hfs")]
     fn resolve_kem(&self) -> Result<Option<Box<dyn Kem>>, Error> {
         if self.params.handshake.modifiers.list.contains(&HandshakeModifier::Hfs) {
-            if let Some(kem_choice) = self.kem_choice {
+            if let Some(kem_choice) = self.params.kem {
                 let kem = self.resolver.resolve_kem(&kem_choice).ok_or(InitStage::GetKemImpl)?;
                 Ok(Some(kem))
             } else {

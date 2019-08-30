@@ -198,13 +198,11 @@ fn test_Xpsk0_expected_value() {
 fn test_NNhfs_sanity_session() {
     // Due to how PQClean is implemented, we cannot to deterministic testing of the protocol.
     // Instead, we will see if the protocol runs smoothly.
-    let params: NoiseParams = "Noise_NNhfs_25519_ChaChaPoly_SHA256".parse().unwrap();
+    let params: NoiseParams = "Noise_NNhfs_25519+Kyber1024_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
-        .kem(KemChoice::Kyber1024)
         .build_initiator()
         .unwrap();
     let mut h_r = Builder::new(params)
-        .kem(KemChoice::Kyber1024)
         .build_responder()
         .unwrap();
 
