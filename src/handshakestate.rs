@@ -447,7 +447,8 @@ impl HandshakeState {
 
         self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| Error::Decrypt)?;
         self.my_turn = true;
-        if self.pattern_position == (self.message_patterns.len() - 1) {
+        let is_last_pattern = self.pattern_position == (self.message_patterns.len() - 1);
+        if is_last_pattern {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
         }
         let payload_len = if self.symmetricstate.has_key() { ptr.len() - TAGLEN } else { ptr.len() };
