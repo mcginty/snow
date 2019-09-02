@@ -95,23 +95,27 @@ impl<'builder> Builder<'builder> {
     /// Your static private key (can be generated with [`generate_keypair()`]).
     ///
     /// [`generate_keypair()`]: #method.generate_keypair
-    pub fn local_private_key(self, key: &'builder [u8]) -> Self {
-        Self { s: Some(key), ..self }
+    pub fn local_private_key(mut self, key: &'builder [u8]) -> Self {
+        self.s = Some(key);
+        self
     }
 
     #[doc(hidden)]
-    pub fn fixed_ephemeral_key_for_testing_only(self, key: &'builder [u8]) -> Self {
-        Self { e_fixed: Some(key), ..self }
+    pub fn fixed_ephemeral_key_for_testing_only(mut self, key: &'builder [u8]) -> Self {
+        self.e_fixed = Some(key);
+        self
     }
 
     /// Arbitrary data to be hashed in to the handshake hash value.
-    pub fn prologue(self, key: &'builder [u8]) -> Self {
-        Self { plog: Some(key), ..self }
+    pub fn prologue(mut self, key: &'builder [u8]) -> Self {
+        self.plog = Some(key);
+        self
     }
 
     /// The responder's static public key.
-    pub fn remote_public_key(self, pub_key: &'builder [u8]) -> Self {
-        Self { rs: Some(pub_key), ..self }
+    pub fn remote_public_key(mut self, pub_key: &'builder [u8]) -> Self {
+        self.rs = Some(pub_key);
+        self
     }
 
     // TODO: performance issue w/ creating a new RNG and DH instance per call.
