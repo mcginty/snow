@@ -147,7 +147,6 @@ pub struct NoiseParams {
 
 impl NoiseParams {
 
-    #[cfg(not(feature = "hfs"))]
     /// Construct a new NoiseParams via specifying enums directly.
     pub fn new(name: String,
                base: BaseChoice,
@@ -156,20 +155,7 @@ impl NoiseParams {
                cipher: CipherChoice,
                hash: HashChoice) -> Self
     {
-        NoiseParams { name, base, handshake, dh, cipher, hash }
-    }
-
-    #[cfg(feature = "hfs")]
-    /// Construct a new NoiseParams via specifying enums directly.
-    pub fn new(name: String,
-               base: BaseChoice,
-               handshake: HandshakeChoice,
-               dh: DHChoice,
-               kem: Option<KemChoice>,
-               cipher: CipherChoice,
-               hash: HashChoice) -> Self
-    {
-        NoiseParams { name, base, handshake, dh, kem, cipher, hash }
+        NoiseParams { name, base, handshake, dh, #[cfg(feature = "hfs")] kem: None, cipher, hash }
     }
 }
 
@@ -206,7 +192,8 @@ impl FromStr for NoiseParams {
         if handshake.is_hfs() != kem.is_some() {
             bail!(PatternProblem::TooFewParameters);
         }
-        Ok(NoiseParams::new(s.to_owned(), base, handshake, dh, kem, cipher, hash))
+        let params = NoiseParams::new(s.to_owned(), base, handshake, dh, cipher, hash);
+        Ok(NoiseParams { kem, ..params })
     }
 }
 

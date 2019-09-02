@@ -74,19 +74,8 @@ macro_rules! pattern_enum {
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub(crate) enum Token {
-    E,
-    S,
-    Dhee,
-    Dhes,
-    Dhse,
-    Dhss,
-    Psk(u8),
-    #[cfg(feature = "hfs")]
-    E1,
-    #[cfg(feature = "hfs")]
-    Ekem1,
-}
+pub(crate) enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8),
+    #[cfg(feature = "hfs")] E1, #[cfg(feature = "hfs")] Ekem1 }
 
 #[cfg(feature = "hfs")]
 impl Token {
@@ -174,7 +163,6 @@ pub enum HandshakeModifier {
 impl FromStr for HandshakeModifier {
     type Err = Error;
 
-    #[cfg(feature = "hfs")]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("psk") {
             Ok(HandshakeModifier::Psk((&s[3..])
@@ -182,21 +170,22 @@ impl FromStr for HandshakeModifier {
                 .map_err(|_| PatternProblem::InvalidPsk)?))
         } else if s == "fallback" {
             Ok(HandshakeModifier::Fallback)
-        } else if s == "hfs" {
-            Ok(HandshakeModifier::Hfs)
         } else {
-            bail!(PatternProblem::UnsupportedModifier);
+            Self::from_str_other(s)
         }
     }
+}
 
+impl HandshakeModifier {
     #[cfg(not(feature = "hfs"))]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.starts_with("psk") {
-            Ok(HandshakeModifier::Psk((&s[3..])
-                .parse()
-                .map_err(|_| PatternProblem::InvalidPsk)?))
-        } else if s == "fallback" {
-            Ok(HandshakeModifier::Fallback)
+    fn from_str_other(_: &str) -> Result<Self, Error> {
+        bail!(PatternProblem::UnsupportedModifier);
+    }
+
+    #[cfg(feature = "hfs")]
+    fn from_str_other(s: &str) -> Result<Self, Error> {
+        if s == "hfs" {
+            Ok(HandshakeModifier::Hfs)
         } else {
             bail!(PatternProblem::UnsupportedModifier);
         }
@@ -514,7 +503,13 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
             ),
         };
 
-        apply_modifiers(&mut patterns, &handshake.modifiers);
+        for modifier in handshake.modifiers.list.iter() {
+            match modifier {
+                HandshakeModifier::Psk(n) => apply_psk_modifier(&mut patterns, *n),
+                #[cfg(feature = "hfs")] HandshakeModifier::Hfs => apply_hfs_modifier(&mut patterns),
+                _ => bail!(PatternProblem::UnsupportedModifier),
+            }
+        }
 
         Ok(HandshakeTokens {
             premsg_pattern_i: patterns.0,
@@ -535,26 +530,6 @@ fn check_hfs_nor_oneway(handshake: &HandshakeChoice) -> Result<(), Error> {
 
 #[cfg(not(feature = "hfs"))]
 fn check_hfs_nor_oneway(_: &HandshakeChoice) -> Result<(), Error> { Ok(()) }
-
-#[cfg(feature = "hfs")]
-fn apply_modifiers(patterns: &mut Patterns, modifiers: &HandshakeModifierList) {
-    for modifier in modifiers.list.iter() {
-        match modifier {
-            HandshakeModifier::Psk(n) => apply_psk_modifier(patterns, *n),
-            HandshakeModifier::Hfs => apply_hfs_modifier(patterns),
-            _ => (),
-        };
-    }
-}
-
-#[cfg(not(feature = "hfs"))]
-fn apply_modifiers(patterns: &mut Patterns, modifiers: &HandshakeModifierList) {
-    for modifier in modifiers.list.iter() {
-        if let HandshakeModifier::Psk(n) = modifier {
-            apply_psk_modifier(patterns, *n);
-        }
-    }
-}
 
 fn apply_psk_modifier(patterns: &mut Patterns, n: u8) {
     match n {
