@@ -46,13 +46,13 @@ impl PartialEq for Keypair {
 ///     .unwrap();
 /// ```
 pub struct Builder<'builder> {
-    params:     NoiseParams,
-    resolver:   Box<dyn CryptoResolver>,
-    s:          Option<&'builder [u8]>,
-    e_fixed:    Option<&'builder [u8]>,
-    rs:         Option<&'builder [u8]>,
-    psks:       [Option<&'builder [u8]>; 10],
-    plog:       Option<&'builder [u8]>,
+    params:   NoiseParams,
+    resolver: Box<dyn CryptoResolver>,
+    s:        Option<&'builder [u8]>,
+    e_fixed:  Option<&'builder [u8]>,
+    rs:       Option<&'builder [u8]>,
+    psks:     [Option<&'builder [u8]>; 10],
+    plog:     Option<&'builder [u8]>,
 }
 
 impl<'builder> Builder<'builder> {
@@ -283,7 +283,7 @@ mod tests {
             private: vec![0x01; 32],
             public: vec![0x01; 32],
         };
-
+        
         // If both private and public are the same, return true
         assert_eq!(keypair_1 == keypair_2, true);
 

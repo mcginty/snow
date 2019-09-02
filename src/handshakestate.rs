@@ -101,6 +101,7 @@ impl HandshakeState {
                 }.get().ok_or(StateProblem::MissingKeyMaterial)?.pubkey());
             }
         }
+
         Ok(HandshakeState {
             rng,
             symmetricstate,
@@ -205,12 +206,9 @@ impl HandshakeState {
             bail!(StateProblem::HandshakeAlreadyFinished);
         }
 
-        // Temporarily steal this member (Jones' trick)
-        let message_patterns = std::mem::replace(&mut self.message_patterns, Default::default());
-
         let mut byte_index = 0;
         let dh_len = self.dh_len();
-        for token in message_patterns[self.pattern_position].iter() {
+        for token in self.message_patterns[self.pattern_position].iter() {
             match token {
                 Token::E => {
                     if byte_index + self.e.pub_len() > message.len() {
@@ -296,8 +294,6 @@ impl HandshakeState {
                 },
             }
         }
-        // Give message_patterns back to self
-        self.message_patterns = message_patterns;
 
         if byte_index + payload.len() + TAGLEN > message.len() {
             bail!(Error::Input);

@@ -212,7 +212,7 @@ impl Hash for HashSHA256 {
 
     fn reset(&mut self) {
         self.hasher = Sha256::new();
-    }
+    }   
 
     fn input(&mut self, data: &[u8]) {
         self.hasher.input(data);
@@ -246,7 +246,7 @@ impl Hash for HashSHA512 {
 
     fn reset(&mut self) {
         self.hasher = Sha512::new();
-    }
+    }   
 
     fn input(&mut self, data: &[u8]) {
         self.hasher.input(data);
@@ -280,7 +280,7 @@ impl Hash for HashBLAKE2b {
 
     fn reset(&mut self) {
         self.hasher = Blake2b::new(64);
-    }
+    }   
 
     fn input(&mut self, data: &[u8]) {
         self.hasher.update(data);
