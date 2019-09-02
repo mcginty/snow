@@ -119,7 +119,6 @@ impl From<StateProblem> for Error {
 }
 
 impl fmt::Display for Error {
-    #[cfg(not(feature = "hfs"))]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::Pattern(reason) => write!(f, "pattern error: {:?}", reason),
@@ -129,21 +128,7 @@ impl fmt::Display for Error {
             Error::Input => write!(f, "input error"),
             Error::Dh => write!(f, "diffie-hellman error"),
             Error::Decrypt => write!(f, "decrypt error"),
-            Error::__Nonexhaustive => write!(f, "Nonexhaustive"),
-        }
-    }
-
-    #[cfg(feature = "hfs")]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::Pattern(reason) => write!(f, "pattern error: {:?}", reason),
-            Error::Init(reason) => write!(f, "initialization error: {:?}", reason),
-            Error::Prereq(reason) => write!(f, "prerequisite error: {:?}", reason),
-            Error::State(reason) => write!(f, "state error: {:?}", reason),
-            Error::Input => write!(f, "input error"),
-            Error::Dh => write!(f, "diffie-hellman error"),
-            Error::Decrypt => write!(f, "decrypt error"),
-            Error::Kem => write!(f, "kem error"),
+            #[cfg(feature = "hfs")] Error::Kem => write!(f, "kem error"),
             Error::__Nonexhaustive => write!(f, "Nonexhaustive"),
         }
     }
