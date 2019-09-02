@@ -164,30 +164,16 @@ impl FromStr for HandshakeModifier {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.starts_with("psk") {
-            Ok(HandshakeModifier::Psk((&s[3..])
-                .parse()
-                .map_err(|_| PatternProblem::InvalidPsk)?))
-        } else if s == "fallback" {
-            Ok(HandshakeModifier::Fallback)
-        } else {
-            Self::from_str_other(s)
-        }
-    }
-}
-
-impl HandshakeModifier {
-    #[cfg(not(feature = "hfs"))]
-    fn from_str_other(_: &str) -> Result<Self, Error> {
-        bail!(PatternProblem::UnsupportedModifier);
-    }
-
-    #[cfg(feature = "hfs")]
-    fn from_str_other(s: &str) -> Result<Self, Error> {
-        if s == "hfs" {
-            Ok(HandshakeModifier::Hfs)
-        } else {
-            bail!(PatternProblem::UnsupportedModifier);
+        match s {
+            s if s.starts_with("psk") => {
+                Ok(HandshakeModifier::Psk((&s[3..])
+                    .parse()
+                    .map_err(|_| PatternProblem::InvalidPsk)?))
+            }
+            "fallback" => Ok(HandshakeModifier::Fallback),
+            #[cfg(feature = "hfs")]
+            "hfs" => Ok(HandshakeModifier::Hfs),
+            _ => bail!(PatternProblem::UnsupportedModifier),
         }
     }
 }
