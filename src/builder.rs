@@ -6,7 +6,6 @@ use crate::params::NoiseParams;
 #[cfg(feature = "hfs")] use crate::params::HandshakeModifier;
 use crate::resolvers::CryptoResolver;
 use crate::error::{Error, InitStage, Prerequisite};
-#[cfg(feature = "hfs")] use crate::types::Kem;
 use subtle::ConstantTimeEq;
 
 /// A keypair object returned by [`Builder::generate_keypair()`]
@@ -161,7 +160,6 @@ impl<'builder> Builder<'builder> {
         let cipher2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
         let handshake_cipherstate = CipherState::new(cipher);
         let cipherstates = CipherStates::new(CipherState::new(cipher1), CipherState::new(cipher2))?;
-        let kem = self.resolve_kem()?;
 
         let s = match self.s {
             Some(k) => {
@@ -201,35 +199,34 @@ impl<'builder> Builder<'builder> {
             }
         }
 
-        let hs = HandshakeState::new(rng, handshake_cipherstate, hash,
+        let mut hs = HandshakeState::new(rng, handshake_cipherstate, hash,
                                      s, e, self.e_fixed.is_some(), rs, re,
                                      initiator,
                                      self.params,
                                      psks,
-                                     kem,
                                      self.plog.unwrap_or_else(|| &[0u8; 0] ),
                                      cipherstates)?;
+        Self::resolve_kem(self.resolver, &mut hs)?;
         Ok(hs)
     }
 
     #[cfg(not(feature = "hfs"))]
-    fn resolve_kem(&self) -> Result<(), Error> {
+    fn resolve_kem(_: Box<dyn CryptoResolver>, _: &mut HandshakeState) -> Result<(), Error> {
         // HFS is disabled, return nothing
         Ok(())
     }
 
     #[cfg(feature = "hfs")]
-    fn resolve_kem(&self) -> Result<Option<Box<dyn Kem>>, Error> {
-        if self.params.handshake.modifiers.list.contains(&HandshakeModifier::Hfs) {
-            if let Some(kem_choice) = self.params.kem {
-                let kem = self.resolver.resolve_kem(&kem_choice).ok_or(InitStage::GetKemImpl)?;
-                Ok(Some(kem))
+    fn resolve_kem(resolver: Box<dyn CryptoResolver>, hs: &mut HandshakeState) -> Result<(), Error> {
+        if hs.params.handshake.modifiers.list.contains(&HandshakeModifier::Hfs) {
+            if let Some(kem_choice) = hs.params.kem {
+                let kem = resolver.resolve_kem(&kem_choice).ok_or(InitStage::GetKemImpl)?;
+                hs.set_kem(kem);
             } else {
                 bail!(InitStage::GetKemImpl)
             }
-        } else {
-            Ok(None)
         }
+        Ok(())
     }
 }
 
