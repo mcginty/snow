@@ -270,7 +270,7 @@ impl HandshakeState {
                     }
 
                     kem.generate(&mut *self.rng);
-                    byte_index += self.symmetricstate.encrypt_and_mix_hash(kem.pubkey(), message)?;
+                    byte_index += self.symmetricstate.encrypt_and_mix_hash(kem.pubkey(), &mut message[byte_index..])?;
                 },
                 #[cfg(feature = "hfs")]
                 Token::Ekem1 => {
@@ -289,7 +289,7 @@ impl HandshakeState {
                         bail!(Error::Kem);
                     }
 
-                    byte_index += self.symmetricstate.encrypt_and_mix_hash(&ciphertext[..kem.ciphertext_len()], message)?;
+                    byte_index += self.symmetricstate.encrypt_and_mix_hash(&ciphertext[..kem.ciphertext_len()], &mut message[byte_index..])?;
                     self.symmetricstate.mix_key(&kem_output[..kem.shared_secret_len()]);
                 },
             }
