@@ -53,6 +53,15 @@
 
 #![warn(missing_docs)]
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std as alloc;
+#[cfg(feature = "std")]
+extern crate core;
+
 macro_rules! copy_slices {
     ($inslice:expr, $outslice:expr) => {
         $outslice[..$inslice.len()].copy_from_slice(&$inslice[..])

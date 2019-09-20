@@ -8,6 +8,7 @@
 
 use crate::params::{CipherChoice, DHChoice, HashChoice};
 use crate::types::{Cipher, Dh, Hash, Random};
+use alloc::boxed::Box;
 
 #[cfg(feature = "default-resolver")]   pub use self::default::DefaultResolver;
 #[cfg(feature = "ring-resolver")]      pub use self::ring::RingResolver;

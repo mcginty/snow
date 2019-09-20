@@ -5,6 +5,9 @@ use crate::utils::Toggle;
 use crate::params::NoiseParams;
 use crate::resolvers::CryptoResolver;
 use crate::error::{Error, InitStage, Prerequisite};
+use alloc::vec;
+use alloc::vec::Vec;
+use alloc::boxed::Box;
 use subtle::ConstantTimeEq;
 
 /// A keypair object returned by [`Builder::generate_keypair()`]
@@ -232,7 +235,7 @@ mod tests {
 
     #[test]
     fn test_builder_bad_spec() {
-        let params: ::std::result::Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
+        let params: ::core::result::Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
 
         if let Ok(_) = params {
             panic!("NoiseParams should have failed");

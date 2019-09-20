@@ -5,6 +5,9 @@ use ring::rand::{SystemRandom, SecureRandom};
 use crate::constants::TAGLEN;
 use crate::params::{DHChoice, HashChoice, CipherChoice};
 use crate::types::{Random, Dh, Hash, Cipher};
+#[cfg(feature = "ring")]
+use alloc::boxed::Box;
+use core::num::NonZeroU32;
 
 /// A resolver that chooses [ring](https://github.com/briansmith/ring)-backed
 /// primitives when available.
@@ -63,7 +66,7 @@ impl rand_core::RngCore for RingRng {
     }
 
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
-        self.rng.fill(dest).map_err(|e| rand_core::Error::new(e))
+        self.rng.fill(dest).map_err(|ring::error::Unspecified| rand_core::Error::from(NonZeroU32::new(1).unwrap_or_else(|| unreachable!())))
     }
 }
 
@@ -265,12 +268,13 @@ impl Hash for HashSHA512 {
 mod tests {
     use super::*;
     use rand_core::RngCore;
+    use alloc::vec;
 
     #[test]
     fn test_randomness_sanity() {
-        use std::collections::HashSet;
+        use alloc::collections::BTreeSet;
 
-        let mut samples = HashSet::new();
+        let mut samples = BTreeSet::new();
         let mut rng = RingRng::default();
         for _ in 0..100_000 {
             let mut buf = vec![0u8; 128];

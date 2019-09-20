@@ -2,7 +2,9 @@
 //! patterns/names)
 
 use crate::error::{Error, PatternProblem};
-use std::str::FromStr;
+use alloc::borrow::ToOwned;
+use alloc::string::String;
+use core::str::FromStr;
 mod patterns;
 
 pub use self::patterns::{
@@ -154,7 +156,7 @@ impl FromStr for NoiseParams {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::TryFrom;
+    use core::convert::TryFrom;
     use super::*;
 
     #[test]
