@@ -224,23 +224,13 @@ impl HandshakeChoice {
 
     /// Whether the handshake choice includes the fallback modifier.
     pub fn is_fallback(&self) -> bool {
-        for modifier in &self.modifiers.list {
-            if HandshakeModifier::Fallback == *modifier {
-                return true;
-            }
-        }
-        false
+        self.modifiers.list.contains(&HandshakeModifier::Fallback)
     }
 
     /// Whether the handshake choice includes the hfs modifier.
     #[cfg(feature = "hfs")]
     pub fn is_hfs(&self) -> bool {
-        for modifier in &self.modifiers.list {
-            if HandshakeModifier::Hfs == *modifier {
-                return true;
-            }
-        }
-        false
+        self.modifiers.list.contains(&HandshakeModifier::Hfs)
     }
 
     /// Parse and split a base HandshakePattern from its optional modifiers
@@ -294,7 +284,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
     #[allow(clippy::cognitive_complexity)]
     fn try_from(handshake: &'a HandshakeChoice) -> Result<Self, Self::Error> {
         // Hfs cannot be combined with one-way handshake patterns
-        check_hfs_nor_oneway(handshake)?;
+        check_hfs_and_oneway_conflict(handshake)?;
 
         let mut patterns: Patterns = match handshake.pattern {
             N  => (
@@ -506,8 +496,12 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
 }
 
 #[cfg(feature = "hfs")]
-fn check_hfs_nor_oneway(handshake: &HandshakeChoice) -> Result<(), Error> {
-    if handshake.modifiers.list.contains(&HandshakeModifier::Hfs) && handshake.pattern.is_oneway() {
+/// Check that this handshake is not HFS *and* one-way.
+///
+/// Usage of HFS in conjuction with a oneway pattern is invalid. This function returns an error
+/// if `handshake` is invalid because of this. Otherwise it will return `()`.
+fn check_hfs_and_oneway_conflict(handshake: &HandshakeChoice) -> Result<(), Error> {
+    if handshake.is_hfs() && handshake.pattern.is_oneway() {
         bail!(PatternProblem::UnsupportedModifier)
     } else {
         Ok(())
@@ -515,7 +509,7 @@ fn check_hfs_nor_oneway(handshake: &HandshakeChoice) -> Result<(), Error> {
 }
 
 #[cfg(not(feature = "hfs"))]
-fn check_hfs_nor_oneway(_: &HandshakeChoice) -> Result<(), Error> { Ok(()) }
+fn check_hfs_and_oneway_conflict(_: &HandshakeChoice) -> Result<(), Error> { Ok(()) }
 
 fn apply_psk_modifier(patterns: &mut Patterns, n: u8) {
     match n {
@@ -533,7 +527,7 @@ fn apply_hfs_modifier(patterns: &mut Patterns) {
     //
     //     Add an "e1" token directly following the first occurence of "e",
     //     unless there is a DH operation in this same message, in which case
-    //     the "hfs" [should be "e1"?] token is placed directly after thid DH
+    //     the "hfs" [should be "e1"?] token is placed directly after this DH
     //     (so that the public key will be encrypted).
     //
     //     The "hfs" modifier also adds an "ekem1" token directly following the

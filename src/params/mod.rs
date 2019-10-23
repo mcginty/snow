@@ -147,6 +147,7 @@ pub struct NoiseParams {
 
 impl NoiseParams {
 
+    #[cfg(not(feature = "hfs"))]
     /// Construct a new NoiseParams via specifying enums directly.
     pub fn new(name: String,
                base: BaseChoice,
@@ -155,7 +156,20 @@ impl NoiseParams {
                cipher: CipherChoice,
                hash: HashChoice) -> Self
     {
-        NoiseParams { name, base, handshake, dh, #[cfg(feature = "hfs")] kem: None, cipher, hash }
+        NoiseParams { name, base, handshake, dh, cipher, hash }
+    }
+
+    #[cfg(feature = "hfs")]
+    /// Construct a new NoiseParams via specifying enums directly.
+    pub fn new(name: String,
+               base: BaseChoice,
+               handshake: HandshakeChoice,
+               dh: DHChoice,
+               kem: Option<KemChoice>,
+               cipher: CipherChoice,
+               hash: HashChoice) -> Self
+    {
+        NoiseParams { name, base, handshake, dh, kem, cipher, hash }
     }
 }
 
@@ -175,25 +189,23 @@ impl FromStr for NoiseParams {
 
     #[cfg(feature = "hfs")]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut split = s.split('_');
-        let base = split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?;
-        let handshake: HandshakeChoice = split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?;
-        let mut pkc_split = split.next().ok_or(PatternProblem::TooFewParameters)?.split('+');
-        let dh = pkc_split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?;
-        let kem = match pkc_split.next().map(|p: &str| p.parse()) {
-            Some(Ok(x)) => Some(x),
-            Some(Err(e)) => Err(e)?,
-            None => None,
-        };
-        let cipher = split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?;
-        let hash = split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?;
+        let mut split = s.split('_').peekable();
+        let p = NoiseParams::new(s.to_owned(),
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.peek().ok_or(PatternProblem::TooFewParameters)?
+                                      .splitn(2, '+').nth(0)
+                                      .ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?
+                                      .splitn(2, '+').nth(1).map(|s| s.parse()).transpose()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?);
 
         // Validate that a KEM is specified iff the hfs modifier is present
-        if handshake.is_hfs() != kem.is_some() {
+        if p.handshake.is_hfs() != p.kem.is_some() {
             bail!(PatternProblem::TooFewParameters);
         }
-        let params = NoiseParams::new(s.to_owned(), base, handshake, dh, cipher, hash);
-        Ok(NoiseParams { kem, ..params })
+        Ok(p)
     }
 }
 

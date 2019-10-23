@@ -264,7 +264,7 @@ impl HandshakeState {
                 }
                 #[cfg(feature = "hfs")]
                 Token::E1 => {
-                    let kem = self.kem.as_mut().unwrap();
+                    let kem = self.kem.as_mut().ok_or(Error::Input)?;
                     if kem.pub_len() > message.len() {
                         bail!(Error::Input);
                     }
@@ -409,7 +409,7 @@ impl HandshakeState {
                 }
                 #[cfg(feature = "hfs")]
                 Token::E1 => {
-                    let kem = self.kem.as_ref().unwrap();
+                    let kem = self.kem.as_ref().ok_or(Error::Kem)?;
                     let read_len = if self.symmetricstate.has_key() {
                         kem.pub_len() + TAGLEN
                     } else {
@@ -439,9 +439,7 @@ impl HandshakeState {
                     self.symmetricstate.decrypt_and_mix_hash(&ptr[..read_len], ciphertext).map_err(|_| Error::Decrypt)?;
                     let mut kem_output_buf = [0; MAXKEMSSLEN];
                     let kem_output = &mut kem_output_buf[..kem.shared_secret_len()];
-                    if kem.decapsulate(ciphertext, kem_output).is_err() {
-                        bail!(Error::Kem);
-                    }
+                    kem.decapsulate(ciphertext, kem_output).map_err(|_| Error::Kem)?;
                     self.symmetricstate.mix_key(&kem_output[..kem.shared_secret_len()]);
                     ptr = &ptr[read_len..];
                 }

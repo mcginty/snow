@@ -330,8 +330,8 @@ impl Hash for HashBLAKE2s {
 impl Default for Kyber1024 {
     fn default() -> Self {
         Kyber1024 {
-            pubkey:  kyber1024::PublicKey::from_bytes(&[0; 1568]).unwrap(),
-            privkey: kyber1024::SecretKey::from_bytes(&[0; 3168]).unwrap(),
+            pubkey:  kyber1024::PublicKey::from_bytes(&[0; kyber1024::public_key_bytes()]).unwrap(),
+            privkey: kyber1024::SecretKey::from_bytes(&[0; kyber1024::secret_key_bytes()]).unwrap(),
         }
     }
 }
