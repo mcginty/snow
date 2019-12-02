@@ -196,7 +196,7 @@ fn test_Xpsk0_expected_value() {
 #[cfg(feature = "hfs")]
 #[cfg(feature = "pqclean_kyber1024")]
 fn test_NNhfs_sanity_session() {
-    // Due to how PQClean is implemented, we cannot to deterministic testing of the protocol.
+    // Due to how PQClean is implemented, we cannot do deterministic testing of the protocol.
     // Instead, we will see if the protocol runs smoothly.
     let params: NoiseParams = "Noise_NNhfs_25519+Kyber1024_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone())
