@@ -64,4 +64,9 @@ impl CryptoResolver for FallbackResolver {
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         self.preferred.resolve_cipher(choice).or_else(|| self.fallback.resolve_cipher(choice))
     }
+
+    #[cfg(feature = "hfs")]
+    fn resolve_kem(&self, choice: &KemChoice) -> Option<Box<dyn Kem>> {
+        self.preferred.resolve_kem(choice).or_else(|| self.fallback.resolve_kem(choice))
+    }
 }
