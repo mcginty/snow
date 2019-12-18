@@ -14,6 +14,9 @@ use crate::types::{Cipher, Dh, Hash, Random};
 #[cfg(feature = "default-resolver")]   pub use self::default::DefaultResolver;
 #[cfg(feature = "ring-resolver")]      pub use self::ring::RingResolver;
 
+/// Boxed CryptoResolver
+pub type BoxedCryptoResolver = Box<dyn CryptoResolver + Send>;
+
 /// An object that resolves the providers of Noise crypto choices
 pub trait CryptoResolver {
     /// Provide an implementation of the Random trait or None if none available.
@@ -37,13 +40,13 @@ pub trait CryptoResolver {
 /// can fallback to another if the first didn't have an implementation for
 /// a given primitive.
 pub struct FallbackResolver {
-    preferred: Box<dyn CryptoResolver>,
-    fallback: Box<dyn CryptoResolver>,
+    preferred: BoxedCryptoResolver,
+    fallback: BoxedCryptoResolver,
 }
 
 impl FallbackResolver {
     /// Create a new `FallbackResolver` that holds the primary and secondary resolver.
-    pub fn new(preferred: Box<dyn CryptoResolver>, fallback: Box<dyn CryptoResolver>) -> Self {
+    pub fn new(preferred: BoxedCryptoResolver, fallback: BoxedCryptoResolver) -> Self {
         Self { preferred, fallback }
     }
 }
