@@ -15,6 +15,7 @@ pub use self::patterns::{
 pub(crate) use self::patterns::{
     HandshakeTokens,
     MessagePatterns,
+    DhToken,
     Token,
 };
 
