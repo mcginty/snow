@@ -5,7 +5,7 @@ use crate::types::{Dh, Hash, Random};
 #[cfg(feature = "hfs")] use crate::types::Kem;
 use crate::cipherstate::{CipherState, CipherStates};
 use crate::symmetricstate::SymmetricState;
-use crate::params::{HandshakeTokens, MessagePatterns, NoiseParams, Token};
+use crate::params::{HandshakeTokens, MessagePatterns, NoiseParams, DhToken, Token};
 use crate::transportstate::TransportState;
 use crate::stateless_transportstate::StatelessTransportState;
 use crate::error::{Error, InitStage, StateProblem};
@@ -133,21 +133,17 @@ impl HandshakeState {
         self.kem = Some(kem);
     }
 
-    fn dh(&self, local_s: bool, remote_s: bool) -> Result<[u8; MAXDHLEN], Error> {
-        if !((!local_s  || self.s.is_on())  &&
-             ( local_s  || self.e.is_on())  &&
-             (!remote_s || self.rs.is_on()) &&
-             ( remote_s || self.re.is_on()))
-        {
+    fn dh(&self, token: &DhToken) -> Result<[u8; MAXDHLEN], Error> {
+        let mut dh_out = [0u8; MAXDHLEN];
+        let (dh, key) = match (token, self.is_initiator()) {
+            (DhToken::Ee, _) => (&self.e, &self.re),
+            (DhToken::Ss, _) => (&self.s, &self.rs),
+            (DhToken::Se, true) | (DhToken::Es, false) => (&self.s, &self.re),
+            (DhToken::Es, true) | (DhToken::Se, false) => (&self.e, &self.rs),
+        };
+        if !(dh.is_on() && key.is_on()) {
             bail!(StateProblem::MissingKeyMaterial);
         }
-        let mut dh_out = [0u8; MAXDHLEN];
-        let (dh, key) = match (local_s, remote_s) {
-            (true,  true ) => (&self.s, &self.rs),
-            (true,  false) => (&self.s, &self.re),
-            (false, true ) => (&self.e, &self.rs),
-            (false, false) => (&self.e, &self.re),
-        };
         dh.dh(&**key, &mut dh_out).map_err(|_| Error::Dh)?;
         Ok(dh_out)
     }
@@ -207,7 +203,6 @@ impl HandshakeState {
         }
 
         let mut byte_index = 0;
-        let dh_len = self.dh_len();
         for token in self.message_patterns[self.pattern_position].iter() {
             match token {
                 Token::E => {
@@ -246,22 +241,10 @@ impl HandshakeState {
                         bail!(StateProblem::MissingPsk);
                     }
                 },
-                Token::Dhee => {
-                    let dh_out = self.dh(false, false)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
+                Token::Dh(t) => {
+                    let dh_out = self.dh(t)?;
+                    self.symmetricstate.mix_key(&dh_out[..self.dh_len()]);
                 },
-                Token::Dhes => {
-                    let dh_out = self.dh(false, true)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
-                Token::Dhse => {
-                    let dh_out = self.dh(true, false)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
-                Token::Dhss => {
-                    let dh_out = self.dh(true, true)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
                 #[cfg(feature = "hfs")]
                 Token::E1 => {
                     let kem = self.kem.as_mut().ok_or(Error::Input)?;
@@ -349,7 +332,7 @@ impl HandshakeState {
         let dh_len = self.dh_len();
         let mut ptr = message;
             for token in self.message_patterns[self.pattern_position].iter() {
-                match *token {
+                match token {
                     Token::E => {
                         if ptr.len() < dh_len {
                             bail!(Error::Input);
@@ -382,7 +365,7 @@ impl HandshakeState {
                         self.rs.enable();
                     },
                     Token::Psk(n) => {
-                        match self.psks[n as usize] {
+                        match self.psks[*n as usize] {
                             Some(psk) => {
                                 self.symmetricstate.mix_key_and_hash(&psk);
                             },
@@ -391,22 +374,10 @@ impl HandshakeState {
                             }
                         }
                     },
-                Token::Dhee => {
-                    let dh_out = self.dh(false, false)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
+                Token::Dh(t) => {
+                    let dh_out = self.dh(t)?;
+                    self.symmetricstate.mix_key(&dh_out[..self.dh_len()]);
                 },
-                Token::Dhes => {
-                    let dh_out = self.dh(true, false)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
-                Token::Dhse => {
-                    let dh_out = self.dh(false, true)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
-                Token::Dhss => {
-                    let dh_out = self.dh(true, true)?;
-                    self.symmetricstate.mix_key(&dh_out[..dh_len]);
-                }
                 #[cfg(feature = "hfs")]
                 Token::E1 => {
                     let kem = self.kem.as_ref().ok_or(Error::Kem)?;

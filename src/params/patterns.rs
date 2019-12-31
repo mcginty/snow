@@ -69,19 +69,26 @@ macro_rules! pattern_enum {
     }
 }
 
+/// The tokens which describe patterns involving DH calculations.
+///
+/// See: http://noiseprotocol.org/noise.html#handshake-patterns
+#[allow(missing_docs)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub(crate) enum DhToken { Ee, Es, Se, Ss }
+
 /// The tokens which describe message patterns.
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub(crate) enum Token { E, S, Dhee, Dhes, Dhse, Dhss, Psk(u8),
+pub(crate) enum Token { E, S, Dh(DhToken), Psk(u8),
     #[cfg(feature = "hfs")] E1, #[cfg(feature = "hfs")] Ekem1 }
 
 #[cfg(feature = "hfs")]
 impl Token {
     fn is_dh(&self) -> bool {
         match *self {
-            Dhee | Dhes | Dhse | Dhss => true,
+            Dh(_) => true,
             _ => false,
         }
     }
@@ -273,6 +280,7 @@ pub(crate) struct HandshakeTokens {
     pub msg_patterns: MessagePatterns,
 }
 
+use self::DhToken::*;
 use self::Token::*;
 use self::HandshakePattern::*;
 
@@ -290,192 +298,192 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
             N  => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes]]
+                message_vec![&[E, Dh(Es)]]
             ),
             K  => (
                 static_slice![Token: S],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes, Dhss]]
+                message_vec![&[E, Dh(Es), Dh(Ss)]]
             ),
             X  => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes, S, Dhss]]
+                message_vec![&[E, Dh(Es), S, Dh(Ss)]]
             ),
             NN => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee]]
+                message_vec![&[E], &[E, Dh(Ee)]]
             ),
             NK => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes], &[E, Dhee]]
+                message_vec![&[E, Dh(Es)], &[E, Dh(Ee)]]
             ),
             NX => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, S, Dhse]]
+                message_vec![&[E], &[E, Dh(Ee), S, Dh(Es)]]
             ),
             XN => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee], &[S, Dhse]]
+                message_vec![&[E], &[E, Dh(Ee)], &[S, Dh(Se)]]
             ),
             XK => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes], &[E, Dhee], &[S, Dhse]]
+                message_vec![&[E, Dh(Es)], &[E, Dh(Ee)], &[S, Dh(Se)]]
             ),
             XX => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, S, Dhse], &[S, Dhse]],
+                message_vec![&[E], &[E, Dh(Ee), S, Dh(Es)], &[S, Dh(Se)]],
             ),
             KN => (
                 static_slice![Token: S],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, Dhes]],
+                message_vec![&[E], &[E, Dh(Ee), Dh(Se)]],
             ),
             KK => (
                 static_slice![Token: S],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes, Dhss], &[E, Dhee, Dhes]],
+                message_vec![&[E, Dh(Es), Dh(Ss)], &[E, Dh(Ee), Dh(Se)]],
             ),
             KX => (
                 static_slice![Token: S],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, Dhes, S, Dhse]],
+                message_vec![&[E], &[E, Dh(Ee), Dh(Se), S, Dh(Es)]],
             ),
             IN => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E, S], &[E, Dhee, Dhes]],
+                message_vec![&[E, S], &[E, Dh(Ee), Dh(Se)]],
             ),
             IK => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes, S, Dhss], &[E, Dhee, Dhes]],
+                message_vec![&[E, Dh(Es), S, Dh(Ss)], &[E, Dh(Ee), Dh(Se)]],
             ),
             IX => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E, S], &[E, Dhee, Dhes, S, Dhse]],
+                message_vec![&[E, S], &[E, Dh(Ee), Dh(Se), S, Dh(Es)]],
             ),
             NK1 => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E], &[E, Dhee, Dhse]],
+                message_vec![&[E], &[E, Dh(Ee), Dh(Es)]],
             ),
             NX1 => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, S], &[Dhes]]
+                message_vec![&[E], &[E, Dh(Ee), S], &[Dh(Es)]]
             ),
             X1N => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee], &[S], &[Dhes]]
+                message_vec![&[E], &[E, Dh(Ee)], &[S], &[Dh(Se)]]
             ),
             X1K => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes], &[E, Dhee], &[S], &[Dhes]]
+                message_vec![&[E, Dh(Es)], &[E, Dh(Ee)], &[S], &[Dh(Se)]]
             ),
             XK1 => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E], &[E, Dhee, Dhse], &[S, Dhse]]
+                message_vec![&[E], &[E, Dh(Ee), Dh(Es)], &[S, Dh(Se)]]
             ),
             X1K1 => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E], &[E, Dhee, Dhse], &[S], &[Dhes]]
+                message_vec![&[E], &[E, Dh(Ee), Dh(Es)], &[S], &[Dh(Se)]]
             ),
             X1X => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, S, Dhse], &[S], &[Dhes]],
+                message_vec![&[E], &[E, Dh(Ee), S, Dh(Es)], &[S], &[Dh(Se)]],
             ),
             XX1 => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, S], &[Dhes, S, Dhse]],
+                message_vec![&[E], &[E, Dh(Ee), S], &[Dh(Es), S, Dh(Se)]],
             ),
             X1X1 => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, S], &[Dhes, S], &[Dhes]],
+                message_vec![&[E], &[E, Dh(Ee), S], &[Dh(Es), S], &[Dh(Se)]],
             ),
             K1N => (
                 static_slice![Token: S],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee], &[Dhse]],
+                message_vec![&[E], &[E, Dh(Ee)], &[Dh(Se)]],
             ),
             K1K => (
                 static_slice![Token: S],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes], &[E, Dhee], &[Dhse]],
+                message_vec![&[E, Dh(Es)], &[E, Dh(Ee)], &[Dh(Se)]],
             ),
             KK1 => (
                 static_slice![Token: S],
                 static_slice![Token: S],
-                message_vec![&[E], &[E, Dhee, Dhes, Dhse]],
+                message_vec![&[E], &[E, Dh(Ee), Dh(Se), Dh(Es)]],
             ),
             K1K1 => (
                 static_slice![Token: S],
                 static_slice![Token: S],
-                message_vec![&[E], &[E, Dhee, Dhse], &[Dhse]],
+                message_vec![&[E], &[E, Dh(Ee), Dh(Es)], &[Dh(Se)]],
             ),
             K1X => (
                 static_slice![Token: S],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, S, Dhse], &[Dhse]],
+                message_vec![&[E], &[E, Dh(Ee), S, Dh(Es)], &[Dh(Se)]],
             ),
             KX1 => (
                 static_slice![Token: S],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, Dhes, S], &[Dhes]],
+                message_vec![&[E], &[E, Dh(Ee), Dh(Se), S], &[Dh(Es)]],
             ),
             K1X1 => (
                 static_slice![Token: S],
                 static_slice![Token: ],
-                message_vec![&[E], &[E, Dhee, S], &[Dhse, Dhes]],
+                message_vec![&[E], &[E, Dh(Ee), S], &[Dh(Se), Dh(Es)]],
             ),
             I1N => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E, S], &[E, Dhee], &[Dhse]],
+                message_vec![&[E, S], &[E, Dh(Ee)], &[Dh(Se)]],
             ),
             I1K => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, Dhes, S], &[E, Dhee], &[Dhse]],
+                message_vec![&[E, Dh(Es), S], &[E, Dh(Ee)], &[Dh(Se)]],
             ),
             IK1 => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, S], &[E, Dhee, Dhes, Dhse]],
+                message_vec![&[E, S], &[E, Dh(Ee), Dh(Se), Dh(Es)]],
             ),
             I1K1 => (
                 static_slice![Token: ],
                 static_slice![Token: S],
-                message_vec![&[E, S], &[E, Dhee, Dhse], &[Dhse]],
+                message_vec![&[E, S], &[E, Dh(Ee), Dh(Es)], &[Dh(Se)]],
             ),
             I1X => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E, S], &[E, Dhee, S, Dhse], &[Dhse]],
+                message_vec![&[E, S], &[E, Dh(Ee), S, Dh(Es)], &[Dh(Se)]],
             ),
             IX1 => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E, S], &[E, Dhee, Dhes, S], &[Dhes]],
+                message_vec![&[E, S], &[E, Dh(Ee), Dh(Se), S], &[Dh(Es)]],
             ),
             I1X1 => (
                 static_slice![Token: ],
                 static_slice![Token: ],
-                message_vec![&[E, S], &[E, Dhee, S], &[Dhse, Dhes]],
+                message_vec![&[E, S], &[E, Dh(Ee), S], &[Dh(Se), Dh(Es)]],
             ),
         };
 
@@ -552,7 +560,7 @@ fn apply_hfs_modifier(patterns: &mut Patterns) {
     // Add the ekem1 token
     let mut ee_insert_idx = None;
     for msg in patterns.2.iter_mut() {
-        if let Some(ee_idx) = msg.iter().position(|x| *x == Token::Dhee) {
+        if let Some(ee_idx) = msg.iter().position(|x| *x == Token::Dh(Ee)) {
             ee_insert_idx = Some(ee_idx + 1)
         }
         if let Some(idx) = ee_insert_idx {
