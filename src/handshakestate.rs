@@ -473,6 +473,11 @@ impl HandshakeState {
         self.pattern_position == self.message_patterns.len()
     }
 
+    /// Check whether it is our turn to send in the handshake state machine
+    pub fn is_our_turn_to_send(&self) -> bool {
+        self.my_turn
+    }
+
     /// Convert this `HandshakeState` into a `TransportState` with an internally stored nonce.
     pub fn into_transport_mode(self) -> Result<TransportState, Error> {
         Ok(self.try_into()?)
