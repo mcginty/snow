@@ -1,6 +1,6 @@
 use arrayref::array_ref;
-use blake2_rfc::blake2b::Blake2b;
-use blake2_rfc::blake2s::Blake2s;
+use blake2::Blake2b;
+use blake2::Blake2s;
 use sha2::{Digest, Sha256, Sha512};
 use rand::rngs::OsRng;
 use x25519_dalek as x25519;
@@ -260,7 +260,7 @@ impl Hash for HashSHA512 {
 
 impl Default for HashBLAKE2b {
     fn default() -> HashBLAKE2b {
-        HashBLAKE2b { hasher: Blake2b::new(64) }
+        HashBLAKE2b { hasher: Blake2b::default() }
     }
 }
 
@@ -279,22 +279,22 @@ impl Hash for HashBLAKE2b {
     }
 
     fn reset(&mut self) {
-        self.hasher = Blake2b::new(64);
+        self.hasher = Blake2b::default();
     }   
 
     fn input(&mut self, data: &[u8]) {
-        self.hasher.update(data);
+        self.hasher.input(data);
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        let hash = self.hasher.clone().finalize();
-        out[..64].copy_from_slice(hash.as_bytes());
+        let hash = self.hasher.clone().result();
+        out[..64].copy_from_slice(&hash);
     }
 }
 
 impl Default for HashBLAKE2s {
     fn default() -> HashBLAKE2s {
-        HashBLAKE2s { hasher: Blake2s::new(32) }
+        HashBLAKE2s { hasher: Blake2s::default() }
     }
 }
 
@@ -313,16 +313,16 @@ impl Hash for HashBLAKE2s {
     }
 
     fn reset(&mut self) {
-        self.hasher = Blake2s::new(32);
+        self.hasher = Blake2s::default();
     }
 
     fn input(&mut self, data: &[u8]) {
-        self.hasher.update(data);
+        self.hasher.input(data);
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        let hash = self.hasher.clone().finalize();
-        out[..32].copy_from_slice(hash.as_bytes());
+        let hash = self.hasher.clone().result();
+        out[..32].copy_from_slice(&hash);
     }
 }
 
