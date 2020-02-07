@@ -1,9 +1,9 @@
 use crate::params::HandshakePattern;
 use crate::error::{Error, StateProblem};
-use crate::cipherstate::CipherStates;
+use crate::cipherstate::StatelessCipherStates;
 use crate::constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
-use crate::utils::Toggle;
 use crate::handshakestate::HandshakeState;
+use crate::utils::Toggle;
 use std::{convert::TryFrom, fmt};
 
 /// A state machine encompassing the transport phase of a Noise session, using the two
@@ -11,15 +11,15 @@ use std::{convert::TryFrom, fmt};
 /// `Split()` method, called after a handshake has been finished.
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
-pub struct TransportState {
-    cipherstates : CipherStates,
-    pattern      : HandshakePattern,
-    dh_len       : usize,
-    rs           : Toggle<[u8; MAXDHLEN]>,
-    initiator    : bool,
+pub struct StatelessTransportState {
+    cipherstates: StatelessCipherStates,
+    pattern: HandshakePattern,
+    dh_len: usize,
+    rs: Toggle<[u8; MAXDHLEN]>,
+    initiator: bool,
 }
 
-impl TransportState {
+impl StatelessTransportState {
     pub(crate) fn new(handshake: HandshakeState) -> Result<Self, Error> {
         if !handshake.is_handshake_finished() {
             bail!(StateProblem::HandshakeNotFinished);
@@ -29,8 +29,8 @@ impl TransportState {
         let HandshakeState {cipherstates, params, rs, initiator, ..} = handshake;
         let pattern = params.handshake.pattern;
 
-        Ok(TransportState {
-            cipherstates,
+        Ok(Self {
+            cipherstates: cipherstates.into(),
             pattern,
             dh_len,
             rs,
@@ -57,7 +57,8 @@ impl TransportState {
     ///
     /// Will result in `Error::Input` if the size of the output exceeds the max message
     /// length in the Noise Protocol (65535 bytes).
-    pub fn write_message(&mut self,
+    pub fn write_message(&self,
+                                   nonce: u64,
                                    payload: &[u8],
                                    message: &mut [u8]) -> Result<usize, Error> {
         if !self.initiator && self.pattern.is_oneway() {
@@ -66,8 +67,8 @@ impl TransportState {
             bail!(Error::Input);
         }
 
-        let cipher = if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
-        Ok(cipher.encrypt(payload, message)?)
+        let cipher = if self.initiator { &self.cipherstates.0 } else { &self.cipherstates.1 };
+        Ok(cipher.encrypt(nonce, payload, message)?)
     }
 
     /// Reads a noise message from `input`
@@ -81,15 +82,16 @@ impl TransportState {
     ///
     /// # Panics
     ///
-    /// This function will panic if there is no key, or if there is a nonce overflow.
-    pub fn read_message(&mut self,
-                                   payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize, Error> {
+    /// This function will panic if there is no key.
+    pub fn read_message(&self,
+                                  nonce: u64,
+                                  payload: &[u8],
+                                  message: &mut [u8]) -> Result<usize, Error> {
         if self.initiator && self.pattern.is_oneway() {
             bail!(StateProblem::OneWay);
         }
-        let cipher = if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
-        cipher.decrypt(payload, message).map_err(|_| Error::Decrypt)
+        let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
+        cipher.decrypt(nonce, payload, message).map_err(|_| Error::Decrypt)
     }
 
     /// Generates a new key for the egress symmetric cipher according to Section 4.2
@@ -136,57 +138,22 @@ impl TransportState {
         self.cipherstates.rekey_responder_manually(key)
     }
 
-    /// Sets the *receiving* CipherState's nonce. Useful for using noise on lossy transports.
-    pub fn set_receiving_nonce(&mut self, nonce: u64) {
-        if self.initiator {
-            self.cipherstates.1.set_nonce(nonce);
-        } else {
-            self.cipherstates.0.set_nonce(nonce);
-        }
-    }
-
-    /// Get the forthcoming inbound nonce value.
-    ///
-    /// # Errors
-    ///
-    /// Will result in `Error::State` if not in transport mode.
-    pub fn receiving_nonce(&self) -> u64 {
-        if self.initiator {
-            self.cipherstates.1.nonce()
-        } else {
-            self.cipherstates.0.nonce()
-        }
-    }
-
-    /// Get the forthcoming outbound nonce value.
-    ///
-    /// # Errors
-    ///
-    /// Will result in `Error::State` if not in transport mode.
-    pub fn sending_nonce(&self) -> u64 {
-        if self.initiator {
-            self.cipherstates.0.nonce()
-        } else {
-            self.cipherstates.1.nonce()
-        }
-    }
-
     /// Check if this session was started with the "initiator" role.
     pub fn is_initiator(&self) -> bool {
         self.initiator
     }
 }
 
-impl fmt::Debug for TransportState {
+impl fmt::Debug for StatelessTransportState {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("TransportState").finish()
+        fmt.debug_struct("StatelessTransportState").finish()
     }
 }
 
-impl TryFrom<HandshakeState> for TransportState {
+impl TryFrom<HandshakeState> for StatelessTransportState {
     type Error = Error;
 
     fn try_from(old: HandshakeState) -> Result<Self, Self::Error> {
-        TransportState::new(old)
+        StatelessTransportState::new(old)
     }
 }

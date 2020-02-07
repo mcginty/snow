@@ -2,37 +2,39 @@ extern crate sodiumoxide;
 
 use byteorder::{ByteOrder, LittleEndian};
 
-use params::{CipherChoice, DHChoice, HashChoice};
-use types::{Cipher, Dh, Hash, Random};
-use CryptoResolver;
+use crate::params::{CipherChoice, DHChoice, HashChoice};
+use crate::types::{Cipher, Dh, Hash, Random};
+use super::CryptoResolver;
 
-use self::sodiumoxide::crypto::aead::chacha20poly1305_ietf as sodium_chacha20poly1305;
-use self::sodiumoxide::crypto::hash::sha256 as sodium_sha256;
-use self::sodiumoxide::crypto::scalarmult::curve25519 as sodium_curve25519;
+use sodiumoxide::crypto::aead::chacha20poly1305_ietf as sodium_chacha20poly1305;
+use sodiumoxide::crypto::hash::sha256 as sodium_sha256;
+use sodiumoxide::crypto::scalarmult::curve25519 as sodium_curve25519;
 
+/// A resolver that uses [libsodium](https://github.com/jedisct1/libsodium)
+/// via [sodiumoxide](https://crates.io/crates/sodiumoxide).
 #[derive(Default)]
 pub struct SodiumResolver;
 
 impl CryptoResolver for SodiumResolver {
-    fn resolve_rng(&self) -> Option<Box<Random + Send>> {
+    fn resolve_rng(&self) -> Option<Box<dyn Random>> {
         None
     }
 
-    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<Dh + Send>> {
+    fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>> {
         match *choice {
             DHChoice::Curve25519 => Some(Box::new(SodiumDh25519::default())),
             _ => None,
         }
     }
 
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>> {
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<dyn Hash>> {
         match *choice {
             HashChoice::SHA256 => Some(Box::new(SodiumSha256::default())),
             _ => None,
         }
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         match *choice {
             CipherChoice::ChaChaPoly => Some(Box::new(SodiumChaChaPoly::default())),
             _ => None,
@@ -82,7 +84,7 @@ impl Dh for SodiumDh25519 {
         self.pubkey = sodium_curve25519::scalarmult_base(&self.privkey);
     }
 
-    fn generate(&mut self, rng: &mut Random) {
+    fn generate(&mut self, rng: &mut dyn Random) {
         let mut privkey_bytes = [0; 32];
         rng.fill_bytes(&mut privkey_bytes);
 
@@ -209,24 +211,8 @@ mod tests {
     extern crate hex;
 
     use self::hex::FromHex;
+    use rand::rngs::OsRng;
     use super::*;
-
-    // Pseudo-random data generator.
-    struct MockRandom(u8);
-
-    impl Default for MockRandom {
-        fn default() -> MockRandom {
-            MockRandom(0)
-        }
-    }
-
-    impl Random for MockRandom {
-        fn fill_bytes(&mut self, out: &mut [u8]) {
-            let bytes = vec![self.0; out.len()];
-            self.0 += 1;
-            out.copy_from_slice(bytes.as_slice());
-        }
-    }
 
     #[test]
     fn test_curve25519() {
@@ -254,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_curve25519_shared_secret() {
-        let mut rng = MockRandom::default();
+        let mut rng = OsRng::default();
 
         // Create two keypairs.
         let mut keypair_a = SodiumDh25519::default();

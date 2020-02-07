@@ -1,22 +1,19 @@
 #![cfg(feature = "vector-tests")]
 #[macro_use] extern crate serde_derive;
-#[macro_use] extern crate failure;
 
-extern crate hex;
-extern crate snow;
-extern crate serde;
-extern crate serde_json;
-extern crate rand;
+use hex;
+
+
+use serde_json;
+use rand;
 
 use serde::de::{self, Deserialize, Deserializer, Visitor, Unexpected};
 use serde::ser::{Serialize, Serializer};
 use std::ops::Deref;
-use failure::Error;
 use hex::FromHex;
-use snow::{NoiseBuilder, Session};
+use rand::RngCore;
+use snow::{Builder, Keypair, HandshakeState};
 use snow::params::*;
-use snow::types::Dh;
-use snow::resolvers::default::{Dh25519, RandomOs};
 use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io::Read;
@@ -45,7 +42,7 @@ impl Deref for HexBytes {
 }
 
 impl fmt::Debug for HexBytes {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.original)
     }
 }
@@ -54,7 +51,7 @@ struct HexBytesVisitor;
 impl<'de> Visitor<'de> for HexBytesVisitor {
     type Value = HexBytes;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "a hex string")
     }
 
@@ -93,29 +90,58 @@ struct TestMessage {
 }
 
 impl fmt::Debug for TestMessage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Message")
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 struct TestVector {
-    #[serde(skip_serializing_if="Option::is_none")] name: Option<String>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    name: Option<String>,
+
     protocol_name: String,
-    #[serde(skip_serializing_if="Option::is_none")] hybrid: Option<String>,
-    #[serde(skip_serializing_if="Option::is_none")] fail: Option<bool>,
-    #[serde(skip_serializing_if="Option::is_none")] fallback: Option<bool>,
-    #[serde(skip_serializing_if="Option::is_none")] fallback_pattern: Option<String>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    hybrid: Option<String>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    fail: Option<bool>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    fallback: Option<bool>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    fallback_pattern: Option<String>,
+
     init_prologue: HexBytes,
-    #[serde(skip_serializing_if="Option::is_none")] init_psks: Option<Vec<HexBytes>>,
-    #[serde(skip_serializing_if="Option::is_none")] init_static: Option<HexBytes>,
-    #[serde(skip_serializing_if="Option::is_none")] init_ephemeral: Option<HexBytes>,
-    #[serde(skip_serializing_if="Option::is_none")] init_remote_static: Option<HexBytes>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    init_psks: Option<Vec<HexBytes>>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    init_static: Option<HexBytes>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    init_ephemeral: Option<HexBytes>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    init_remote_static: Option<HexBytes>,
+
     resp_prologue: HexBytes,
-    #[serde(skip_serializing_if="Option::is_none")] resp_psks: Option<Vec<HexBytes>>,
-    #[serde(skip_serializing_if="Option::is_none")] resp_static: Option<HexBytes>,
-    #[serde(skip_serializing_if="Option::is_none")] resp_ephemeral: Option<HexBytes>,
-    #[serde(skip_serializing_if="Option::is_none")] resp_remote_static: Option<HexBytes>,
+    #[serde(skip_serializing_if="Option::is_none")]
+
+    resp_psks: Option<Vec<HexBytes>>,
+    #[serde(skip_serializing_if="Option::is_none")]
+
+    resp_static: Option<HexBytes>,
+    #[serde(skip_serializing_if="Option::is_none")]
+
+    resp_ephemeral: Option<HexBytes>,
+    #[serde(skip_serializing_if="Option::is_none")]
+
+    resp_remote_static: Option<HexBytes>,
+
     messages: Vec<TestMessage>,
 }
 
@@ -124,10 +150,10 @@ struct TestVectors {
     vectors: Vec<TestVector>,
 }
 
-fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), Error> {
+fn build_session_pair(vector: &TestVector) -> Result<(HandshakeState, HandshakeState), String> {
     let params: NoiseParams = vector.protocol_name.parse().unwrap();
-    let mut init_builder = NoiseBuilder::new(params.clone());
-    let mut resp_builder = NoiseBuilder::new(params.clone());
+    let mut init_builder = Builder::new(params.clone());
+    let mut resp_builder = Builder::new(params.clone());
 
     if params.handshake.is_psk() {
         let mut psk_index = 0;
@@ -140,7 +166,7 @@ fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), Error> 
                 }
             }
         } else {
-            bail!("missing PSKs for a PSK-mode handshake");
+            return Err("missing PSKs for a PSK-mode handshake".into());
         }
     }
 
@@ -163,13 +189,15 @@ fn build_session_pair(vector: &TestVector) -> Result<(Session, Session), Error> 
         resp_builder = resp_builder.fixed_ephemeral_key_for_testing_only(&*resp_e);
     }
 
-    let init = init_builder.prologue(&vector.init_prologue).build_initiator()?;
-    let resp = resp_builder.prologue(&vector.resp_prologue).build_responder()?;
+    let init = init_builder.prologue(&vector.init_prologue).build_initiator()
+        .map_err(|e| format!("{:?}", e))?;
+    let resp = resp_builder.prologue(&vector.resp_prologue).build_responder()
+        .map_err(|e| format!("{:?}", e))?;
 
     Ok((init, resp))
 }
 
-fn confirm_message_vectors(mut init: Session, mut resp: Session, messages_vec: &Vec<TestMessage>, is_oneway: bool) -> Result<(), String> {
+fn confirm_message_vectors(mut init: HandshakeState, mut resp: HandshakeState, messages_vec: &Vec<TestMessage>, is_oneway: bool) -> Result<(), String> {
     let (mut sendbuf, mut recvbuf) = ([0u8; 65535], [0u8; 65535]);
     let mut messages = messages_vec.iter().enumerate();
     while !init.is_handshake_finished() {
@@ -181,8 +209,8 @@ fn confirm_message_vectors(mut init: Session, mut resp: Session, messages_vec: &
         };
 
         let len = send.write_message(&*message.payload, &mut sendbuf).map_err(|_| format!("write_message failed on message {}", i))?;
-        recv.read_message(&sendbuf[..len], &mut recvbuf).map_err(|_| format!("read_message failed on message {}", i))?;
-        if &sendbuf[..len] != &(*message.ciphertext)[..] {
+        let recv_len = recv.read_message(&sendbuf[..len], &mut recvbuf).map_err(|_| format!("read_message failed on message {}", i))?;
+        if &sendbuf[..len] != &(*message.ciphertext)[..] || *message.payload != &recvbuf[..recv_len] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
             s.push_str(&format!("plaintext: {}\n", hex::encode(&*message.payload)));
@@ -201,13 +229,14 @@ fn confirm_message_vectors(mut init: Session, mut resp: Session, messages_vec: &
         };
 
         let len = send.write_message(&*message.payload, &mut sendbuf).unwrap();
-        recv.read_message(&sendbuf[..len], &mut recvbuf).unwrap();
-        if &sendbuf[..len] != &(*message.ciphertext)[..] {
+        let recv_len = recv.read_message(&sendbuf[..len], &mut recvbuf).unwrap();
+        if &sendbuf[..len] != &(*message.ciphertext)[..] || *message.payload != &recvbuf[..recv_len] {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
-            s.push_str(&format!("plaintext: {}\n", hex::encode(&*message.payload)));
-            s.push_str(&format!("expected:  {}\n", hex::encode(&*message.ciphertext)));
-            s.push_str(&format!("actual:    {}", hex::encode(&sendbuf[..message.ciphertext.len()].to_owned())));
+            s.push_str(&format!("plaintext          : {}\n", hex::encode(&*message.payload)));
+            s.push_str(&format!("expected ciphertext: {}\n", hex::encode(&*message.ciphertext)));
+            s.push_str(&format!("actual ciphertext  : {}\n", hex::encode(&sendbuf[..message.ciphertext.len()].to_owned())));
+            s.push_str(&format!("actual plaintext   : {}", hex::encode(&recvbuf[..recv_len].to_owned())));
             return Err(s)
         }
     }
@@ -223,6 +252,14 @@ fn test_vectors_from_json(json: &str) {
 
     for vector in test_vectors.vectors {
         let params: NoiseParams = vector.protocol_name.parse().unwrap();
+
+        if !cfg!(feature = "ring-accelerated") {
+            if params.cipher == CipherChoice::AESGCM {
+                ignored += 1;
+                continue
+            }
+        }
+
         if params.dh == DHChoice::Ed448 {
             ignored += 1;
             continue;
@@ -259,39 +296,32 @@ fn test_vectors_from_json(json: &str) {
 }
 
 fn random_vec(size: usize) -> Vec<u8> {
-    let mut v = Vec::with_capacity(size);
-    for _ in 0..size {
-        v.push(rand::random());
-    }
+    let mut v = vec![0u8; size];
+    let mut rng = rand::thread_rng();
+    rng.fill_bytes(&mut v);
     v
 }
 
 fn get_psks_count(params: &NoiseParams) -> usize {
-    let mut count = 0;
-    for modifier in &params.handshake.modifiers.list {
-        if let &HandshakeModifier::Psk(_) = modifier {
-            count += 1;
-        }
-    }
-    count
+    params.handshake.modifiers.list.iter()
+        .filter(|m| if let HandshakeModifier::Psk(_) = m { true } else { false })
+        .count()
 }
 
-fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
-    let prologue = "There is no right and wrong. There's only fun and boring.".as_bytes().to_vec();
-    let mut rand = RandomOs::default();
-    let mut is = Dh25519::default();
-    let mut ie = Dh25519::default();
-    let mut rs = Dh25519::default();
-    let mut re = Dh25519::default();
-    is.generate(&mut rand);
-    ie.generate(&mut rand);
-    rs.generate(&mut rand);
-    re.generate(&mut rand);
+fn generate_vector(params: NoiseParams) -> TestVector {
+    let prologue = b"There is no right and wrong. There's only fun and boring.".to_vec();
     let mut psks = vec![];
     let mut psks_hex = vec![];
 
-    let mut init_b: NoiseBuilder = NoiseBuilder::new(params.clone());
-    let mut resp_b: NoiseBuilder = NoiseBuilder::new(params.clone());
+    let (is, ie, rs, re): (Keypair, Keypair, Keypair, Keypair);
+
+    let mut init_b: Builder<'_> = Builder::new(params.clone());
+    let mut resp_b: Builder<'_> = Builder::new(params.clone());
+
+    is = init_b.generate_keypair().unwrap();
+    ie = init_b.generate_keypair().unwrap();
+    rs = resp_b.generate_keypair().unwrap();
+    re = resp_b.generate_keypair().unwrap();
 
     for _ in 0..get_psks_count(&params) {
         let v = random_vec(32);
@@ -307,26 +337,26 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
             psk_index += 1;
         }
     }
-    init_b = init_b.fixed_ephemeral_key_for_testing_only(&ie.privkey());
+    init_b = init_b.fixed_ephemeral_key_for_testing_only(&ie.private);
     init_b = init_b.prologue(&prologue);
     if params.handshake.pattern.needs_local_static_key(true) {
-        init_b = init_b.local_private_key(&is.privkey());
+        init_b = init_b.local_private_key(&is.private);
     }
     if params.handshake.pattern.need_known_remote_pubkey(true) {
-        init_b = init_b.remote_public_key(&rs.pubkey());
+        init_b = init_b.remote_public_key(&rs.public);
     }
 
-    resp_b = resp_b.fixed_ephemeral_key_for_testing_only(&re.privkey());
+    resp_b = resp_b.fixed_ephemeral_key_for_testing_only(&re.private);
     resp_b = resp_b.prologue(&prologue);
     if params.handshake.pattern.needs_local_static_key(false) {
-        resp_b = resp_b.local_private_key(&rs.privkey());
+        resp_b = resp_b.local_private_key(&rs.private);
     }
     if params.handshake.pattern.need_known_remote_pubkey(false) {
-        resp_b = resp_b.remote_public_key(&is.pubkey());
+        resp_b = resp_b.remote_public_key(&is.public);
     }
 
-    let mut init: Session = init_b.build_initiator().unwrap();
-    let mut resp: Session = resp_b.build_responder().unwrap();
+    let mut init = init_b.build_initiator().unwrap();
+    let mut resp = resp_b.build_responder().unwrap();
 
     let (mut ibuf, mut obuf) = ([0u8; 65535], [0u8; 65535]);
     let mut messages = vec![];
@@ -353,25 +383,25 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
     }
 
     let init_static = if params.handshake.pattern.needs_local_static_key(true) {
-        Some(is.privkey().to_vec().into())
+        Some(is.private.to_vec().into())
     } else {
         None
     };
 
     let resp_static = if params.handshake.pattern.needs_local_static_key(false) {
-        Some(rs.privkey().to_vec().into())
+        Some(rs.private.to_vec().into())
     } else {
         None
     };
 
     let init_remote_static = if params.handshake.pattern.need_known_remote_pubkey(true) {
-        Some(rs.pubkey().to_vec().into())
+        Some(rs.public.to_vec().into())
     } else {
         None
     };
 
     let resp_remote_static = if params.handshake.pattern.need_known_remote_pubkey(false) {
-        Some(is.pubkey().to_vec().into())
+        Some(is.public.to_vec().into())
     } else {
         None
     };
@@ -386,19 +416,22 @@ fn generate_multipsk_vector(params: NoiseParams) -> TestVector {
         init_prologue: prologue.clone().into(),
         init_psks: Some(psks_hex.clone()),
         init_static,
-        init_ephemeral: Some(ie.privkey().to_vec().into()),
+        init_ephemeral: Some(ie.private.to_vec().into()),
         init_remote_static,
         resp_prologue: prologue.clone().into(),
         resp_psks: Some(psks_hex.clone()),
         resp_static,
-        resp_ephemeral: Some(re.privkey().to_vec().into()),
+        resp_ephemeral: Some(re.private.to_vec().into()),
         resp_remote_static,
         messages,
     }
 }
 
-fn generate_multipsk_vector_set() -> TestVectors {
-    let handshakes = vec!["NNpsk0+psk2",
+fn generate_vector_set() -> TestVectors {
+    let mut handshakes = SUPPORTED_HANDSHAKE_PATTERNS.iter()
+        .map(|p| p.as_str())
+        .collect::<Vec<&'static str>>();
+    handshakes.extend_from_slice(&["NNpsk0+psk2",
                           "NXpsk0+psk1+psk2",
                           "XNpsk1+psk3",
                           "XKpsk0+psk3",
@@ -407,7 +440,7 @@ fn generate_multipsk_vector_set() -> TestVectors {
                           "INpsk1+psk2",
                           "IKpsk0+psk2",
                           "IXpsk0+psk2",
-                          "XXpsk0+psk1", "XXpsk0+psk2", "XXpsk0+psk3", "XXpsk0+psk1+psk2+psk3"];
+                          "XXpsk0+psk1", "XXpsk0+psk2", "XXpsk0+psk3", "XXpsk0+psk1+psk2+psk3"]);
     let ciphers = vec!["ChaChaPoly", "AESGCM"];
     let hashes = vec!["BLAKE2s", "BLAKE2b", "SHA256", "SHA512"];
 
@@ -417,7 +450,8 @@ fn generate_multipsk_vector_set() -> TestVectors {
         for cipher in &ciphers {
             for hash in &hashes {
                 let protocol_name = format!("Noise_{}_25519_{}_{}", handshake, cipher, hash);
-                vectors.push(generate_multipsk_vector(protocol_name.parse().unwrap()));
+                let protocol = protocol_name.parse().unwrap();
+                vectors.push(generate_vector(protocol));
             }
         }
     }
@@ -436,12 +470,12 @@ fn test_vectors_cacophony() {
 }
 
 #[test]
-fn test_vectors_snow_multipsk() {
-    let file = OpenOptions::new().write(true).create_new(true).open("tests/vectors/snow-multipsk.txt");
+fn test_vectors_snow() {
+    let file = OpenOptions::new().write(true).create_new(true).open("tests/vectors/snow.txt");
     if let Ok(mut file) = file {
-        serde_json::to_writer_pretty(&mut file, &generate_multipsk_vector_set()).unwrap();
+        serde_json::to_writer_pretty(&mut file, &generate_vector_set()).unwrap();
     }
-    let mut file = File::open("tests/vectors/snow-multipsk.txt").unwrap();
+    let mut file = File::open("tests/vectors/snow.txt").unwrap();
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
     test_vectors_from_json(&contents);

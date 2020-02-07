@@ -1,53 +1,87 @@
 //! The traits for cryptographic implementations that can be used by Noise.
 
-use utils::*;
-use constants::*;
+use crate::constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN, TAGLEN};
+use rand_core::{CryptoRng, RngCore};
 
-/// Provides randomness
-pub trait Random {
-    fn fill_bytes(&mut self, out: &mut [u8]);
-}
+/// CSPRNG operations
+pub trait Random : CryptoRng + RngCore + Send + Sync {}
 
-/// Provides Diffie-Hellman operations
-pub trait Dh {
+/// Diffie-Hellman operations
+pub trait Dh : Send + Sync {
+    /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
+
+    /// The length in bytes of a public key for this primitive
     fn pub_len(&self) -> usize;
+
+    /// The length in bytes of a private key for this primitive
     fn priv_len(&self) -> usize;
 
+    /// Set the private key
     fn set(&mut self, privkey: &[u8]);
-    fn generate(&mut self, rng: &mut Random);
+
+    /// Generate a new private key
+    fn generate(&mut self, rng: &mut dyn Random);
+
+    /// Get the public key
     fn pubkey(&self) -> &[u8];
+
+    /// Get the private key
     fn privkey(&self) -> &[u8];
 
+    /// Calculate a Diffie-Hellman exchange.
     #[must_use]
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()>;
 }
 
-/// Provides cipher operations
-pub trait Cipher {
+/// Cipher operations
+pub trait Cipher : Send + Sync {
+    /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
 
+    /// Set the key
     fn set(&mut self, key: &[u8]);
+
+    /// Encrypt (with associated data) a given plaintext.
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize;
 
     #[must_use]
+    /// Decrypt (with associated data) a given ciphertext.
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()>;
+
+    /// Rekey according to Section 4.2 of the Noise Specification, with a default
+    /// implementation guaranteed to be secure for all ciphers.
+    fn rekey(&mut self) {
+        let mut ciphertext = [0; CIPHERKEYLEN + TAGLEN];
+        let ciphertext_len = self.encrypt(u64::max_value(), &[], &[0; CIPHERKEYLEN], &mut ciphertext);
+        assert_eq!(ciphertext_len, ciphertext.len());
+        self.set(&ciphertext[..CIPHERKEYLEN]);
+    }
 }
 
-/// Provides hashing operations
-pub trait Hash {
+/// Hashing operations
+pub trait Hash : Send + Sync {
+    /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
+
+    /// The block length for the primitive
     fn block_len(&self) -> usize;
+
+    /// The final hash digest length for the primitive
     fn hash_len(&self) -> usize;
 
-    /* These functions operate on internal state:
-     * call reset(), then input() repeatedly, then get result() */
+    /// Reset the internal state
     fn reset(&mut self);
+
+    /// Provide input to the internal state
     fn input(&mut self, data: &[u8]);
+
+    /// Get the resulting hash
     fn result(&mut self, out: &mut [u8]);
 
-    /* The hmac and hkdf functions modify internal state
-     * but ignore previous state, they're one-shot, static-like functions */
+    /// Calculate HMAC, as specified in the Noise spec.
+    ///
+    /// NOTE: This method clobbers the existing internal state
     fn hmac(&mut self, key: &[u8], data: &[u8], out: &mut [u8]) {
         assert!(key.len() <= self.block_len());
         let block_len = self.block_len();
@@ -69,6 +103,9 @@ pub trait Hash {
         self.result(out);
     }
 
+    /// Derive keys as specified in the Noise spec.
+    ///
+    /// NOTE: This method clobbers the existing internal state
     fn hkdf(&mut self, chaining_key: &[u8], input_key_material: &[u8], outputs: usize, out1: &mut [u8], out2: &mut [u8], out3: &mut [u8]) {
         let hash_len = self.hash_len();
         let mut temp_key = [0u8; MAXHASHLEN];
@@ -79,16 +116,46 @@ pub trait Hash {
         }
 
         let mut in2 = [0u8; MAXHASHLEN+1];
-        copy_memory(&out1[0..hash_len], &mut in2);
+        copy_slices!(&out1[0..hash_len], &mut in2);
         in2[hash_len] = 2;
-        self.hmac(&temp_key, &in2[..hash_len+1], out2);
+        self.hmac(&temp_key, &in2[..=hash_len], out2);
         if outputs == 2 {
             return;
         }
 
         let mut in3 = [0u8; MAXHASHLEN+1];
-        copy_memory(&out2[0..hash_len], &mut in3);
+        copy_slices!(&out2[0..hash_len], &mut in3);
         in3[hash_len] = 3;
-        self.hmac(&temp_key, &in3[..hash_len+1], out3);
+        self.hmac(&temp_key, &in3[..=hash_len], out3);
     }
+}
+
+/// Kem operations.
+#[cfg(feature = "hfs")]
+pub trait Kem : Send + Sync {
+    /// The string that the Noise spec defines for the primitive.
+    fn name(&self) -> &'static str;
+
+    /// The length in bytes of a public key for this primitive.
+    fn pub_len(&self) -> usize;
+
+    /// The length in bytes the Kem cipherthext for this primitive.
+    fn ciphertext_len(&self) -> usize;
+
+    /// Shared secret length in bytes that this Kem encapsulates.
+    fn shared_secret_len(&self) -> usize;
+
+    /// Generate a new private key.
+    fn generate(&mut self, rng: &mut dyn Random);
+
+    /// Get the public key
+    fn pubkey(&self) -> &[u8];
+
+    /// Generate a shared secret and encapsulate it using this Kem.
+    #[must_use]
+    fn encapsulate(&self, pubkey: &[u8], shared_secret_out: &mut [u8], ciphertext_out: &mut [u8]) -> Result<(usize, usize), ()>;
+
+    /// Decapsulate a ciphertext producing a shared secret.
+    #[must_use]
+    fn decapsulate(&self, ciphertext: &[u8], shared_secret_out: &mut [u8]) -> Result<usize, ()>;
 }

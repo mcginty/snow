@@ -1,37 +1,43 @@
 //! All structures related to Noise parameter definitions (cryptographic primitive choices, protocol
 //! patterns/names)
 
-#[allow(unused_imports)]
-#[cfg(feature = "nightly")]
-use std::convert::TryFrom;
-
-#[allow(unused_imports)]
-#[cfg(not(feature = "nightly"))]
-use utils::TryFrom;
-
+use crate::error::{Error, PatternProblem};
 use std::str::FromStr;
 mod patterns;
 
-pub use self::patterns::*;
+pub use self::patterns::{
+    HandshakeChoice,
+    HandshakeModifier,
+    HandshakePattern,
+    SUPPORTED_HANDSHAKE_PATTERNS,
+};
+
+pub(crate) use self::patterns::{
+    HandshakeTokens,
+    MessagePatterns,
+    Token,
+};
 
 /// I recommend you choose `Noise`.
+#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum BaseChoice {
     Noise,
 }
 
 impl FromStr for BaseChoice {
-    type Err = &'static str;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::BaseChoice::*;
         match s {
-            "Noise"    => Ok(Noise),
-            _          => Err("base type unsupported"),
+            "Noise" => Ok(Noise),
+            _       => bail!(PatternProblem::UnsupportedBaseType)
         }
     }
 }
 
 /// One of `25519` or `448`, per the spec.
+#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum DHChoice {
     Curve25519,
@@ -39,18 +45,19 @@ pub enum DHChoice {
 }
 
 impl FromStr for DHChoice {
-    type Err = &'static str;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::DHChoice::*;
         match s {
             "25519" => Ok(Curve25519),
             "448"   => Ok(Ed448),
-            _       => Err("DH type unsupported")
+            _       => bail!(PatternProblem::UnsupportedDhType)
         }
     }
 }
 
 /// One of `ChaChaPoly` or `AESGCM`, per the spec.
+#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum CipherChoice {
     ChaChaPoly,
@@ -58,18 +65,19 @@ pub enum CipherChoice {
 }
 
 impl FromStr for CipherChoice {
-    type Err = &'static str;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::CipherChoice::*;
         match s {
             "ChaChaPoly" => Ok(ChaChaPoly),
             "AESGCM"     => Ok(AESGCM),
-            _            => Err("cipher type unsupported")
+            _            => bail!(PatternProblem::UnsupportedCipherType)
         }
     }
 }
 
 /// One of the supported SHA-family or BLAKE-family hash choices, per the spec.
+#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum HashChoice {
     SHA256,
@@ -79,7 +87,7 @@ pub enum HashChoice {
 }
 
 impl FromStr for HashChoice {
-    type Err = &'static str;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::HashChoice::*;
         match s {
@@ -87,7 +95,27 @@ impl FromStr for HashChoice {
             "SHA512"  => Ok(SHA512),
             "BLAKE2s" => Ok(Blake2s),
             "BLAKE2b" => Ok(Blake2b),
-            _         => Err("hash type unsupported")
+            _         => bail!(PatternProblem::UnsupportedHashType)
+        }
+    }
+}
+
+/// One of the supported Kems provided for unstable HFS extension.
+#[cfg(feature = "hfs")]
+#[allow(missing_docs)]
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum KemChoice {
+    Kyber1024
+}
+
+#[cfg(feature = "hfs")]
+impl FromStr for KemChoice {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use self::KemChoice::*;
+        match s {
+            "Kyber1024" => Ok(Kyber1024),
+            _           => bail!(PatternProblem::UnsupportedKemType)
         }
     }
 }
@@ -105,18 +133,21 @@ impl FromStr for HashChoice {
 ///
 /// let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
 /// ```
+#[allow(missing_docs)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct NoiseParams {
     pub name: String,
     pub base: BaseChoice,
     pub handshake: HandshakeChoice,
     pub dh: DHChoice,
+    #[cfg(feature = "hfs")] pub kem: Option<KemChoice>,
     pub cipher: CipherChoice,
     pub hash: HashChoice,
 }
 
 impl NoiseParams {
 
+    #[cfg(not(feature = "hfs"))]
     /// Construct a new NoiseParams via specifying enums directly.
     pub fn new(name: String,
                base: BaseChoice,
@@ -127,24 +158,60 @@ impl NoiseParams {
     {
         NoiseParams { name, base, handshake, dh, cipher, hash }
     }
+
+    #[cfg(feature = "hfs")]
+    /// Construct a new NoiseParams via specifying enums directly.
+    pub fn new(name: String,
+               base: BaseChoice,
+               handshake: HandshakeChoice,
+               dh: DHChoice,
+               kem: Option<KemChoice>,
+               cipher: CipherChoice,
+               hash: HashChoice) -> Self
+    {
+        NoiseParams { name, base, handshake, dh, kem, cipher, hash }
+    }
 }
 
 impl FromStr for NoiseParams {
-    type Err = &'static str;
+    type Err = Error;
+
+    #[cfg(not(feature = "hfs"))]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split('_');
-        static TOO_FEW: &'static str = "too few parameters";
         Ok(NoiseParams::new(s.to_owned(),
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?,
-                            split.next().ok_or(TOO_FEW)?.parse()?))
+                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?))
+    }
+
+    #[cfg(feature = "hfs")]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut split = s.split('_').peekable();
+        let p = NoiseParams::new(s.to_owned(),
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.peek().ok_or(PatternProblem::TooFewParameters)?
+                                      .splitn(2, '+').nth(0)
+                                      .ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?
+                                      .splitn(2, '+').nth(1).map(|s| s.parse()).transpose()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?);
+
+        // Validate that a KEM is specified iff the hfs modifier is present
+        if p.handshake.is_hfs() != p.kem.is_some() {
+            bail!(PatternProblem::TooFewParameters);
+        }
+        Ok(p)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::convert::TryFrom;
     use super::*;
 
     #[test]
@@ -155,6 +222,12 @@ mod tests {
     #[test]
     fn test_basic() {
         let p: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
+        assert!(p.handshake.modifiers.list.is_empty());
+    }
+
+    #[test]
+    fn test_basic_deferred() {
+        let p: NoiseParams = "Noise_X1X1_25519_AESGCM_SHA256".parse().unwrap();
         assert!(p.handshake.modifiers.list.is_empty());
     }
 

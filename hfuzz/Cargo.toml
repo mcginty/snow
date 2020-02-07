@@ -1,0 +1,9 @@
+[package]
+name = "fuzz"
+version = "0.1.0"
+authors = ["Jake McGinty <me@jake.su>"]
+
+[dependencies]
+honggfuzz = "0.5"
+snow = { path = "../" }
+lazy_static = "1.3"

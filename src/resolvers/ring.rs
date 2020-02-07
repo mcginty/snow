@@ -1,27 +1,27 @@
-extern crate ring;
-
 use super::CryptoResolver;
-use byteorder::{ByteOrder, BigEndian, LittleEndian};
-use self::ring::aead;
-use self::ring::digest;
-use constants::TAGLEN;
-use params::{DHChoice, HashChoice, CipherChoice};
-use types::{Random, Dh, Hash, Cipher};
+use ring::aead::{self, LessSafeKey, UnboundKey};
+use ring::digest;
+use ring::rand::{SystemRandom, SecureRandom};
+use crate::constants::TAGLEN;
+use crate::params::{DHChoice, HashChoice, CipherChoice};
+use crate::types::{Random, Dh, Hash, Cipher};
 
+/// A resolver that chooses [ring](https://github.com/briansmith/ring)-backed
+/// primitives when available.
 #[derive(Default)]
 pub struct RingResolver;
 
 #[cfg(feature = "ring")]
 impl CryptoResolver for RingResolver {
-    fn resolve_rng(&self) -> Option<Box<Random + Send>> {
+    fn resolve_rng(&self) -> Option<Box<dyn Random>> {
+        Some(Box::new(RingRng::default()))
+    }
+
+    fn resolve_dh(&self, _choice: &DHChoice) -> Option<Box<dyn Dh>> {
         None
     }
 
-    fn resolve_dh(&self, _choice: &DHChoice) -> Option<Box<Dh + Send>> {
-        None
-    }
-
-    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<Hash + Send>> {
+    fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<dyn Hash>> {
         match *choice {
             HashChoice::SHA256 => Some(Box::new(HashSHA256::default())),
             HashChoice::SHA512 => Some(Box::new(HashSHA512::default())),
@@ -29,7 +29,7 @@ impl CryptoResolver for RingResolver {
         }
     }
 
-    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<Cipher + Send>> {
+    fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         match *choice {
             CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
@@ -37,16 +37,50 @@ impl CryptoResolver for RingResolver {
     }
 }
 
-pub struct CipherAESGCM {
-    sealing: aead::SealingKey,
-    opening: aead::OpeningKey,
+struct RingRng {
+    rng: SystemRandom,
+}
+
+impl Default for RingRng {
+    fn default() -> Self {
+        Self {
+            rng: SystemRandom::new()
+        }
+    }
+}
+
+impl rand_core::RngCore for RingRng {
+    fn next_u32(&mut self) -> u32 {
+        rand_core::impls::next_u32_via_fill(self)
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        rand_core::impls::next_u64_via_fill(self)
+    }
+
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        self.try_fill_bytes(dest).unwrap();
+    }
+
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+        self.rng.fill(dest).map_err(|e| rand_core::Error::new(e))
+    }
+}
+
+impl rand_core::CryptoRng for RingRng {}
+
+impl Random for RingRng {}
+
+struct CipherAESGCM {
+    // NOTE: LessSafeKey is chosen here because nonce atomicity is handled outside of this structure.
+    // See ring documentation for more details on the naming choices.
+    key: LessSafeKey,
 }
 
 impl Default for CipherAESGCM {
     fn default() -> Self {
         CipherAESGCM {
-            sealing: aead::SealingKey::new(&aead::AES_256_GCM, &[0u8; 32]).unwrap(),
-            opening: aead::OpeningKey::new(&aead::AES_256_GCM, &[0u8; 32]).unwrap(),
+            key: LessSafeKey::new(UnboundKey::new(&aead::AES_256_GCM, &[0u8; 32]).unwrap()),
         }
     }
 }
@@ -57,52 +91,56 @@ impl Cipher for CipherAESGCM {
     }
 
     fn set(&mut self, key: &[u8]) {
-        self.sealing = aead::SealingKey::new(&aead::AES_256_GCM, key).unwrap();
-        self.opening = aead::OpeningKey::new(&aead::AES_256_GCM, key).unwrap();
+        self.key = aead::LessSafeKey::new(UnboundKey::new(&aead::AES_256_GCM, key).unwrap());
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
-        aead::seal_in_place(&self.sealing, &nonce_bytes, authtext, &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
+
+        let tag = self.key.seal_in_place_separate_tag(nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()]).unwrap();
+        &mut out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
+
         plaintext.len() + TAGLEN
     }
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
-        BigEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
         if out.len() >= ciphertext.len() {
             let in_out = &mut out[..ciphertext.len()];
             in_out.copy_from_slice(ciphertext);
 
-            let len = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, in_out).map_err(|_| ())?
+            let len = self.key.open_in_place(nonce, aead::Aad::from(authtext), in_out).map_err(|_| ())?
                 .len();
 
             Ok(len)
         } else {
             let mut in_out = ciphertext.to_vec();
 
-            let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out).map_err(|_| ())?;
+            let out0 = self.key.open_in_place(nonce, aead::Aad::from(authtext), &mut in_out).map_err(|_| ())?;
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
     }
 }
 
-pub struct CipherChaChaPoly {
-    sealing: aead::SealingKey,
-    opening: aead::OpeningKey,
+struct CipherChaChaPoly {
+    // NOTE: LessSafeKey is chosen here because nonce atomicity is to be ensured outside of this structure.
+    // See ring documentation for more details on the naming choices.
+    key: aead::LessSafeKey,
 }
 
 impl Default for CipherChaChaPoly {
     fn default() -> Self {
         Self {
-            sealing: aead::SealingKey::new(&aead::CHACHA20_POLY1305, &[0u8; 32]).unwrap(),
-            opening: aead::OpeningKey::new(&aead::CHACHA20_POLY1305, &[0u8; 32]).unwrap(),
+            key: LessSafeKey::new(UnboundKey::new(&aead::CHACHA20_POLY1305, &[0u8; 32]).unwrap()),
         }
     }
 }
@@ -113,42 +151,45 @@ impl Cipher for CipherChaChaPoly {
     }
 
     fn set(&mut self, key: &[u8]) {
-        self.sealing = aead::SealingKey::new(&aead::CHACHA20_POLY1305, key).unwrap();
-        self.opening = aead::OpeningKey::new(&aead::CHACHA20_POLY1305, key).unwrap();
+        self.key = LessSafeKey::new(UnboundKey::new(&aead::CHACHA20_POLY1305, key).unwrap());
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
-        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
-        aead::seal_in_place(&self.sealing, &nonce_bytes, authtext, &mut out[..plaintext.len()+TAGLEN], 16).unwrap();
+        let tag = self.key.seal_in_place_separate_tag(nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()]).unwrap();
+        &mut out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
+
         plaintext.len() + TAGLEN
     }
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
-        LittleEndian::write_u64(&mut nonce_bytes[4..], nonce);
+        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
+        let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
         if out.len() >= ciphertext.len() {
             let in_out = &mut out[..ciphertext.len()];
             in_out.copy_from_slice(ciphertext);
 
-            let len = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, in_out).map_err(|_| ())?
+            let len = self.key.open_in_place(nonce, aead::Aad::from(authtext), in_out).map_err(|_| ())?
                 .len();
 
             Ok(len)
         } else {
             let mut in_out = ciphertext.to_vec();
 
-            let out0 = aead::open_in_place(&self.opening, &nonce_bytes, authtext, 0, &mut in_out).map_err(|_| ())?;
+            let out0 = self.key.open_in_place(nonce, aead::Aad::from(authtext), &mut in_out).map_err(|_| ())?;
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
     }
 }
-pub struct HashSHA256 {
+struct HashSHA256 {
     context: digest::Context,
 }
 
@@ -184,7 +225,7 @@ impl Hash for HashSHA256 {
     }
 }
 
-pub struct HashSHA512 {
+struct HashSHA512 {
     context: digest::Context,
 }
 
@@ -220,4 +261,21 @@ impl Hash for HashSHA512 {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand_core::RngCore;
 
+    #[test]
+    fn test_randomness_sanity() {
+        use std::collections::HashSet;
+
+        let mut samples = HashSet::new();
+        let mut rng = RingRng::default();
+        for _ in 0..100_000 {
+            let mut buf = vec![0u8; 128];
+            rng.fill_bytes(&mut buf);
+            assert!(samples.insert(buf));
+        }
+    }
+}
