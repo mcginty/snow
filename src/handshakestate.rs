@@ -503,7 +503,7 @@ impl HandshakeState {
     }
 
     /// Check whether it is our turn to send in the handshake state machine
-    pub fn is_our_turn_to_send(&self) -> bool {
+    pub fn is_my_turn(&self) -> bool {
         self.my_turn
     }
 
