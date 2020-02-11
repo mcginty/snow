@@ -4,6 +4,8 @@ use blake2::Blake2s;
 use sha2::{Digest, Sha256, Sha512};
 use rand::rngs::OsRng;
 use x25519_dalek as x25519;
+use chacha20poly1305::ChaCha20Poly1305;
+use chacha20poly1305::aead::{NewAead, Aead};
 #[cfg(feature = "pqclean_kyber1024")] use pqcrypto_kyber::kyber1024;
 #[cfg(feature = "pqclean_kyber1024")] use pqcrypto_traits::kem::{PublicKey, SecretKey, SharedSecret, Ciphertext};
 
@@ -12,7 +14,6 @@ use crate::types::{Cipher, Dh, Hash, Random};
 use crate::constants::TAGLEN;
 use crate::params::{CipherChoice, DHChoice, HashChoice};
 #[cfg(feature = "pqclean_kyber1024")] use crate::params::KemChoice;
-use std::io::{Cursor, Write};
 use super::CryptoResolver;
 
 /// The default resolver provided by snow. This resolver is designed to
@@ -154,38 +155,35 @@ impl Cipher for CipherChaChaPoly {
         let mut nonce_bytes = [0u8; 12];
         copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
-        let mut buf = Cursor::new(out);
-        let tag = chacha20_poly1305_aead::encrypt(&self.key, &nonce_bytes, authtext, plaintext, &mut buf);
-        let tag = tag.unwrap();
-        buf.write_all(&tag).unwrap();
-        if buf.position() > usize::max_value() as u64 {
-            panic!("usize overflow");
-        } else {
-            buf.position() as usize
-        }
+        copy_slices!(plaintext, out);
+
+        let tag = ChaCha20Poly1305::new(self.key.into())
+            .encrypt_in_place_detached(&nonce_bytes.into(), authtext, &mut out[0..plaintext.len()])
+            .unwrap();
+
+        copy_slices!(tag, &mut out[plaintext.len() ..]);
+
+        plaintext.len() + tag.len()
     }
 
     fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
         copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
-        let mut buf = Cursor::new(out);
-        let result = chacha20_poly1305_aead::decrypt(
-            &self.key,
-            &nonce_bytes,
+        let message_len = ciphertext.len() - TAGLEN;
+
+        copy_slices!(ciphertext[..message_len], out);
+
+        let result = ChaCha20Poly1305::new(self.key.into()).decrypt_in_place_detached(
+            &nonce_bytes.into(),
             authtext,
-            &ciphertext[..ciphertext.len()-TAGLEN],
-            &ciphertext[ciphertext.len()-TAGLEN..],
-            &mut buf);
+            &mut out[..message_len],
+            ciphertext[message_len..].into(),
+        );
+
         match result {
-            Ok(_) => {
-                if buf.position() > usize::max_value() as u64 {
-                    panic!("usize overflow");
-                } else {
-                    Ok(buf.position() as usize)
-                }
-            }
-            Err(_) => Err(()),
+            Ok(_) => Ok(message_len),
+            Err(_) => Err(())
         }
     }
 }
