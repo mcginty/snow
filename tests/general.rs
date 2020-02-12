@@ -130,7 +130,7 @@ fn test_noise_state_change() {
 }
 
 #[test]
-fn test_sanity_session() {
+fn test_sanity_chachapoly_session() {
     let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
     let mut h_r = Builder::new(params).build_responder().unwrap();
@@ -149,6 +149,68 @@ fn test_sanity_session() {
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
+}
+
+#[test]
+fn test_sanity_aesgcm_session() {
+    let params: NoiseParams = "Noise_NN_25519_AESGCM_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 200];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let mut h_i = h_i.into_transport_mode().unwrap();
+    let mut h_r = h_r.into_transport_mode().unwrap();
+
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[..len], b"hack the planet");
+}
+
+#[test]
+fn test_Npsk0_chachapoly_expected_value() {
+    let params: NoiseParams = "Noise_Npsk0_25519_ChaChaPoly_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params)
+        .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
+        .psk(0, &get_inc_key(1))
+        .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
+        .build_initiator().unwrap();
+
+    let mut buf = [0u8; 200];
+    let len = h_i.write_message(&[], &mut buf).unwrap();
+    assert_eq!(len, 48);
+
+    let expected = Vec::<u8>::from_hex("358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd166254deb8a4f6190117dea09aad7546a4658c").unwrap();
+
+    println!("\nreality:  {}", hex::encode(&buf[..len]));
+    println!("expected: {}", hex::encode(&expected));
+    assert_eq!(&buf[..len], &expected[..]);
+}
+
+#[test]
+fn test_Npsk0_aesgcm_expected_value() {
+    let params: NoiseParams = "Noise_Npsk0_25519_AESGCM_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params)
+        .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
+        .psk(0, &get_inc_key(1))
+        .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
+        .build_initiator().unwrap();
+
+    let mut buf = [0u8; 200];
+    let len = h_i.write_message(&[], &mut buf).unwrap();
+    assert_eq!(len, 48);
+
+    let expected = Vec::<u8>::from_hex("358072d6365880d1aeea329adf9121383851ed21a28e3b75e965d0d2cd1662542044ae563929068930dcf04674526cb9").unwrap();
+
+    println!("\nreality:  {}", hex::encode(&buf[..len]));
+    println!("expected: {}", hex::encode(&expected));
+    assert_eq!(&buf[..len], &expected[..]);
 }
 
 #[test]
