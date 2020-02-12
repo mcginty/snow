@@ -1,6 +1,7 @@
 use arrayref::array_ref;
 use blake2::Blake2b;
 use blake2::Blake2s;
+use aes_gcm;
 use sha2::{Digest, Sha256, Sha512};
 use rand::rngs::OsRng;
 use x25519_dalek as x25519;
@@ -46,7 +47,7 @@ impl CryptoResolver for DefaultResolver {
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         match *choice {
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
-            CipherChoice::AESGCM     => None,
+            CipherChoice::AESGCM     => Some(Box::new(CipherAesGcm::default())),
         }
     }
 
@@ -64,6 +65,12 @@ impl CryptoResolver for DefaultResolver {
 struct Dh25519 {
     privkey: [u8; 32],
     pubkey:  [u8; 32],
+}
+
+/// Wraps `aes-gcm`'s AES256-GCM implementation.
+#[derive(Default)]
+struct CipherAesGcm {
+    key: [u8; 32],
 }
 
 /// Wraps `chacha20_poly1305_aead`'s ChaCha20Poly1305 implementation.
@@ -138,6 +145,58 @@ impl Dh for Dh25519 {
         let result = x25519::x25519(self.privkey, *array_ref![pubkey, 0, 32]);
         copy_slices!(&result, out);
         Ok(())
+    }
+}
+
+impl Cipher for CipherAesGcm {
+    fn name(&self) -> &'static str {
+        "AESGCM"
+    }
+
+    fn set(&mut self, key: &[u8]) {
+        copy_slices!(key, &mut self.key)
+    }
+
+    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize {
+        let aead = aes_gcm::Aes256Gcm::new(self.key.into());
+
+        let mut nonce_bytes = [0u8; 12];
+        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
+        
+        copy_slices!(plaintext, out);
+
+        let tag = aead.encrypt_in_place_detached(
+            &nonce_bytes.into(), 
+            authtext, 
+            &mut out[0..plaintext.len()]
+        )
+        .expect("Encryption failed!");
+
+        copy_slices!(tag, &mut out[plaintext.len()..]);
+
+        plaintext.len() + TAGLEN   
+    }
+
+    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
+        let aead = aes_gcm::Aes256Gcm::new(self.key.into());
+
+        let mut nonce_bytes = [0u8; 12];
+        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
+
+        let message_len = ciphertext.len() - TAGLEN;
+
+        copy_slices!(ciphertext[..message_len], out);
+
+        aead.decrypt_in_place_detached(
+            &nonce_bytes.into(), 
+            authtext, 
+            &mut out[..message_len], 
+            ciphertext[message_len..].into()
+        )
+        .and_then(|_| {
+            Ok(message_len)
+        })
+        .map_err(|_| ())
     }
 }
 
@@ -460,6 +519,45 @@ mod tests {
         let mut output = [0u8; 32];
         keypair.dh(&public, &mut output).unwrap();
         assert!(hex::encode(output) == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552");
+    }
+
+    #[test]
+    fn test_aesgcm() {
+        // AES256-GCM tests - gcm-spec.pdf
+        // Test Case 13
+        let key = [0u8; 32];
+        let nonce = 0u64;
+        let plaintext = [0u8; 0];
+        let authtext = [0u8; 0];
+        let mut ciphertext = [0u8; 16];
+        let mut cipher1: CipherAesGcm = Default::default();
+        cipher1.set(&key);
+        cipher1.encrypt(nonce, &authtext, &plaintext, &mut ciphertext);
+        assert!(hex::encode(ciphertext) == "530f8afbc74536b9a963b4f1c4cb738b");
+
+        let mut resulttext = [0u8; 1];
+        let mut cipher2: CipherAesGcm = Default::default();
+        cipher2.set(&key);
+        cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
+        assert!(resulttext[0] == 0);
+        ciphertext[0] ^= 1;
+        assert!(cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).is_err());
+
+        // Test Case 14
+        let plaintext2 = [0u8; 16];
+        let mut ciphertext2 = [0u8; 32];
+        let mut cipher3: CipherAesGcm = Default::default();
+        cipher3.set(&key);
+        cipher3.encrypt(nonce, &authtext, &plaintext2, &mut ciphertext2);
+        assert!(hex::encode(ciphertext2) == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919");
+
+        let mut resulttext2 = [1u8; 16];
+        let mut cipher4: CipherAesGcm = Default::default();
+        cipher4.set(&key);
+        cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).unwrap();
+        assert!(plaintext2 == resulttext2);
+        ciphertext2[0] ^= 1;
+        assert!(cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).is_err());
     }
 
     #[test]

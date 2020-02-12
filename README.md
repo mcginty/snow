@@ -47,7 +47,7 @@ However, a not all features have been implemented yet (pull requests welcome):
 Cryptographic providers are swappable through `Builder::with_resolver()`, but by default it chooses select, artisanal
 pure-Rust implementations (see `Cargo.toml` for a quick overview).
 
-### Providers
+### Other Providers
 
 #### ring
 
@@ -64,7 +64,7 @@ If you enable the `ring-accelerated` feature, Snow will default to choosing `rin
 | CSPRNG     | ✔       | ✔    |
 | 25519      | ✔       | ✔    |
 | 448        |         |      |
-| AESGCM     |         | ✔    |
+| AESGCM     | ✔       | ✔    |
 | ChaChaPoly | ✔       | ✔    |
 | SHA256     | ✔       | ✔    |
 | SHA512     | ✔       | ✔    |

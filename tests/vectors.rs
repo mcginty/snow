@@ -253,17 +253,11 @@ fn test_vectors_from_json(json: &str) {
     for vector in test_vectors.vectors {
         let params: NoiseParams = vector.protocol_name.parse().unwrap();
 
-        if !cfg!(feature = "ring-accelerated") {
-            if params.cipher == CipherChoice::AESGCM {
-                ignored += 1;
-                continue
-            }
-        }
-
         if params.dh == DHChoice::Ed448 {
             ignored += 1;
             continue;
         }
+
         let (init, resp) = match build_session_pair(&vector) {
             Ok((init, resp)) => (init, resp),
             Err(s) => {
