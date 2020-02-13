@@ -1,4 +1,4 @@
-use arrayref::array_ref;
+use core::convert::TryInto;
 use blake2::Blake2b;
 use blake2::Blake2s;
 use aes_gcm;
@@ -111,8 +111,7 @@ impl Random for OsRng {}
 impl Dh for Dh25519 {
 
     fn name(&self) -> &'static str {
-        static NAME: &str = "25519";
-        NAME
+        "25519"
     }
 
     fn pub_len(&self) -> usize {
@@ -142,7 +141,7 @@ impl Dh for Dh25519 {
     }
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()> {
-        let result = x25519::x25519(self.privkey, *array_ref![pubkey, 0, 32]);
+        let result = x25519::x25519(self.privkey, pubkey[..32].try_into().unwrap());
         copy_slices!(&result, out);
         Ok(())
     }

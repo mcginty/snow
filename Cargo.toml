@@ -33,7 +33,6 @@ harness = false
 travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
-arrayref = "0.3.5"
 rand_core = "0.5"
 subtle = "2.1"
 
