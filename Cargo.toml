@@ -34,7 +34,7 @@ travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
 rand_core = "0.5"
-subtle = "2.1"
+subtle = "2.2"
 
 # default crypto provider
 aes-gcm = { version = "0.3", optional = true }
