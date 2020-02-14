@@ -17,7 +17,7 @@ pub struct SodiumResolver;
 
 impl CryptoResolver for SodiumResolver {
     fn resolve_rng(&self) -> Option<Box<dyn Random>> {
-        None
+        Some(Box::new(SodiumRng))
     }
 
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>> {
@@ -205,6 +205,34 @@ impl Hash for SodiumSha256 {
         out[..32].copy_from_slice(digest.as_ref());
     }
 }
+
+pub struct SodiumRng;
+
+impl rand_core::RngCore for SodiumRng {
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        sodiumoxide::randombytes::randombytes_into(dest)
+    }
+
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+        Ok(SodiumRng.fill_bytes(dest))
+    }
+
+    fn next_u32(&mut self) -> u32 {
+        let mut buffer = [0; 4];
+        SodiumRng.fill_bytes(&mut buffer);
+        u32::from_be_bytes(buffer)
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        let mut buffer = [0; 8];
+        SodiumRng.fill_bytes(&mut buffer);
+        u64::from_be_bytes(buffer)
+    }
+}
+
+impl rand_core::CryptoRng for SodiumRng {}
+
+impl Random for SodiumRng {}
 
 #[cfg(test)]
 mod tests {
