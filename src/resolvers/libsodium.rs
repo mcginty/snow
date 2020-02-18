@@ -17,7 +17,7 @@ pub struct SodiumResolver;
 
 impl CryptoResolver for SodiumResolver {
     fn resolve_rng(&self) -> Option<Box<dyn Random>> {
-        Some(Box::new(SodiumRng))
+        Some(Box::new(SodiumRng::default()))
     }
 
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>> {
@@ -58,6 +58,8 @@ impl SodiumDh25519 {
 
 impl Default for SodiumDh25519 {
     fn default() -> SodiumDh25519 {
+        sodiumoxide::init().unwrap();
+
         SodiumDh25519 {
             privkey: sodium_curve25519::Scalar([0; 32]),
             pubkey: sodium_curve25519::GroupElement([0; 32]),
@@ -125,6 +127,8 @@ pub struct SodiumChaChaPoly {
 
 impl Default for SodiumChaChaPoly {
     fn default() -> SodiumChaChaPoly {
+        sodiumoxide::init().unwrap();
+
         SodiumChaChaPoly {
             key: sodium_chacha20poly1305::Key([0; 32]),
         }
@@ -176,8 +180,15 @@ impl Cipher for SodiumChaChaPoly {
 }
 
 // Hash Sha256.
-#[derive(Default)]
 struct SodiumSha256(sodium_sha256::State);
+
+impl Default for SodiumSha256 {
+    fn default() -> Self {
+        sodiumoxide::init().unwrap();
+
+        Self(sodium_sha256::State::default())
+    }
+}
 
 impl Hash for SodiumSha256 {
     fn name(&self) -> &'static str {
@@ -206,7 +217,14 @@ impl Hash for SodiumSha256 {
     }
 }
 
-pub struct SodiumRng;
+struct SodiumRng;
+
+impl SodiumRng {
+    fn default() -> Self {
+        sodiumoxide::init().unwrap();
+        Self
+    }
+}
 
 impl rand_core::RngCore for SodiumRng {
     fn fill_bytes(&mut self, dest: &mut [u8]) {
@@ -214,18 +232,18 @@ impl rand_core::RngCore for SodiumRng {
     }
 
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
-        Ok(SodiumRng.fill_bytes(dest))
+        Ok(self.fill_bytes(dest))
     }
 
     fn next_u32(&mut self) -> u32 {
         let mut buffer = [0; 4];
-        SodiumRng.fill_bytes(&mut buffer);
+        self.fill_bytes(&mut buffer);
         u32::from_be_bytes(buffer)
     }
 
     fn next_u64(&mut self) -> u64 {
         let mut buffer = [0; 8];
-        SodiumRng.fill_bytes(&mut buffer);
+        self.fill_bytes(&mut buffer);
         u64::from_be_bytes(buffer)
     }
 }
