@@ -5,6 +5,8 @@
 #[cfg(feature = "default-resolver")]   mod default;
 /// A ring primitive resolver.
 #[cfg(feature = "ring-resolver")]      mod ring;
+/// A libsodium primitive resolver.
+#[cfg(feature = "libsodium-resolver")] mod libsodium;
 
 use crate::params::{CipherChoice, DHChoice, HashChoice};
 #[cfg(feature = "hfs")] use crate::params::KemChoice;
@@ -13,6 +15,7 @@ use crate::types::{Cipher, Dh, Hash, Random};
 
 #[cfg(feature = "default-resolver")]   pub use self::default::DefaultResolver;
 #[cfg(feature = "ring-resolver")]      pub use self::ring::RingResolver;
+#[cfg(feature = "libsodium-resolver")]      pub use self::libsodium::SodiumResolver;
 
 /// Boxed CryptoResolver
 pub type BoxedCryptoResolver = Box<dyn CryptoResolver + Send>;

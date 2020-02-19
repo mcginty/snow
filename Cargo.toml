@@ -21,6 +21,8 @@ default-resolver = ["aes-gcm", "chacha20poly1305", "blake2", "sha2", "x25519-dal
 nightly = ["blake2/simd_opt", "x25519-dalek/nightly", "subtle/nightly"]
 ring-resolver = ["ring"]
 ring-accelerated = ["ring-resolver", "default-resolver"]
+libsodium-resolver = ["sodiumoxide", "byteorder"]
+libsodium-accelerated = ["libsodium-resolver", "default-resolver"]
 vector-tests = []
 hfs = []
 pqclean_kyber1024 = ["pqcrypto-kyber", "pqcrypto-traits", "hfs", "default-resolver"]
@@ -48,6 +50,9 @@ pqcrypto-traits = { version = "0.3", optional = true }
 
 # ring crypto proivder
 ring = { version = "^0.16.2", optional = true, features = ["std"] }
+# libsodium crypto provider
+sodiumoxide = { version = "0.2", optional = true }
+byteorder = { version = "1.3", optional = true }
 
 [dev-dependencies]
 clap = "2"
@@ -62,7 +67,7 @@ lazy_static = "1.4"
 rustc_version = "0.2"
 
 [package.metadata.docs.rs]
-features = [ "ring-resolver" ]
+features = [ "ring-resolver", "libsodium-resolver" ]
 all-features = false
 no-default-features = false
 

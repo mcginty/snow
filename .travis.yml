@@ -14,4 +14,3 @@ matrix:
 cache: cargo
 
 script: bash ./ci-tests.sh
-
