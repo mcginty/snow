@@ -112,7 +112,7 @@ impl Dh for SodiumDh25519 {
 
         match result {
             Ok(ref buf) => {
-                out[..32].copy_from_slice(&buf[0..32]);
+                copy_slices!(buf.as_ref(), out);
                 Ok(())
             }
             Err(_) => Err(()),
@@ -152,7 +152,7 @@ impl Cipher for SodiumChaChaPoly {
 
         let buf = sodium_chacha20poly1305::seal(plaintext, Some(authtext), &nonce, &self.key);
 
-        out[..buf.len()].copy_from_slice(&buf);
+        copy_slices!(&buf, out);
         buf.len()
     }
 
@@ -171,7 +171,7 @@ impl Cipher for SodiumChaChaPoly {
 
         match result {
             Ok(ref buf) => {
-                out[..buf.len()].copy_from_slice(&buf);
+                copy_slices!(&buf, out);
                 Ok(buf.len())
             }
             Err(_) => Err(()),
@@ -213,7 +213,7 @@ impl Hash for SodiumSha256 {
 
     fn result(&mut self, out: &mut [u8]) {
         let digest = self.0.finalize();
-        out[..32].copy_from_slice(digest.as_ref());
+        copy_slices!(digest.as_ref(), out);
     }
 }
 
