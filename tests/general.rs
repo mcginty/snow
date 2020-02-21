@@ -504,7 +504,7 @@ fn test_handshake_message_undersized_output_buffer() {
 #[test]
 fn test_transport_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse().unwrap();
-    let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+    let mut noise = Builder::new(params).remote_public_key(&[1u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 65535*2];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
@@ -515,7 +515,7 @@ fn test_transport_message_exceeds_max_len() {
 #[test]
 fn test_transport_message_undersized_output_buffer() {
     let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse().unwrap();
-    let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+    let mut noise = Builder::new(params).remote_public_key(&[1u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 200];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
@@ -526,7 +526,7 @@ fn test_transport_message_undersized_output_buffer() {
 #[test]
 fn test_oneway_initiator_enforcements() {
     let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse().unwrap();
-    let mut noise = Builder::new(params).remote_public_key(&[0u8; 32]).build_initiator().unwrap();
+    let mut noise = Builder::new(params).remote_public_key(&[1u8; 32]).build_initiator().unwrap();
 
     let mut buffer_out = [0u8; 1024];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();

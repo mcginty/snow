@@ -57,7 +57,7 @@ pub struct Builder<'builder> {
 
 impl<'builder> Builder<'builder> {
     /// Create a Builder with the default crypto resolver.
-    #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated"))))]
+    #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated", feature = "libsodium-accelerated"))))]
     pub fn new(params: NoiseParams) -> Self {
         use crate::resolvers::DefaultResolver;
 
@@ -65,11 +65,19 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Create a Builder with the ring resolver and default resolver as a fallback.
-    #[cfg(feature = "ring-accelerated")]
+    #[cfg(all(not(feature = "libsodium-accelerated"), feature = "ring-accelerated"))]
     pub fn new(params: NoiseParams) -> Self {
         use crate::resolvers::{FallbackResolver, DefaultResolver, RingResolver};
 
         Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(RingResolver), Box::new(DefaultResolver))))
+    }
+
+    /// Create a Builder with the ring resolver and default resolver as a fallback.
+    #[cfg(all(not(feature = "ring-accelerated"), feature = "libsodium-accelerated"))]
+    pub fn new(params: NoiseParams) -> Self {
+        use crate::resolvers::{FallbackResolver, DefaultResolver, SodiumResolver};
+
+        Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(SodiumResolver), Box::new(DefaultResolver))))
     }
 
     /// Create a Builder with a custom crypto resolver.
