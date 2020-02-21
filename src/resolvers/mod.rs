@@ -50,7 +50,7 @@ pub trait CryptoResolver {
     }
 }
 
-/// A helper struct that helps to opportunistically use one resolver, but
+/// A helper resolver that can opportunistically use one resolver, but
 /// can fallback to another if the first didn't have an implementation for
 /// a given primitive.
 pub struct FallbackResolver {
