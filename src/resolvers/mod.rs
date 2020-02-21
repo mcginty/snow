@@ -1,21 +1,30 @@
 //! The wrappers around the default collection of cryptography and entropy providers.
 
-
 /// The default primitive resolver.
-#[cfg(feature = "default-resolver")]   mod default;
-/// A ring primitive resolver.
-#[cfg(feature = "ring-resolver")]      mod ring;
+#[cfg(feature = "default-resolver")]
+mod default;
 /// A libsodium primitive resolver.
-#[cfg(feature = "libsodium-resolver")] mod libsodium;
+#[cfg(feature = "libsodium-resolver")]
+mod libsodium;
+/// A ring primitive resolver.
+#[cfg(feature = "ring-resolver")]
+mod ring;
 
-use crate::params::{CipherChoice, DHChoice, HashChoice};
-#[cfg(feature = "hfs")] use crate::params::KemChoice;
-use crate::types::{Cipher, Dh, Hash, Random};
-#[cfg(feature = "hfs")] use crate::types::Kem;
+#[cfg(feature = "hfs")]
+use crate::params::KemChoice;
+#[cfg(feature = "hfs")]
+use crate::types::Kem;
+use crate::{
+    params::{CipherChoice, DHChoice, HashChoice},
+    types::{Cipher, Dh, Hash, Random},
+};
 
-#[cfg(feature = "default-resolver")]   pub use self::default::DefaultResolver;
-#[cfg(feature = "ring-resolver")]      pub use self::ring::RingResolver;
-#[cfg(feature = "libsodium-resolver")]      pub use self::libsodium::SodiumResolver;
+#[cfg(feature = "default-resolver")]
+pub use self::default::DefaultResolver;
+#[cfg(feature = "libsodium-resolver")]
+pub use self::libsodium::SodiumResolver;
+#[cfg(feature = "ring-resolver")]
+pub use self::ring::RingResolver;
 
 /// Boxed CryptoResolver
 pub type BoxedCryptoResolver = Box<dyn CryptoResolver + Send>;
@@ -36,7 +45,9 @@ pub trait CryptoResolver {
 
     /// Provide an implementation of the Kem trait for the given KemChoice or None if unavailable
     #[cfg(feature = "hfs")]
-    fn resolve_kem(&self, _choice: &KemChoice) -> Option<Box<dyn Kem>> { None }
+    fn resolve_kem(&self, _choice: &KemChoice) -> Option<Box<dyn Kem>> {
+        None
+    }
 }
 
 /// A helper struct that helps to opportunistically use one resolver, but
@@ -44,7 +55,7 @@ pub trait CryptoResolver {
 /// a given primitive.
 pub struct FallbackResolver {
     preferred: BoxedCryptoResolver,
-    fallback: BoxedCryptoResolver,
+    fallback:  BoxedCryptoResolver,
 }
 
 impl FallbackResolver {

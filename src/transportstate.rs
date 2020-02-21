@@ -1,9 +1,11 @@
-use crate::params::HandshakePattern;
-use crate::error::{Error, StateProblem};
-use crate::cipherstate::CipherStates;
-use crate::constants::{MAXDHLEN, MAXMSGLEN, TAGLEN};
-use crate::utils::Toggle;
-use crate::handshakestate::HandshakeState;
+use crate::{
+    cipherstate::CipherStates,
+    constants::{MAXDHLEN, MAXMSGLEN, TAGLEN},
+    error::{Error, StateProblem},
+    handshakestate::HandshakeState,
+    params::HandshakePattern,
+    utils::Toggle,
+};
 use std::{convert::TryFrom, fmt};
 
 /// A state machine encompassing the transport phase of a Noise session, using the two
@@ -12,11 +14,11 @@ use std::{convert::TryFrom, fmt};
 ///
 /// See: http://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct TransportState {
-    cipherstates : CipherStates,
-    pattern      : HandshakePattern,
-    dh_len       : usize,
-    rs           : Toggle<[u8; MAXDHLEN]>,
-    initiator    : bool,
+    cipherstates: CipherStates,
+    pattern:      HandshakePattern,
+    dh_len:       usize,
+    rs:           Toggle<[u8; MAXDHLEN]>,
+    initiator:    bool,
 }
 
 impl TransportState {
@@ -26,16 +28,10 @@ impl TransportState {
         }
 
         let dh_len = handshake.dh_len();
-        let HandshakeState {cipherstates, params, rs, initiator, ..} = handshake;
+        let HandshakeState { cipherstates, params, rs, initiator, .. } = handshake;
         let pattern = params.handshake.pattern;
 
-        Ok(TransportState {
-            cipherstates,
-            pattern,
-            dh_len,
-            rs,
-            initiator,
-        })
+        Ok(TransportState { cipherstates, pattern, dh_len, rs, initiator })
     }
 
     /// Get the remote party's static public key, if available.
@@ -57,16 +53,15 @@ impl TransportState {
     ///
     /// Will result in `Error::Input` if the size of the output exceeds the max message
     /// length in the Noise Protocol (65535 bytes).
-    pub fn write_message(&mut self,
-                                   payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize, Error> {
+    pub fn write_message(&mut self, payload: &[u8], message: &mut [u8]) -> Result<usize, Error> {
         if !self.initiator && self.pattern.is_oneway() {
             bail!(StateProblem::OneWay);
         } else if payload.len() + TAGLEN > MAXMSGLEN || payload.len() + TAGLEN > message.len() {
             bail!(Error::Input);
         }
 
-        let cipher = if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
+        let cipher =
+            if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
         Ok(cipher.encrypt(payload, message)?)
     }
 
@@ -82,13 +77,12 @@ impl TransportState {
     /// # Panics
     ///
     /// This function will panic if there is no key, or if there is a nonce overflow.
-    pub fn read_message(&mut self,
-                                   payload: &[u8],
-                                   message: &mut [u8]) -> Result<usize, Error> {
+    pub fn read_message(&mut self, payload: &[u8], message: &mut [u8]) -> Result<usize, Error> {
         if self.initiator && self.pattern.is_oneway() {
             bail!(StateProblem::OneWay);
         }
-        let cipher = if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
+        let cipher =
+            if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
         cipher.decrypt(payload, message).map_err(|_| Error::Decrypt)
     }
 

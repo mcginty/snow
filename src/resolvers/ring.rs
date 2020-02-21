@@ -1,10 +1,14 @@
 use super::CryptoResolver;
-use ring::aead::{self, LessSafeKey, UnboundKey};
-use ring::digest;
-use ring::rand::{SystemRandom, SecureRandom};
-use crate::constants::TAGLEN;
-use crate::params::{DHChoice, HashChoice, CipherChoice};
-use crate::types::{Random, Dh, Hash, Cipher};
+use crate::{
+    constants::TAGLEN,
+    params::{CipherChoice, DHChoice, HashChoice},
+    types::{Cipher, Dh, Hash, Random},
+};
+use ring::{
+    aead::{self, LessSafeKey, UnboundKey},
+    digest,
+    rand::{SecureRandom, SystemRandom},
+};
 
 /// A resolver that chooses [ring](https://github.com/briansmith/ring)-backed
 /// primitives when available.
@@ -25,13 +29,13 @@ impl CryptoResolver for RingResolver {
         match *choice {
             HashChoice::SHA256 => Some(Box::new(HashSHA256::default())),
             HashChoice::SHA512 => Some(Box::new(HashSHA512::default())),
-            _                  => None,
+            _ => None,
         }
     }
 
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         match *choice {
-            CipherChoice::AESGCM     => Some(Box::new(CipherAESGCM::default())),
+            CipherChoice::AESGCM => Some(Box::new(CipherAESGCM::default())),
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
         }
     }
@@ -43,9 +47,7 @@ struct RingRng {
 
 impl Default for RingRng {
     fn default() -> Self {
-        Self {
-            rng: SystemRandom::new()
-        }
+        Self { rng: SystemRandom::new() }
     }
 }
 
@@ -102,13 +104,26 @@ impl Cipher for CipherAESGCM {
 
         let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
 
-        let tag = self.key.seal_in_place_separate_tag(nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()]).unwrap();
+        let tag = self
+            .key
+            .seal_in_place_separate_tag(
+                nonce,
+                aead::Aad::from(authtext),
+                &mut out[..plaintext.len()],
+            )
+            .unwrap();
         &mut out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
 
         plaintext.len() + TAGLEN
     }
 
-    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
+    fn decrypt(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
         copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
         let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
@@ -117,14 +132,20 @@ impl Cipher for CipherAESGCM {
             let in_out = &mut out[..ciphertext.len()];
             in_out.copy_from_slice(ciphertext);
 
-            let len = self.key.open_in_place(nonce, aead::Aad::from(authtext), in_out).map_err(|_| ())?
+            let len = self
+                .key
+                .open_in_place(nonce, aead::Aad::from(authtext), in_out)
+                .map_err(|_| ())?
                 .len();
 
             Ok(len)
         } else {
             let mut in_out = ciphertext.to_vec();
 
-            let out0 = self.key.open_in_place(nonce, aead::Aad::from(authtext), &mut in_out).map_err(|_| ())?;
+            let out0 = self
+                .key
+                .open_in_place(nonce, aead::Aad::from(authtext), &mut in_out)
+                .map_err(|_| ())?;
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
@@ -161,13 +182,26 @@ impl Cipher for CipherChaChaPoly {
 
         out[..plaintext.len()].copy_from_slice(plaintext);
 
-        let tag = self.key.seal_in_place_separate_tag(nonce, aead::Aad::from(authtext), &mut out[..plaintext.len()]).unwrap();
+        let tag = self
+            .key
+            .seal_in_place_separate_tag(
+                nonce,
+                aead::Aad::from(authtext),
+                &mut out[..plaintext.len()],
+            )
+            .unwrap();
         &mut out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
 
         plaintext.len() + TAGLEN
     }
 
-    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
+    fn decrypt(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ()> {
         let mut nonce_bytes = [0u8; 12];
         copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
         let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
@@ -176,14 +210,20 @@ impl Cipher for CipherChaChaPoly {
             let in_out = &mut out[..ciphertext.len()];
             in_out.copy_from_slice(ciphertext);
 
-            let len = self.key.open_in_place(nonce, aead::Aad::from(authtext), in_out).map_err(|_| ())?
+            let len = self
+                .key
+                .open_in_place(nonce, aead::Aad::from(authtext), in_out)
+                .map_err(|_| ())?
                 .len();
 
             Ok(len)
         } else {
             let mut in_out = ciphertext.to_vec();
 
-            let out0 = self.key.open_in_place(nonce, aead::Aad::from(authtext), &mut in_out).map_err(|_| ())?;
+            let out0 = self
+                .key
+                .open_in_place(nonce, aead::Aad::from(authtext), &mut in_out)
+                .map_err(|_| ())?;
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }

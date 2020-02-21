@@ -72,22 +72,24 @@ macro_rules! bail {
     };
 }
 
-pub mod error;
-mod utils;
-mod constants;
-mod cipherstate;
-mod symmetricstate;
-mod handshakestate;
 mod builder;
-mod transportstate;
+mod cipherstate;
+mod constants;
+pub mod error;
+mod handshakestate;
 mod stateless_transportstate;
+mod symmetricstate;
+mod transportstate;
+mod utils;
 
 pub mod params;
-pub mod types;
 pub mod resolvers;
+pub mod types;
 
-pub use crate::error::Error;
-pub use crate::builder::{Builder, Keypair};
-pub use crate::handshakestate::HandshakeState;
-pub use crate::transportstate::TransportState;
-pub use crate::stateless_transportstate::StatelessTransportState;
+pub use crate::{
+    builder::{Builder, Keypair},
+    error::Error,
+    handshakestate::HandshakeState,
+    stateless_transportstate::StatelessTransportState,
+    transportstate::TransportState,
+};

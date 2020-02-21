@@ -2,13 +2,16 @@ extern crate sodiumoxide;
 
 use byteorder::{ByteOrder, LittleEndian};
 
-use crate::params::{CipherChoice, DHChoice, HashChoice};
-use crate::types::{Cipher, Dh, Hash, Random};
 use super::CryptoResolver;
+use crate::{
+    params::{CipherChoice, DHChoice, HashChoice},
+    types::{Cipher, Dh, Hash, Random},
+};
 
-use sodiumoxide::crypto::aead::chacha20poly1305_ietf as sodium_chacha20poly1305;
-use sodiumoxide::crypto::hash::sha256 as sodium_sha256;
-use sodiumoxide::crypto::scalarmult::curve25519 as sodium_curve25519;
+use sodiumoxide::crypto::{
+    aead::chacha20poly1305_ietf as sodium_chacha20poly1305, hash::sha256 as sodium_sha256,
+    scalarmult::curve25519 as sodium_curve25519,
+};
 
 /// A resolver that uses [libsodium](https://github.com/jedisct1/libsodium)
 /// via [sodiumoxide](https://crates.io/crates/sodiumoxide).
@@ -45,7 +48,7 @@ impl CryptoResolver for SodiumResolver {
 // Elliptic curve 25519.
 pub struct SodiumDh25519 {
     privkey: sodium_curve25519::Scalar,
-    pubkey: sodium_curve25519::GroupElement,
+    pubkey:  sodium_curve25519::GroupElement,
 }
 
 impl SodiumDh25519 {
@@ -62,7 +65,7 @@ impl Default for SodiumDh25519 {
 
         SodiumDh25519 {
             privkey: sodium_curve25519::Scalar([0; 32]),
-            pubkey: sodium_curve25519::GroupElement([0; 32]),
+            pubkey:  sodium_curve25519::GroupElement([0; 32]),
         }
     }
 }
@@ -114,7 +117,7 @@ impl Dh for SodiumDh25519 {
             Ok(ref buf) => {
                 copy_slices!(buf.as_ref(), out);
                 Ok(())
-            }
+            },
             Err(_) => Err(()),
         }
     }
@@ -129,9 +132,7 @@ impl Default for SodiumChaChaPoly {
     fn default() -> SodiumChaChaPoly {
         sodiumoxide::init().unwrap();
 
-        SodiumChaChaPoly {
-            key: sodium_chacha20poly1305::Key([0; 32]),
-        }
+        SodiumChaChaPoly { key: sodium_chacha20poly1305::Key([0; 32]) }
     }
 }
 
@@ -173,7 +174,7 @@ impl Cipher for SodiumChaChaPoly {
             Ok(ref buf) => {
                 copy_slices!(&buf, out);
                 Ok(buf.len())
-            }
+            },
             Err(_) => Err(()),
         }
     }
@@ -257,24 +258,22 @@ mod tests {
     extern crate hex;
 
     use self::hex::FromHex;
-    use rand::rngs::OsRng;
     use super::*;
+    use rand::rngs::OsRng;
 
     #[test]
     fn test_curve25519() {
         // Values are cited from RFC-7748: 5.2.  Test Vectors.
         let mut keypair: SodiumDh25519 = Default::default();
-        let scalar = Vec::<u8>::from_hex(
-            "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
-        ).unwrap();
+        let scalar =
+            Vec::<u8>::from_hex("a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4")
+                .unwrap();
         keypair.set(&scalar);
-        let public = Vec::<u8>::from_hex(
-            "e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c",
-        ).unwrap();
+        let public =
+            Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c")
+                .unwrap();
         let mut output = [0u8; 32];
-        keypair
-            .dh(&public, &mut output)
-            .expect("Can't calculate DH");
+        keypair.dh(&public, &mut output).expect("Can't calculate DH");
 
         assert_eq!(
             output,
@@ -297,14 +296,10 @@ mod tests {
 
         // Create shared secrets with public keys of each other.
         let mut our_shared_secret = [0u8; 32];
-        keypair_a
-            .dh(keypair_b.pubkey(), &mut our_shared_secret)
-            .expect("Can't calculate DH");
+        keypair_a.dh(keypair_b.pubkey(), &mut our_shared_secret).expect("Can't calculate DH");
 
         let mut remote_shared_secret = [0u8; 32];
-        keypair_b
-            .dh(keypair_a.pubkey(), &mut remote_shared_secret)
-            .expect("Can't calculate DH");
+        keypair_b.dh(keypair_a.pubkey(), &mut remote_shared_secret).expect("Can't calculate DH");
 
         // Results are expected to be the same.
         assert_eq!(our_shared_secret, remote_shared_secret);

@@ -6,18 +6,10 @@ use std::str::FromStr;
 mod patterns;
 
 pub use self::patterns::{
-    HandshakeChoice,
-    HandshakeModifier,
-    HandshakePattern,
-    SUPPORTED_HANDSHAKE_PATTERNS,
+    HandshakeChoice, HandshakeModifier, HandshakePattern, SUPPORTED_HANDSHAKE_PATTERNS,
 };
 
-pub(crate) use self::patterns::{
-    HandshakeTokens,
-    MessagePatterns,
-    DhToken,
-    Token,
-};
+pub(crate) use self::patterns::{DhToken, HandshakeTokens, MessagePatterns, Token};
 
 /// I recommend you choose `Noise`.
 #[allow(missing_docs)]
@@ -28,11 +20,12 @@ pub enum BaseChoice {
 
 impl FromStr for BaseChoice {
     type Err = Error;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::BaseChoice::*;
         match s {
             "Noise" => Ok(Noise),
-            _       => bail!(PatternProblem::UnsupportedBaseType)
+            _ => bail!(PatternProblem::UnsupportedBaseType),
         }
     }
 }
@@ -47,12 +40,13 @@ pub enum DHChoice {
 
 impl FromStr for DHChoice {
     type Err = Error;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::DHChoice::*;
         match s {
             "25519" => Ok(Curve25519),
-            "448"   => Ok(Ed448),
-            _       => bail!(PatternProblem::UnsupportedDhType)
+            "448" => Ok(Ed448),
+            _ => bail!(PatternProblem::UnsupportedDhType),
         }
     }
 }
@@ -67,12 +61,13 @@ pub enum CipherChoice {
 
 impl FromStr for CipherChoice {
     type Err = Error;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::CipherChoice::*;
         match s {
             "ChaChaPoly" => Ok(ChaChaPoly),
-            "AESGCM"     => Ok(AESGCM),
-            _            => bail!(PatternProblem::UnsupportedCipherType)
+            "AESGCM" => Ok(AESGCM),
+            _ => bail!(PatternProblem::UnsupportedCipherType),
         }
     }
 }
@@ -89,14 +84,15 @@ pub enum HashChoice {
 
 impl FromStr for HashChoice {
     type Err = Error;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::HashChoice::*;
         match s {
-            "SHA256"  => Ok(SHA256),
-            "SHA512"  => Ok(SHA512),
+            "SHA256" => Ok(SHA256),
+            "SHA512" => Ok(SHA512),
             "BLAKE2s" => Ok(Blake2s),
             "BLAKE2b" => Ok(Blake2b),
-            _         => bail!(PatternProblem::UnsupportedHashType)
+            _ => bail!(PatternProblem::UnsupportedHashType),
         }
     }
 }
@@ -106,17 +102,18 @@ impl FromStr for HashChoice {
 #[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum KemChoice {
-    Kyber1024
+    Kyber1024,
 }
 
 #[cfg(feature = "hfs")]
 impl FromStr for KemChoice {
     type Err = Error;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::KemChoice::*;
         match s {
             "Kyber1024" => Ok(Kyber1024),
-            _           => bail!(PatternProblem::UnsupportedKemType)
+            _ => bail!(PatternProblem::UnsupportedKemType),
         }
     }
 }
@@ -137,39 +134,41 @@ impl FromStr for KemChoice {
 #[allow(missing_docs)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct NoiseParams {
-    pub name: String,
-    pub base: BaseChoice,
+    pub name:      String,
+    pub base:      BaseChoice,
     pub handshake: HandshakeChoice,
-    pub dh: DHChoice,
-    #[cfg(feature = "hfs")] pub kem: Option<KemChoice>,
-    pub cipher: CipherChoice,
-    pub hash: HashChoice,
+    pub dh:        DHChoice,
+    #[cfg(feature = "hfs")]
+    pub kem:       Option<KemChoice>,
+    pub cipher:    CipherChoice,
+    pub hash:      HashChoice,
 }
 
 impl NoiseParams {
-
     #[cfg(not(feature = "hfs"))]
     /// Construct a new NoiseParams via specifying enums directly.
-    pub fn new(name: String,
-               base: BaseChoice,
-               handshake: HandshakeChoice,
-               dh: DHChoice,
-               cipher: CipherChoice,
-               hash: HashChoice) -> Self
-    {
+    pub fn new(
+        name: String,
+        base: BaseChoice,
+        handshake: HandshakeChoice,
+        dh: DHChoice,
+        cipher: CipherChoice,
+        hash: HashChoice,
+    ) -> Self {
         NoiseParams { name, base, handshake, dh, cipher, hash }
     }
 
     #[cfg(feature = "hfs")]
     /// Construct a new NoiseParams via specifying enums directly.
-    pub fn new(name: String,
-               base: BaseChoice,
-               handshake: HandshakeChoice,
-               dh: DHChoice,
-               kem: Option<KemChoice>,
-               cipher: CipherChoice,
-               hash: HashChoice) -> Self
-    {
+    pub fn new(
+        name: String,
+        base: BaseChoice,
+        handshake: HandshakeChoice,
+        dh: DHChoice,
+        kem: Option<KemChoice>,
+        cipher: CipherChoice,
+        hash: HashChoice,
+    ) -> Self {
         NoiseParams { name, base, handshake, dh, kem, cipher, hash }
     }
 }
@@ -180,27 +179,40 @@ impl FromStr for NoiseParams {
     #[cfg(not(feature = "hfs"))]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split('_');
-        Ok(NoiseParams::new(s.to_owned(),
-                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
-                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
-                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
-                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
-                            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?))
+        Ok(NoiseParams::new(
+            s.to_owned(),
+            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+        ))
     }
 
     #[cfg(feature = "hfs")]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split('_').peekable();
-        let p = NoiseParams::new(s.to_owned(),
-                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
-                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
-                                 split.peek().ok_or(PatternProblem::TooFewParameters)?
-                                      .splitn(2, '+').nth(0)
-                                      .ok_or(PatternProblem::TooFewParameters)?.parse()?,
-                                 split.next().ok_or(PatternProblem::TooFewParameters)?
-                                      .splitn(2, '+').nth(1).map(|s| s.parse()).transpose()?,
-                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
-                                 split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?);
+        let p = NoiseParams::new(
+            s.to_owned(),
+            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+            split
+                .peek()
+                .ok_or(PatternProblem::TooFewParameters)?
+                .splitn(2, '+')
+                .nth(0)
+                .ok_or(PatternProblem::TooFewParameters)?
+                .parse()?,
+            split
+                .next()
+                .ok_or(PatternProblem::TooFewParameters)?
+                .splitn(2, '+')
+                .nth(1)
+                .map(|s| s.parse())
+                .transpose()?,
+            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+            split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
+        );
 
         // Validate that a KEM is specified iff the hfs modifier is present
         if p.handshake.is_hfs() != p.kem.is_some() {
@@ -212,8 +224,8 @@ impl FromStr for NoiseParams {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::TryFrom;
     use super::*;
+    use std::convert::TryFrom;
 
     #[test]
     fn test_simple_handshake() {
@@ -249,7 +261,7 @@ mod tests {
         let p: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
         match p.handshake.modifiers.list[0] {
             HandshakeModifier::Psk(0) => {},
-            _ => panic!("modifier isn't as expected!")
+            _ => panic!("modifier isn't as expected!"),
         }
     }
 
@@ -261,7 +273,7 @@ mod tests {
         let mods = p.handshake.modifiers.list;
         match (mods[0], mods[1], mods[2]) {
             (Psk(0), Psk(1), Psk(2)) => {},
-            _ => panic!("modifiers weren't as expected! actual: {:?}", mods)
+            _ => panic!("modifiers weren't as expected! actual: {:?}", mods),
         }
     }
 
@@ -271,7 +283,7 @@ mod tests {
         let tokens = HandshakeTokens::try_from(&p.handshake).unwrap();
         match tokens.msg_patterns[0][0] {
             Token::Psk(_) => {},
-            _ => panic!("missing token!")
+            _ => panic!("missing token!"),
         }
     }
 
@@ -283,13 +295,13 @@ mod tests {
 
         match tokens.msg_patterns[0][0] {
             Token::Psk(_) => {},
-            _ => panic!("missing token!")
+            _ => panic!("missing token!"),
         }
 
         let second = &tokens.msg_patterns[1];
-        match second[second.len()-1] {
+        match second[second.len() - 1] {
             Token::Psk(_) => {},
-            _ => panic!("missing token!")
+            _ => panic!("missing token!"),
         }
     }
 }

@@ -74,15 +74,28 @@ macro_rules! pattern_enum {
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub(crate) enum DhToken { Ee, Es, Se, Ss }
+pub(crate) enum DhToken {
+    Ee,
+    Es,
+    Se,
+    Ss,
+}
 
 /// The tokens which describe message patterns.
 ///
 /// See: http://noiseprotocol.org/noise.html#handshake-patterns
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub(crate) enum Token { E, S, Dh(DhToken), Psk(u8),
-    #[cfg(feature = "hfs")] E1, #[cfg(feature = "hfs")] Ekem1 }
+pub(crate) enum Token {
+    E,
+    S,
+    Dh(DhToken),
+    Psk(u8),
+    #[cfg(feature = "hfs")]
+    E1,
+    #[cfg(feature = "hfs")]
+    Ekem1,
+}
 
 #[cfg(feature = "hfs")]
 impl Token {
@@ -116,7 +129,7 @@ impl HandshakePattern {
     pub fn is_oneway(self) -> bool {
         match self {
             N | X | K => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -125,12 +138,12 @@ impl HandshakePattern {
         if initiator {
             match self {
                 N | NN | NK | NX | NK1 | NX1 => false,
-                _ => true
+                _ => true,
             }
         } else {
             match self {
                 NN | XN | KN | IN | X1N | K1N | I1N => false,
-                _ => true
+                _ => true,
             }
         }
     }
@@ -139,14 +152,13 @@ impl HandshakePattern {
     pub fn need_known_remote_pubkey(self, initiator: bool) -> bool {
         if initiator {
             match self {
-                N | K | X | NK | XK | KK | IK | NK1 | X1K | XK1 | X1K1
-                  | K1K | KK1 | K1K1 | I1K | IK1 | I1K1 => true,
-                _ => false
+                N | K | X | NK | XK | KK | IK | NK1 | X1K | XK1 | X1K1 | K1K | KK1 | K1K1 | I1K
+                | IK1 | I1K1 => true,
+                _ => false,
             }
         } else {
             match self {
-                K | KN | KK | KX | K1N | K1K | KK1 | K1K1 | K1X | KX1
-                  | K1X1 => true,
+                K | KN | KK | KX | K1N | K1K | KK1 | K1K1 | K1X | KX1 | K1X1 => true,
                 _ => false,
             }
         }
@@ -172,11 +184,9 @@ impl FromStr for HandshakeModifier {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            s if s.starts_with("psk") => {
-                Ok(HandshakeModifier::Psk((&s[3..])
-                    .parse()
-                    .map_err(|_| PatternProblem::InvalidPsk)?))
-            }
+            s if s.starts_with("psk") => Ok(HandshakeModifier::Psk(
+                (&s[3..]).parse().map_err(|_| PatternProblem::InvalidPsk)?,
+            )),
             "fallback" => Ok(HandshakeModifier::Fallback),
             #[cfg(feature = "hfs")]
             "hfs" => Ok(HandshakeModifier::Hfs),
@@ -187,7 +197,7 @@ impl FromStr for HandshakeModifier {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct HandshakeModifierList {
-    pub list: Vec<HandshakeModifier>
+    pub list: Vec<HandshakeModifier>,
 }
 
 impl FromStr for HandshakeModifierList {
@@ -195,14 +205,14 @@ impl FromStr for HandshakeModifierList {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.is_empty() {
-            Ok(HandshakeModifierList{ list: vec![] })
+            Ok(HandshakeModifierList { list: vec![] })
         } else {
             let modifier_names = s.split('+');
             let mut modifiers = vec![];
             for modifier_name in modifier_names {
                 modifiers.push(modifier_name.parse()?);
             }
-            Ok(HandshakeModifierList{ list: modifiers })
+            Ok(HandshakeModifierList { list: modifiers })
         }
     }
 }
@@ -243,7 +253,7 @@ impl HandshakeChoice {
     /// Parse and split a base HandshakePattern from its optional modifiers
     fn parse_pattern_and_modifier(s: &str) -> Result<(HandshakePattern, &str), Error> {
         for i in (1..=4).rev() {
-            if s.len() > i-1 && s.is_char_boundary(i) {
+            if s.len() > i - 1 && s.is_char_boundary(i) {
                 if let Ok(p) = (&s[..i]).parse() {
                     return Ok((p, &s[i..]));
                 }
@@ -256,14 +266,12 @@ impl HandshakeChoice {
 
 impl FromStr for HandshakeChoice {
     type Err = Error;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (pattern, remainder) = Self::parse_pattern_and_modifier(s)?;
         let modifiers = remainder.parse()?;
 
-        Ok(HandshakeChoice {
-            pattern,
-            modifiers,
-        })
+        Ok(HandshakeChoice { pattern, modifiers })
     }
 }
 
@@ -277,12 +285,10 @@ pub(crate) type MessagePatterns = Vec<Vec<Token>>;
 pub(crate) struct HandshakeTokens {
     pub premsg_pattern_i: PremessagePatterns,
     pub premsg_pattern_r: PremessagePatterns,
-    pub msg_patterns: MessagePatterns,
+    pub msg_patterns:     MessagePatterns,
 }
 
-use self::DhToken::*;
-use self::Token::*;
-use self::HandshakePattern::*;
+use self::{DhToken::*, HandshakePattern::*, Token::*};
 
 type Patterns = (PremessagePatterns, PremessagePatterns, MessagePatterns);
 
@@ -294,6 +300,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
         // Hfs cannot be combined with one-way handshake patterns
         check_hfs_and_oneway_conflict(handshake)?;
 
+        #[rustfmt::skip]
         let mut patterns: Patterns = match handshake.pattern {
             N  => (
                 static_slice![Token: ],
@@ -490,7 +497,8 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
         for modifier in handshake.modifiers.list.iter() {
             match modifier {
                 HandshakeModifier::Psk(n) => apply_psk_modifier(&mut patterns, *n),
-                #[cfg(feature = "hfs")] HandshakeModifier::Hfs => apply_hfs_modifier(&mut patterns),
+                #[cfg(feature = "hfs")]
+                HandshakeModifier::Hfs => apply_hfs_modifier(&mut patterns),
                 _ => bail!(PatternProblem::UnsupportedModifier),
             }
         }
@@ -498,7 +506,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
         Ok(HandshakeTokens {
             premsg_pattern_i: patterns.0,
             premsg_pattern_r: patterns.1,
-            msg_patterns: patterns.2,
+            msg_patterns:     patterns.2,
         })
     }
 }
@@ -517,15 +525,19 @@ fn check_hfs_and_oneway_conflict(handshake: &HandshakeChoice) -> Result<(), Erro
 }
 
 #[cfg(not(feature = "hfs"))]
-fn check_hfs_and_oneway_conflict(_: &HandshakeChoice) -> Result<(), Error> { Ok(()) }
+fn check_hfs_and_oneway_conflict(_: &HandshakeChoice) -> Result<(), Error> {
+    Ok(())
+}
 
 fn apply_psk_modifier(patterns: &mut Patterns, n: u8) {
     match n {
-        0 => { patterns.2[0].insert(0, Token::Psk(n)); },
+        0 => {
+            patterns.2[0].insert(0, Token::Psk(n));
+        },
         _ => {
             let i = (n as usize) - 1;
             patterns.2[i].push(Token::Psk(n));
-        }
+        },
     }
 }
 

@@ -1,35 +1,35 @@
 #![cfg(feature = "vector-tests")]
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
 
 use hex;
 
-
-use serde_json;
 use rand;
+use serde_json;
 
-use serde::de::{self, Deserialize, Deserializer, Visitor, Unexpected};
-use serde::ser::{Serialize, Serializer};
-use std::ops::Deref;
 use hex::FromHex;
 use rand::RngCore;
-use snow::{Builder, Keypair, HandshakeState};
-use snow::params::*;
-use std::fmt;
-use std::fs::{File, OpenOptions};
-use std::io::Read;
+use serde::{
+    de::{self, Deserialize, Deserializer, Unexpected, Visitor},
+    ser::{Serialize, Serializer},
+};
+use snow::{params::*, Builder, HandshakeState, Keypair};
+use std::{
+    fmt,
+    fs::{File, OpenOptions},
+    io::Read,
+    ops::Deref,
+};
 
 #[derive(Clone)]
 struct HexBytes {
     original: String,
-    payload: Vec<u8>,
+    payload:  Vec<u8>,
 }
 
 impl From<Vec<u8>> for HexBytes {
     fn from(payload: Vec<u8>) -> Self {
-        Self {
-            original: hex::encode(&payload),
-            payload: payload,
-        }
+        Self { original: hex::encode(&payload), payload }
     }
 }
 
@@ -56,20 +56,19 @@ impl<'de> Visitor<'de> for HexBytesVisitor {
     }
 
     fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
-        where E: de::Error
+    where
+        E: de::Error,
     {
-        let bytes = Vec::<u8>::from_hex(s).map_err(|_| de::Error::invalid_value(Unexpected::Str(s), &self))?;
-        Ok(HexBytes {
-            original: s.to_owned(),
-            payload: bytes,
-        })
+        let bytes = Vec::<u8>::from_hex(s)
+            .map_err(|_| de::Error::invalid_value(Unexpected::Str(s), &self))?;
+        Ok(HexBytes { original: s.to_owned(), payload: bytes })
     }
-
 }
 
 impl<'de> Deserialize<'de> for HexBytes {
     fn deserialize<D>(deserializer: D) -> Result<HexBytes, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         deserializer.deserialize_str(HexBytesVisitor)
     }
@@ -77,7 +76,8 @@ impl<'de> Deserialize<'de> for HexBytes {
 
 impl Serialize for HexBytes {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer
+    where
+        S: Serializer,
     {
         serializer.serialize_str(&hex::encode(&self.payload))
     }
@@ -85,7 +85,7 @@ impl Serialize for HexBytes {
 
 #[derive(Serialize, Deserialize)]
 struct TestMessage {
-    payload: HexBytes,
+    payload:    HexBytes,
     ciphertext: HexBytes,
 }
 
@@ -97,49 +97,45 @@ impl fmt::Debug for TestMessage {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct TestVector {
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
 
     protocol_name: String,
 
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     hybrid: Option<String>,
 
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     fail: Option<bool>,
 
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     fallback: Option<bool>,
 
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     fallback_pattern: Option<String>,
 
     init_prologue: HexBytes,
 
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     init_psks: Option<Vec<HexBytes>>,
 
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     init_static: Option<HexBytes>,
 
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     init_ephemeral: Option<HexBytes>,
 
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     init_remote_static: Option<HexBytes>,
 
-    resp_prologue: HexBytes,
-    #[serde(skip_serializing_if="Option::is_none")]
-
-    resp_psks: Option<Vec<HexBytes>>,
-    #[serde(skip_serializing_if="Option::is_none")]
-
-    resp_static: Option<HexBytes>,
-    #[serde(skip_serializing_if="Option::is_none")]
-
-    resp_ephemeral: Option<HexBytes>,
-    #[serde(skip_serializing_if="Option::is_none")]
-
+    resp_prologue:      HexBytes,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    resp_psks:          Option<Vec<HexBytes>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    resp_static:        Option<HexBytes>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    resp_ephemeral:     Option<HexBytes>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     resp_remote_static: Option<HexBytes>,
 
     messages: Vec<TestMessage>,
@@ -189,55 +185,70 @@ fn build_session_pair(vector: &TestVector) -> Result<(HandshakeState, HandshakeS
         resp_builder = resp_builder.fixed_ephemeral_key_for_testing_only(&*resp_e);
     }
 
-    let init = init_builder.prologue(&vector.init_prologue).build_initiator()
+    let init = init_builder
+        .prologue(&vector.init_prologue)
+        .build_initiator()
         .map_err(|e| format!("{:?}", e))?;
-    let resp = resp_builder.prologue(&vector.resp_prologue).build_responder()
+    let resp = resp_builder
+        .prologue(&vector.resp_prologue)
+        .build_responder()
         .map_err(|e| format!("{:?}", e))?;
 
     Ok((init, resp))
 }
 
-fn confirm_message_vectors(mut init: HandshakeState, mut resp: HandshakeState, messages_vec: &Vec<TestMessage>, is_oneway: bool) -> Result<(), String> {
+fn confirm_message_vectors(
+    mut init: HandshakeState,
+    mut resp: HandshakeState,
+    messages_vec: &Vec<TestMessage>,
+    is_oneway: bool,
+) -> Result<(), String> {
     let (mut sendbuf, mut recvbuf) = ([0u8; 65535], [0u8; 65535]);
     let mut messages = messages_vec.iter().enumerate();
     while !init.is_handshake_finished() {
         let (i, message) = messages.next().unwrap();
-        let (send, recv) = if i % 2 == 0 {
-            (&mut init, &mut resp)
-        } else {
-            (&mut resp, &mut init)
-        };
+        let (send, recv) = if i % 2 == 0 { (&mut init, &mut resp) } else { (&mut resp, &mut init) };
 
-        let len = send.write_message(&*message.payload, &mut sendbuf).map_err(|_| format!("write_message failed on message {}", i))?;
-        let recv_len = recv.read_message(&sendbuf[..len], &mut recvbuf).map_err(|_| format!("read_message failed on message {}", i))?;
-        if &sendbuf[..len] != &(*message.ciphertext)[..] || *message.payload != &recvbuf[..recv_len] {
+        let len = send
+            .write_message(&*message.payload, &mut sendbuf)
+            .map_err(|_| format!("write_message failed on message {}", i))?;
+        let recv_len = recv
+            .read_message(&sendbuf[..len], &mut recvbuf)
+            .map_err(|_| format!("read_message failed on message {}", i))?;
+        if &sendbuf[..len] != &(*message.ciphertext)[..] || *message.payload != &recvbuf[..recv_len]
+        {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
             s.push_str(&format!("plaintext: {}\n", hex::encode(&*message.payload)));
             s.push_str(&format!("expected:  {}\n", hex::encode(&*message.ciphertext)));
-            s.push_str(&format!("actual:    {}",   hex::encode(&sendbuf[..len].to_owned())));
-            return Err(s)
+            s.push_str(&format!("actual:    {}", hex::encode(&sendbuf[..len].to_owned())));
+            return Err(s);
         }
     }
 
-    let (mut init, mut resp) = (init.into_transport_mode().unwrap(), resp.into_transport_mode().unwrap());
+    let (mut init, mut resp) =
+        (init.into_transport_mode().unwrap(), resp.into_transport_mode().unwrap());
     for (i, message) in messages {
-        let (send, recv) = if is_oneway || i % 2 == 0 {
-            (&mut init, &mut resp)
-        } else {
-            (&mut resp, &mut init)
-        };
+        let (send, recv) =
+            if is_oneway || i % 2 == 0 { (&mut init, &mut resp) } else { (&mut resp, &mut init) };
 
         let len = send.write_message(&*message.payload, &mut sendbuf).unwrap();
         let recv_len = recv.read_message(&sendbuf[..len], &mut recvbuf).unwrap();
-        if &sendbuf[..len] != &(*message.ciphertext)[..] || *message.payload != &recvbuf[..recv_len] {
+        if &sendbuf[..len] != &(*message.ciphertext)[..] || *message.payload != &recvbuf[..recv_len]
+        {
             let mut s = String::new();
             s.push_str(&format!("message {}", i));
             s.push_str(&format!("plaintext          : {}\n", hex::encode(&*message.payload)));
             s.push_str(&format!("expected ciphertext: {}\n", hex::encode(&*message.ciphertext)));
-            s.push_str(&format!("actual ciphertext  : {}\n", hex::encode(&sendbuf[..message.ciphertext.len()].to_owned())));
-            s.push_str(&format!("actual plaintext   : {}", hex::encode(&recvbuf[..recv_len].to_owned())));
-            return Err(s)
+            s.push_str(&format!(
+                "actual ciphertext  : {}\n",
+                hex::encode(&sendbuf[..message.ciphertext.len()].to_owned())
+            ));
+            s.push_str(&format!(
+                "actual plaintext   : {}",
+                hex::encode(&recvbuf[..recv_len].to_owned())
+            ));
+            return Err(s);
         }
     }
     Ok(())
@@ -266,10 +277,15 @@ fn test_vectors_from_json(json: &str) {
                 println!("{}", s);
                 println!("{:?}", vector);
                 continue;
-            }
+            },
         };
 
-        match confirm_message_vectors(init, resp, &vector.messages, params.handshake.pattern.is_oneway()) {
+        match confirm_message_vectors(
+            init,
+            resp,
+            &vector.messages,
+            params.handshake.pattern.is_oneway(),
+        ) {
             Ok(_) => {
                 passes += 1;
             },
@@ -278,11 +294,11 @@ fn test_vectors_from_json(json: &str) {
                 println!("FAIL");
                 println!("{}", s);
                 println!("{:?}", vector);
-            }
+            },
         }
     }
 
-    println!("\n{}/{} passed", passes, passes+fails);
+    println!("\n{}/{} passed", passes, passes + fails);
     println!("* ignored {} unsupported variants", ignored);
     if fails > 0 {
         panic!("at least one vector failed.");
@@ -297,7 +313,11 @@ fn random_vec(size: usize) -> Vec<u8> {
 }
 
 fn get_psks_count(params: &NoiseParams) -> usize {
-    params.handshake.modifiers.list.iter()
+    params
+        .handshake
+        .modifiers
+        .list
+        .iter()
         .filter(|m| if let HandshakeModifier::Psk(_) = m { true } else { false })
         .count()
 }
@@ -358,7 +378,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = init.write_message(&payload, &mut ibuf).unwrap();
         messages.push(TestMessage {
-            payload: payload.clone().into(),
+            payload:    payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
         let _ = resp.read_message(&ibuf[..len], &mut obuf).unwrap();
@@ -370,7 +390,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = resp.write_message(&payload, &mut ibuf).unwrap();
         messages.push(TestMessage {
-            payload: payload.clone().into(),
+            payload:    payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
         let _ = init.read_message(&ibuf[..len], &mut obuf).unwrap();
@@ -422,19 +442,23 @@ fn generate_vector(params: NoiseParams) -> TestVector {
 }
 
 fn generate_vector_set() -> TestVectors {
-    let mut handshakes = SUPPORTED_HANDSHAKE_PATTERNS.iter()
-        .map(|p| p.as_str())
-        .collect::<Vec<&'static str>>();
-    handshakes.extend_from_slice(&["NNpsk0+psk2",
-                          "NXpsk0+psk1+psk2",
-                          "XNpsk1+psk3",
-                          "XKpsk0+psk3",
-                          "KNpsk1+psk2",
-                          "KKpsk0+psk2",
-                          "INpsk1+psk2",
-                          "IKpsk0+psk2",
-                          "IXpsk0+psk2",
-                          "XXpsk0+psk1", "XXpsk0+psk2", "XXpsk0+psk3", "XXpsk0+psk1+psk2+psk3"]);
+    let mut handshakes =
+        SUPPORTED_HANDSHAKE_PATTERNS.iter().map(|p| p.as_str()).collect::<Vec<&'static str>>();
+    handshakes.extend_from_slice(&[
+        "NNpsk0+psk2",
+        "NXpsk0+psk1+psk2",
+        "XNpsk1+psk3",
+        "XKpsk0+psk3",
+        "KNpsk1+psk2",
+        "KKpsk0+psk2",
+        "INpsk1+psk2",
+        "IKpsk0+psk2",
+        "IXpsk0+psk2",
+        "XXpsk0+psk1",
+        "XXpsk0+psk2",
+        "XXpsk0+psk3",
+        "XXpsk0+psk1+psk2+psk3",
+    ]);
     let ciphers = vec!["ChaChaPoly", "AESGCM"];
     let hashes = vec!["BLAKE2s", "BLAKE2b", "SHA256", "SHA512"];
 

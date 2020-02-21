@@ -1,11 +1,14 @@
-use crate::constants::{PSKLEN, MAXDHLEN};
-use crate::handshakestate::HandshakeState;
-use crate::cipherstate::{CipherState, CipherStates};
-use crate::utils::Toggle;
-use crate::params::NoiseParams;
-#[cfg(feature = "hfs")] use crate::params::HandshakeModifier;
-use crate::resolvers::{CryptoResolver, BoxedCryptoResolver};
-use crate::error::{Error, InitStage, Prerequisite};
+#[cfg(feature = "hfs")]
+use crate::params::HandshakeModifier;
+use crate::{
+    cipherstate::{CipherState, CipherStates},
+    constants::{MAXDHLEN, PSKLEN},
+    error::{Error, InitStage, Prerequisite},
+    handshakestate::HandshakeState,
+    params::NoiseParams,
+    resolvers::{BoxedCryptoResolver, CryptoResolver},
+    utils::Toggle,
+};
 use subtle::ConstantTimeEq;
 
 /// A keypair object returned by [`Builder::generate_keypair()`]
@@ -15,9 +18,8 @@ pub struct Keypair {
     /// The private asymmetric key
     pub private: Vec<u8>,
     /// The public asymmetric key
-    pub public: Vec<u8>,
+    pub public:  Vec<u8>,
 }
-
 
 impl PartialEq for Keypair {
     fn eq(&self, other: &Keypair) -> bool {
@@ -57,7 +59,10 @@ pub struct Builder<'builder> {
 
 impl<'builder> Builder<'builder> {
     /// Create a Builder with the default crypto resolver.
-    #[cfg(all(feature = "default-resolver", not(any(feature = "ring-accelerated", feature = "libsodium-accelerated"))))]
+    #[cfg(all(
+        feature = "default-resolver",
+        not(any(feature = "ring-accelerated", feature = "libsodium-accelerated"))
+    ))]
     pub fn new(params: NoiseParams) -> Self {
         use crate::resolvers::DefaultResolver;
 
@@ -67,30 +72,28 @@ impl<'builder> Builder<'builder> {
     /// Create a Builder with the ring resolver and default resolver as a fallback.
     #[cfg(all(not(feature = "libsodium-accelerated"), feature = "ring-accelerated"))]
     pub fn new(params: NoiseParams) -> Self {
-        use crate::resolvers::{FallbackResolver, DefaultResolver, RingResolver};
+        use crate::resolvers::{DefaultResolver, FallbackResolver, RingResolver};
 
-        Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(RingResolver), Box::new(DefaultResolver))))
+        Self::with_resolver(
+            params,
+            Box::new(FallbackResolver::new(Box::new(RingResolver), Box::new(DefaultResolver))),
+        )
     }
 
     /// Create a Builder with the ring resolver and default resolver as a fallback.
     #[cfg(all(not(feature = "ring-accelerated"), feature = "libsodium-accelerated"))]
     pub fn new(params: NoiseParams) -> Self {
-        use crate::resolvers::{FallbackResolver, DefaultResolver, SodiumResolver};
+        use crate::resolvers::{DefaultResolver, FallbackResolver, SodiumResolver};
 
-        Self::with_resolver(params, Box::new(FallbackResolver::new(Box::new(SodiumResolver), Box::new(DefaultResolver))))
+        Self::with_resolver(
+            params,
+            Box::new(FallbackResolver::new(Box::new(SodiumResolver), Box::new(DefaultResolver))),
+        )
     }
 
     /// Create a Builder with a custom crypto resolver.
     pub fn with_resolver(params: NoiseParams, resolver: BoxedCryptoResolver) -> Self {
-        Builder {
-            params,
-            resolver,
-            s: None,
-            e_fixed: None,
-            rs: None,
-            plog: None,
-            psks: [None; 10],
-        }
+        Builder { params, resolver, s: None, e_fixed: None, rs: None, plog: None, psks: [None; 10] }
     }
 
     /// Specify a PSK (only used with `NoisePSK` base parameter)
@@ -128,10 +131,10 @@ impl<'builder> Builder<'builder> {
     // TODO: performance issue w/ creating a new RNG and DH instance per call.
     /// Generate a new asymmetric keypair (for use as a static key).
     pub fn generate_keypair(&self) -> Result<Keypair, Error> {
-        let mut rng     = self.resolver.resolve_rng().ok_or(InitStage::GetRngImpl)?;
-        let mut dh      = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
+        let mut rng = self.resolver.resolve_rng().ok_or(InitStage::GetRngImpl)?;
+        let mut dh = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
         let mut private = vec![0u8; dh.priv_len()];
-        let mut public  = vec![0u8; dh.pub_len()];
+        let mut public = vec![0u8; dh.pub_len()];
         dh.generate(&mut *rng);
 
         private.copy_from_slice(dh.privkey());
@@ -160,12 +163,15 @@ impl<'builder> Builder<'builder> {
         }
 
         let rng = self.resolver.resolve_rng().ok_or(InitStage::GetRngImpl)?;
-        let cipher = self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
+        let cipher =
+            self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
         let hash = self.resolver.resolve_hash(&self.params.hash).ok_or(InitStage::GetHashImpl)?;
         let mut s_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
         let mut e_dh = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
-        let cipher1 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
-        let cipher2 = self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
+        let cipher1 =
+            self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
+        let cipher2 =
+            self.resolver.resolve_cipher(&self.params.cipher).ok_or(InitStage::GetCipherImpl)?;
         let handshake_cipherstate = CipherState::new(cipher);
         let cipherstates = CipherStates::new(CipherState::new(cipher1), CipherState::new(cipher2))?;
 
@@ -174,9 +180,7 @@ impl<'builder> Builder<'builder> {
                 (&mut *s_dh).set(k);
                 Toggle::on(s_dh)
             },
-            None => {
-                Toggle::off(s_dh)
-            }
+            None => Toggle::off(s_dh),
         };
 
         if let Some(fixed_k) = self.e_fixed {
@@ -207,13 +211,21 @@ impl<'builder> Builder<'builder> {
             }
         }
 
-        let mut hs = HandshakeState::new(rng, handshake_cipherstate, hash,
-                                     s, e, self.e_fixed.is_some(), rs, re,
-                                     initiator,
-                                     self.params,
-                                     psks,
-                                     self.plog.unwrap_or_else(|| &[0u8; 0] ),
-                                     cipherstates)?;
+        let mut hs = HandshakeState::new(
+            rng,
+            handshake_cipherstate,
+            hash,
+            s,
+            e,
+            self.e_fixed.is_some(),
+            rs,
+            re,
+            initiator,
+            self.params,
+            psks,
+            self.plog.unwrap_or_else(|| &[0u8; 0]),
+            cipherstates,
+        )?;
         Self::resolve_kem(self.resolver, &mut hs)?;
         Ok(hs)
     }
@@ -225,7 +237,10 @@ impl<'builder> Builder<'builder> {
     }
 
     #[cfg(feature = "hfs")]
-    fn resolve_kem(resolver: Box<dyn CryptoResolver>, hs: &mut HandshakeState) -> Result<(), Error> {
+    fn resolve_kem(
+        resolver: Box<dyn CryptoResolver>,
+        hs: &mut HandshakeState,
+    ) -> Result<(), Error> {
         if hs.params.handshake.modifiers.list.contains(&HandshakeModifier::Hfs) {
             if let Some(kem_choice) = hs.params.kem {
                 let kem = resolver.resolve_kem(&kem_choice).ok_or(InitStage::GetKemImpl)?;
@@ -246,9 +261,10 @@ mod tests {
     #[test]
     fn test_builder() {
         let _noise = Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
-            .prologue(&[2,2,2,2,2,2,2,2])
+            .prologue(&[2, 2, 2, 2, 2, 2, 2, 2])
             .local_private_key(&[0u8; 32])
-            .build_initiator().unwrap();
+            .build_initiator()
+            .unwrap();
     }
 
     #[test]
@@ -261,7 +277,8 @@ mod tests {
 
     #[test]
     fn test_builder_bad_spec() {
-        let params: ::std::result::Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
+        let params: ::std::result::Result<NoiseParams, _> =
+            "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
 
         if let Ok(_) = params {
             panic!("NoiseParams should have failed");
@@ -271,7 +288,7 @@ mod tests {
     #[test]
     fn test_builder_missing_prereqs() {
         let noise = Builder::new("Noise_NK_25519_ChaChaPoly_SHA256".parse().unwrap())
-            .prologue(&[2,2,2,2,2,2,2,2])
+            .prologue(&[2, 2, 2, 2, 2, 2, 2, 2])
             .local_private_key(&[0u8; 32])
             .build_initiator(); // missing remote key, should result in Err
 
@@ -282,16 +299,10 @@ mod tests {
 
     #[test]
     fn test_partialeq_impl() {
-        let keypair_1 = Keypair {
-            private: vec![0x01; 32],
-            public: vec![0x01; 32],
-        };
+        let keypair_1 = Keypair { private: vec![0x01; 32], public: vec![0x01; 32] };
 
-        let mut keypair_2 = Keypair {
-            private: vec![0x01; 32],
-            public: vec![0x01; 32],
-        };
-        
+        let mut keypair_2 = Keypair { private: vec![0x01; 32], public: vec![0x01; 32] };
+
         // If both private and public are the same, return true
         assert_eq!(keypair_1 == keypair_2, true);
 
@@ -307,4 +318,3 @@ mod tests {
         assert_eq!(keypair_1 == keypair_2, false);
     }
 }
-

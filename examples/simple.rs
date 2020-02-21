@@ -1,8 +1,5 @@
 #![cfg_attr(
-    not(any(
-        feature = "default-resolver",
-        feature = "ring-accelerated",
-    )),
+    not(any(feature = "default-resolver", feature = "ring-accelerated",)),
     allow(dead_code, unused_extern_crates, unused_imports)
 )]
 //! This is a barebones TCP Client/Server that establishes a `Noise_NN` session, and sends
@@ -11,21 +8,20 @@
 //! # Usage
 //! Run the server a-like-a-so `cargo run --example simple -- -s`, then run the client
 //! as `cargo run --example simple` to see the magic happen.
- 
 
 use lazy_static::lazy_static;
 
 use clap::App;
-use snow::Builder;
-use snow::params::NoiseParams;
-use std::io::{self, Read, Write};
-use std::net::{TcpListener, TcpStream};
+use snow::{params::NoiseParams, Builder};
+use std::{
+    io::{self, Read, Write},
+    net::{TcpListener, TcpStream},
+};
 
 static SECRET: &'static [u8] = b"i don't care for fidget spinners";
 lazy_static! {
     static ref PARAMS: NoiseParams = "Noise_XXpsk3_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
 }
-
 
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
@@ -46,10 +42,8 @@ fn run_server() {
     // Initialize our responder using a builder.
     let builder: Builder<'_> = Builder::new(PARAMS.clone());
     let static_key = builder.generate_keypair().unwrap().private;
-    let mut noise = builder
-        .local_private_key(&static_key)
-        .psk(3, SECRET)
-        .build_responder().unwrap();
+    let mut noise =
+        builder.local_private_key(&static_key).psk(3, SECRET).build_responder().unwrap();
 
     // Wait on our client's arrival...
     println!("listening on 127.0.0.1:9999");
@@ -82,10 +76,8 @@ fn run_client() {
     // Initialize our initiator using a builder.
     let builder: Builder<'_> = Builder::new(PARAMS.clone());
     let static_key = builder.generate_keypair().unwrap().private;
-    let mut noise = builder
-        .local_private_key(&static_key)
-        .psk(3, SECRET)
-        .build_initiator().unwrap();
+    let mut noise =
+        builder.local_private_key(&static_key).psk(3, SECRET).build_initiator().unwrap();
 
     // Connect to our server, which is hopefully listening.
     let mut stream = TcpStream::connect("127.0.0.1:9999").unwrap();

@@ -1,20 +1,18 @@
-use crate::constants::TAGLEN;
-use crate::error::{Error, InitStage, StateProblem};
-use crate::types::Cipher;
+use crate::{
+    constants::TAGLEN,
+    error::{Error, InitStage, StateProblem},
+    types::Cipher,
+};
 
 pub(crate) struct CipherState {
-    cipher : Box<dyn Cipher>,
-    n : u64,
-    has_key : bool,
+    cipher:  Box<dyn Cipher>,
+    n:       u64,
+    has_key: bool,
 }
 
 impl CipherState {
     pub fn new(cipher: Box<dyn Cipher>) -> Self {
-        Self {
-            cipher,
-            n: 0,
-            has_key: false
-        }
+        Self { cipher, n: 0, has_key: false }
     }
 
     pub fn name(&self) -> &'static str {
@@ -27,7 +25,12 @@ impl CipherState {
         self.has_key = true;
     }
 
-    pub fn encrypt_ad(&mut self, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> Result<usize, Error> {
+    pub fn encrypt_ad(
+        &mut self,
+        authtext: &[u8],
+        plaintext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, Error> {
         if !self.has_key {
             bail!(StateProblem::MissingKeyMaterial);
         }
@@ -37,8 +40,14 @@ impl CipherState {
         Ok(len)
     }
 
-    pub fn decrypt_ad(&mut self, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
-        if (ciphertext.len() < TAGLEN) || (out.len() < (ciphertext.len() - TAGLEN) || !self.has_key) {
+    pub fn decrypt_ad(
+        &mut self,
+        authtext: &[u8],
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ()> {
+        if (ciphertext.len() < TAGLEN) || (out.len() < (ciphertext.len() - TAGLEN) || !self.has_key)
+        {
             return Err(());
         }
 
@@ -47,12 +56,12 @@ impl CipherState {
         len
     }
 
-    pub fn encrypt(&mut self, plaintext: &[u8], out: &mut[u8]) -> Result<usize, Error> {
-        self.encrypt_ad(&[0u8;0], plaintext, out)
+    pub fn encrypt(&mut self, plaintext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
+        self.encrypt_ad(&[0u8; 0], plaintext, out)
     }
 
-    pub fn decrypt(&mut self, ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
-        self.decrypt_ad(&[0u8;0], ciphertext, out)
+    pub fn decrypt(&mut self, ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
+        self.decrypt_ad(&[0u8; 0], ciphertext, out)
     }
 
     pub fn rekey(&mut self) {
@@ -101,32 +110,45 @@ impl CipherStates {
 }
 
 pub(crate) struct StatelessCipherState {
-    cipher : Box<dyn Cipher>,
-    has_key : bool,
+    cipher:  Box<dyn Cipher>,
+    has_key: bool,
 }
 
 impl StatelessCipherState {
     // TODO: don't panic
-    pub fn encrypt_ad(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> Result<usize, Error> {
+    pub fn encrypt_ad(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        plaintext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, Error> {
         if !self.has_key {
             bail!(StateProblem::MissingKeyMaterial);
         }
         Ok(self.cipher.encrypt(nonce, authtext, plaintext, out))
     }
 
-    pub fn decrypt_ad(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
-        if (ciphertext.len() < TAGLEN) || (out.len() < (ciphertext.len() - TAGLEN) || !self.has_key) {
-            return Err(())
+    pub fn decrypt_ad(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ()> {
+        if (ciphertext.len() < TAGLEN) || (out.len() < (ciphertext.len() - TAGLEN) || !self.has_key)
+        {
+            return Err(());
         }
 
         self.cipher.decrypt(nonce, authtext, ciphertext, out)
     }
 
-    pub fn encrypt(&self, nonce: u64, plaintext: &[u8], out: &mut[u8]) -> Result<usize, Error> {
+    pub fn encrypt(&self, nonce: u64, plaintext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
         self.encrypt_ad(nonce, &[], plaintext, out)
     }
 
-    pub fn decrypt(&self, nonce: u64, ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()> {
+    pub fn decrypt(&self, nonce: u64, ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
         self.decrypt_ad(nonce, &[], ciphertext, out)
     }
 
@@ -141,10 +163,7 @@ impl StatelessCipherState {
 
 impl From<CipherState> for StatelessCipherState {
     fn from(other: CipherState) -> Self {
-        Self {
-            cipher: other.cipher,
-            has_key: other.has_key
-        }
+        Self { cipher: other.cipher, has_key: other.has_key }
     }
 }
 

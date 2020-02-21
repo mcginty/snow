@@ -1,38 +1,36 @@
-use crate::error::Error;
-use crate::constants::{CIPHERKEYLEN, MAXHASHLEN};
-use crate::types::Hash;
-use crate::cipherstate::CipherState;
+use crate::{
+    cipherstate::CipherState,
+    constants::{CIPHERKEYLEN, MAXHASHLEN},
+    error::Error,
+    types::Hash,
+};
 
 #[derive(Copy, Clone)]
 pub(crate) struct SymmetricStateData {
-    h       : [u8; MAXHASHLEN],
-    ck      : [u8; MAXHASHLEN],
-    has_key : bool,
+    h:       [u8; MAXHASHLEN],
+    ck:      [u8; MAXHASHLEN],
+    has_key: bool,
 }
 
 impl Default for SymmetricStateData {
     fn default() -> Self {
         SymmetricStateData {
-            h: [0u8; MAXHASHLEN],
-            ck: [0u8; MAXHASHLEN],
-            has_key: false
+            h:       [0u8; MAXHASHLEN],
+            ck:      [0u8; MAXHASHLEN],
+            has_key: false,
         }
     }
 }
 
 pub(crate) struct SymmetricState {
-    cipherstate : CipherState,
-    hasher      : Box<dyn Hash>,
-    inner       : SymmetricStateData,
+    cipherstate: CipherState,
+    hasher:      Box<dyn Hash>,
+    inner:       SymmetricStateData,
 }
 
 impl SymmetricState {
     pub fn new(cipherstate: CipherState, hasher: Box<dyn Hash>) -> SymmetricState {
-        SymmetricState {
-            cipherstate,
-            hasher,
-            inner: SymmetricStateData::default(),
-        }
+        SymmetricState { cipherstate, hasher, inner: SymmetricStateData::default() }
     }
 
     pub fn initialize(&mut self, handshake_name: &str) {
@@ -50,7 +48,14 @@ impl SymmetricState {
     pub fn mix_key(&mut self, data: &[u8]) {
         let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(&self.inner.ck[..hash_len], data, 2, &mut hkdf_output.0, &mut hkdf_output.1, &mut []);
+        self.hasher.hkdf(
+            &self.inner.ck[..hash_len],
+            data,
+            2,
+            &mut hkdf_output.0,
+            &mut hkdf_output.1,
+            &mut [],
+        );
         copy_slices!(&hkdf_output.0, &mut self.inner.ck);
         self.cipherstate.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
         self.inner.has_key = true;
@@ -67,7 +72,14 @@ impl SymmetricState {
     pub fn mix_key_and_hash(&mut self, data: &[u8]) {
         let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(&self.inner.ck[..hash_len], data, 3, &mut hkdf_output.0, &mut hkdf_output.1, &mut hkdf_output.2);
+        self.hasher.hkdf(
+            &self.inner.ck[..hash_len],
+            data,
+            3,
+            &mut hkdf_output.0,
+            &mut hkdf_output.1,
+            &mut hkdf_output.2,
+        );
         copy_slices!(&hkdf_output.0, &mut self.inner.ck);
         self.mix_hash(&hkdf_output.1[..hash_len]);
         self.cipherstate.set(&hkdf_output.2[..CIPHERKEYLEN], 0);
@@ -78,7 +90,11 @@ impl SymmetricState {
     }
 
     /// Encrypt a message and mixes in the hash of the output
-    pub fn encrypt_and_mix_hash(&mut self, plaintext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
+    pub fn encrypt_and_mix_hash(
+        &mut self,
+        plaintext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, Error> {
         let hash_len = self.hasher.hash_len();
         let output_len = if self.inner.has_key {
             self.cipherstate.encrypt_ad(&self.inner.h[..hash_len], plaintext, out)?
@@ -96,7 +112,7 @@ impl SymmetricState {
             self.cipherstate.decrypt_ad(&self.inner.h[..hash_len], data, out)?
         } else {
             if out.len() < data.len() {
-                return Err(())
+                return Err(());
             }
             copy_slices!(data, out);
             data.len()
@@ -108,10 +124,14 @@ impl SymmetricState {
     pub fn split(&mut self, child1: &mut CipherState, child2: &mut CipherState) {
         let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(&self.inner.ck[..hash_len], &[0u8; 0], 2,
-                         &mut hkdf_output.0,
-                         &mut hkdf_output.1,
-                         &mut []);
+        self.hasher.hkdf(
+            &self.inner.ck[..hash_len],
+            &[0u8; 0],
+            2,
+            &mut hkdf_output.0,
+            &mut hkdf_output.1,
+            &mut [],
+        );
         child1.set(&hkdf_output.0[..CIPHERKEYLEN], 0);
         child2.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
     }

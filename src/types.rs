@@ -4,10 +4,10 @@ use crate::constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN, TAGLEN};
 use rand_core::{CryptoRng, RngCore};
 
 /// CSPRNG operations
-pub trait Random : CryptoRng + RngCore + Send + Sync {}
+pub trait Random: CryptoRng + RngCore + Send + Sync {}
 
 /// Diffie-Hellman operations
-pub trait Dh : Send + Sync {
+pub trait Dh: Send + Sync {
     /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
 
@@ -35,7 +35,7 @@ pub trait Dh : Send + Sync {
 }
 
 /// Cipher operations
-pub trait Cipher : Send + Sync {
+pub trait Cipher: Send + Sync {
     /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
 
@@ -43,24 +43,31 @@ pub trait Cipher : Send + Sync {
     fn set(&mut self, key: &[u8]);
 
     /// Encrypt (with associated data) a given plaintext.
-    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut[u8]) -> usize;
+    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize;
 
     #[must_use]
     /// Decrypt (with associated data) a given ciphertext.
-    fn decrypt(&self, nonce: u64, authtext: &[u8], ciphertext: &[u8], out: &mut[u8]) -> Result<usize, ()>;
+    fn decrypt(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ()>;
 
     /// Rekey according to Section 4.2 of the Noise Specification, with a default
     /// implementation guaranteed to be secure for all ciphers.
     fn rekey(&mut self) {
         let mut ciphertext = [0; CIPHERKEYLEN + TAGLEN];
-        let ciphertext_len = self.encrypt(u64::max_value(), &[], &[0; CIPHERKEYLEN], &mut ciphertext);
+        let ciphertext_len =
+            self.encrypt(u64::max_value(), &[], &[0; CIPHERKEYLEN], &mut ciphertext);
         assert_eq!(ciphertext_len, ciphertext.len());
         self.set(&ciphertext[..CIPHERKEYLEN]);
     }
 }
 
 /// Hashing operations
-pub trait Hash : Send + Sync {
+pub trait Hash: Send + Sync {
     /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
 
@@ -106,7 +113,15 @@ pub trait Hash : Send + Sync {
     /// Derive keys as specified in the Noise spec.
     ///
     /// NOTE: This method clobbers the existing internal state
-    fn hkdf(&mut self, chaining_key: &[u8], input_key_material: &[u8], outputs: usize, out1: &mut [u8], out2: &mut [u8], out3: &mut [u8]) {
+    fn hkdf(
+        &mut self,
+        chaining_key: &[u8],
+        input_key_material: &[u8],
+        outputs: usize,
+        out1: &mut [u8],
+        out2: &mut [u8],
+        out3: &mut [u8],
+    ) {
         let hash_len = self.hash_len();
         let mut temp_key = [0u8; MAXHASHLEN];
         self.hmac(chaining_key, input_key_material, &mut temp_key);
@@ -115,7 +130,7 @@ pub trait Hash : Send + Sync {
             return;
         }
 
-        let mut in2 = [0u8; MAXHASHLEN+1];
+        let mut in2 = [0u8; MAXHASHLEN + 1];
         copy_slices!(&out1[0..hash_len], &mut in2);
         in2[hash_len] = 2;
         self.hmac(&temp_key, &in2[..=hash_len], out2);
@@ -123,7 +138,7 @@ pub trait Hash : Send + Sync {
             return;
         }
 
-        let mut in3 = [0u8; MAXHASHLEN+1];
+        let mut in3 = [0u8; MAXHASHLEN + 1];
         copy_slices!(&out2[0..hash_len], &mut in3);
         in3[hash_len] = 3;
         self.hmac(&temp_key, &in3[..=hash_len], out3);
@@ -132,7 +147,7 @@ pub trait Hash : Send + Sync {
 
 /// Kem operations.
 #[cfg(feature = "hfs")]
-pub trait Kem : Send + Sync {
+pub trait Kem: Send + Sync {
     /// The string that the Noise spec defines for the primitive.
     fn name(&self) -> &'static str;
 
@@ -153,7 +168,12 @@ pub trait Kem : Send + Sync {
 
     /// Generate a shared secret and encapsulate it using this Kem.
     #[must_use]
-    fn encapsulate(&self, pubkey: &[u8], shared_secret_out: &mut [u8], ciphertext_out: &mut [u8]) -> Result<(usize, usize), ()>;
+    fn encapsulate(
+        &self,
+        pubkey: &[u8],
+        shared_secret_out: &mut [u8],
+        ciphertext_out: &mut [u8],
+    ) -> Result<(usize, usize), ()>;
 
     /// Decapsulate a ciphertext producing a shared secret.
     #[must_use]

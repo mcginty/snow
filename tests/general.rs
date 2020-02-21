@@ -2,31 +2,33 @@
 #![allow(clippy::needless_range_loop)]
 #![allow(non_snake_case)]
 use hex;
+use rand_core;
 use snow;
 use x25519_dalek;
-use rand_core;
 
 use hex::FromHex;
-use snow::{Builder, resolvers::{CryptoResolver, DefaultResolver}};
+use snow::{
+    resolvers::{CryptoResolver, DefaultResolver},
+    Builder,
+};
 
-use snow::params::*;
-use snow::types::*;
+use rand_core::{impls, CryptoRng, RngCore};
+use snow::{params::*, types::*};
 use x25519_dalek as x25519;
-use rand_core::{CryptoRng, RngCore, impls};
- 
+
 #[derive(Default)]
 struct CountingRng(u64);
- 
+
 impl RngCore for CountingRng {
     fn next_u32(&mut self) -> u32 {
         self.next_u64() as u32
     }
-     
+
     fn next_u64(&mut self) -> u64 {
         self.0 += 1;
         self.0
     }
-     
+
     fn fill_bytes(&mut self, dest: &mut [u8]) {
         impls::fill_bytes_via_next(self, dest)
     }
@@ -50,13 +52,13 @@ fn get_inc_key(start: u8) -> [u8; 32] {
 #[allow(unused)]
 struct TestResolver {
     next_byte: u8,
-    parent: DefaultResolver,
+    parent:    DefaultResolver,
 }
 
 #[allow(unused)]
 impl TestResolver {
     pub fn new(next_byte: u8) -> Self {
-        TestResolver{ next_byte: next_byte, parent: DefaultResolver }
+        TestResolver { next_byte, parent: DefaultResolver }
     }
 
     pub fn next_byte(&mut self, next_byte: u8) {
@@ -84,13 +86,14 @@ impl CryptoResolver for TestResolver {
 }
 
 pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
-    for count in 0..data.len() {out[count] = data[count];}
+    for count in 0..data.len() {
+        out[count] = data[count];
+    }
     data.len()
 }
 
 #[test]
 fn test_protocol_name() {
-
     let protocol_spec: NoiseParams = "Noise_NK_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
 
     assert_eq!(protocol_spec.base, BaseChoice::Noise);
@@ -180,7 +183,8 @@ fn test_Npsk0_chachapoly_expected_value() {
         .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
 
     let mut buf = [0u8; 200];
     let len = h_i.write_message(&[], &mut buf).unwrap();
@@ -200,7 +204,8 @@ fn test_Npsk0_aesgcm_expected_value() {
         .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
 
     let mut buf = [0u8; 200];
     let len = h_i.write_message(&[], &mut buf).unwrap();
@@ -220,7 +225,8 @@ fn test_Npsk0_expected_value() {
         .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
 
     let mut buf = [0u8; 200];
     let len = h_i.write_message(&[], &mut buf).unwrap();
@@ -241,7 +247,8 @@ fn test_Xpsk0_expected_value() {
         .remote_public_key(&x25519::x25519(get_inc_key(32), x25519::X25519_BASEPOINT_BYTES))
         .psk(0, &get_inc_key(1))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(64))
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
 
     let mut buf = [0u8; 200];
     let len = h_i.write_message(&[], &mut buf).unwrap();
@@ -261,12 +268,8 @@ fn test_NNhfs_sanity_session() {
     // Due to how PQClean is implemented, we cannot do deterministic testing of the protocol.
     // Instead, we will see if the protocol runs smoothly.
     let params: NoiseParams = "Noise_NNhfs_25519+Kyber1024_ChaChaPoly_SHA256".parse().unwrap();
-    let mut h_i = Builder::new(params.clone())
-        .build_initiator()
-        .unwrap();
-    let mut h_r = Builder::new(params)
-        .build_responder()
-        .unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
 
     let mut buffer_msg = [0u8; 4096];
     let mut buffer_out = [0u8; 4096];
@@ -293,14 +296,16 @@ fn test_XXpsk0_expected_value() {
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
-        .build_initiator().unwrap();
+        .build_initiator()
+        .unwrap();
     let mut h_r = Builder::new(params)
         .local_private_key(&get_inc_key(1))
         .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))
         .prologue(&[1u8, 2, 3])
         .psk(0, &get_inc_key(4))
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(33))
-        .build_responder().unwrap();
+        .build_responder()
+        .unwrap();
 
     let mut buf = [0u8; 1024];
     let mut buf2 = [0u8; 1024];
@@ -329,14 +334,8 @@ fn test_XXpsk0_expected_value() {
 #[test]
 fn test_NNpsk0_sanity_session() {
     let params: NoiseParams = "Noise_NNpsk0_25519_ChaChaPoly_SHA256".parse().unwrap();
-    let mut h_i = Builder::new(params.clone())
-        .psk(0, &[32u8; 32])
-        .build_initiator()
-        .unwrap();
-    let mut h_r = Builder::new(params)
-        .psk(0, &[32u8; 32])
-        .build_responder()
-        .unwrap();
+    let mut h_i = Builder::new(params.clone()).psk(0, &[32u8; 32]).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).psk(0, &[32u8; 32]).build_responder().unwrap();
 
     let mut buffer_msg = [0u8; 200];
     let mut buffer_out = [0u8; 200];
@@ -488,7 +487,7 @@ fn test_handshake_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut h_i = Builder::new(params).build_initiator().unwrap();
 
-    let mut buffer_out = [0u8; 65535*2];
+    let mut buffer_out = [0u8; 65535 * 2];
     assert!(h_i.write_message(&[0u8; 65530], &mut buffer_out).is_err());
 }
 
@@ -506,7 +505,7 @@ fn test_transport_message_exceeds_max_len() {
     let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse().unwrap();
     let mut noise = Builder::new(params).remote_public_key(&[1u8; 32]).build_initiator().unwrap();
 
-    let mut buffer_out = [0u8; 65535*2];
+    let mut buffer_out = [0u8; 65535 * 2];
     noise.write_message(&[0u8; 0], &mut buffer_out).unwrap();
     let mut noise = noise.into_transport_mode().unwrap();
     assert!(noise.write_message(&[0u8; 65534], &mut buffer_out).is_err());
@@ -574,10 +573,7 @@ fn test_read_buffer_issues() {
 
     let builder_r = snow::Builder::new(params.clone());
     let keypair_r = builder_r.generate_keypair().unwrap();
-    let mut h_r = builder_r
-        .local_private_key(&keypair_r.private)
-        .build_responder()
-        .unwrap();
+    let mut h_r = builder_r.local_private_key(&keypair_r.private).build_responder().unwrap();
 
     let builder_i = snow::Builder::new(params);
     let key_i = builder_i.generate_keypair().unwrap().private;
@@ -638,14 +634,13 @@ fn test_buffer_issues_encrypted_handshake() {
 
 #[test]
 fn test_send_trait() {
-    use std::thread;
-    use std::sync::mpsc::channel;
-
+    use std::{sync::mpsc::channel, thread};
 
     let (tx, rx) = channel();
-    thread::spawn(move|| {
+    thread::spawn(move || {
         let session = Builder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
-                        .build_initiator().unwrap();
+            .build_initiator()
+            .unwrap();
         tx.send(session).unwrap();
     });
     let _session = rx.recv().expect("failed to receive noise session");
@@ -680,7 +675,8 @@ fn test_checkpointing() {
     let res = h_i.write_message(b"abc", &mut buffer_bad);
     assert!(res.is_err(), "write_message() should have failed for insufficiently-sized buffer");
 
-    let len = h_i.write_message(b"abc", &mut buffer_msg)
+    let len = h_i
+        .write_message(b"abc", &mut buffer_msg)
         .expect("write_message() should have succeeded for correctly-sized buffer");
 
     let mut buffer_bad = [0u8; 2];
@@ -688,21 +684,20 @@ fn test_checkpointing() {
     let res = h_r.read_message(&buffer_msg[..len], &mut buffer_bad);
     assert!(res.is_err(), "read_message() should have failed for insufficiently-sized buffer");
 
-    let _res = h_r.read_message(&buffer_msg[..len], &mut buffer_ok)
+    let _res = h_r
+        .read_message(&buffer_msg[..len], &mut buffer_ok)
         .expect("read_message() should have succeeded");
 }
 
 #[test]
 fn test_get_remote_static() {
     let params: NoiseParams = "Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap();
-    let mut h_i = Builder::new(params.clone())
-        .local_private_key(&get_inc_key(0))
-        .build_initiator().unwrap();
-    let mut h_r = Builder::new(params)
-        .local_private_key(&get_inc_key(1))
-        .build_responder().unwrap();
+    let mut h_i =
+        Builder::new(params.clone()).local_private_key(&get_inc_key(0)).build_initiator().unwrap();
+    let mut h_r =
+        Builder::new(params).local_private_key(&get_inc_key(1)).build_responder().unwrap();
 
-    let mut buf  = [0u8; 1024];
+    let mut buf = [0u8; 1024];
     let mut buf2 = [0u8; 1024];
 
     // XX(s, rs):
@@ -711,37 +706,44 @@ fn test_get_remote_static() {
 
     // -> e
     let len = h_i.write_message(&[], &mut buf).unwrap();
-    let _   = h_r.read_message(&buf[..len], &mut buf2).unwrap();
+    let _ = h_r.read_message(&buf[..len], &mut buf2).unwrap();
 
     assert!(h_i.get_remote_static().is_none());
     assert!(h_r.get_remote_static().is_none());
 
     // <- e, ee s, es
     let len = h_r.write_message(&[], &mut buf).unwrap();
-    let _   = h_i.read_message(&buf[..len], &mut buf2).unwrap();
+    let _ = h_i.read_message(&buf[..len], &mut buf2).unwrap();
 
-    assert_eq!(h_i.get_remote_static().unwrap(), &x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES));
+    assert_eq!(
+        h_i.get_remote_static().unwrap(),
+        &x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES)
+    );
     assert!(h_r.get_remote_static().is_none());
 
     // -> s, se
     let len = h_i.write_message(&[], &mut buf).unwrap();
-    let _   = h_r.read_message(&buf[..len], &mut buf2).unwrap();
+    let _ = h_r.read_message(&buf[..len], &mut buf2).unwrap();
 
-    assert_eq!(h_i.get_remote_static().unwrap(), &x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES));
-    assert_eq!(h_r.get_remote_static().unwrap(), &x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES));
+    assert_eq!(
+        h_i.get_remote_static().unwrap(),
+        &x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES)
+    );
+    assert_eq!(
+        h_r.get_remote_static().unwrap(),
+        &x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES)
+    );
 }
 
 #[test]
 fn test_set_psk() {
     let params: NoiseParams = "Noise_XXpsk3_25519_ChaChaPoly_SHA256".parse().unwrap();
-    let mut h_i = Builder::new(params.clone())
-        .local_private_key(&get_inc_key(0))
-        .build_initiator().unwrap();
-    let mut h_r = Builder::new(params)
-        .local_private_key(&get_inc_key(1))
-        .build_responder().unwrap();
+    let mut h_i =
+        Builder::new(params.clone()).local_private_key(&get_inc_key(0)).build_initiator().unwrap();
+    let mut h_r =
+        Builder::new(params).local_private_key(&get_inc_key(1)).build_responder().unwrap();
 
-    let mut buf  = [0u8; 1024];
+    let mut buf = [0u8; 1024];
     let mut buf2 = [0u8; 1024];
 
     let psk = get_inc_key(3);
@@ -749,18 +751,18 @@ fn test_set_psk() {
     // XX(s, rs):
     // -> e
     let len = h_i.write_message(&[], &mut buf).unwrap();
-    let _   = h_r.read_message(&buf[..len], &mut buf2).unwrap();
+    let _ = h_r.read_message(&buf[..len], &mut buf2).unwrap();
 
     // <- e, ee s, es
     let len = h_r.write_message(&[], &mut buf).unwrap();
-    let _   = h_i.read_message(&buf[..len], &mut buf2).unwrap();
+    let _ = h_i.read_message(&buf[..len], &mut buf2).unwrap();
 
     h_i.set_psk(3, &psk).unwrap();
     h_r.set_psk(3, &psk).unwrap();
 
     // -> s, se, psk
     let len = h_i.write_message(&[], &mut buf).unwrap();
-    let _   = h_r.read_message(&buf[..len], &mut buf2).unwrap();
+    let _ = h_r.read_message(&buf[..len], &mut buf2).unwrap();
 }
 
 #[test]
