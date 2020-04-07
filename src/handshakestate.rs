@@ -513,10 +513,13 @@ impl HandshakeState {
     /// This returns raw key material so it should be used with care. The "risky-raw-split"
     /// feature has to be enabled to use this function.
     #[cfg(feature = "risky-raw-split")]
-    pub fn dangerously_get_raw_split(&mut self) -> (Vec<u8>, Vec<u8>) {
+    pub fn dangerously_get_raw_split(&mut self) -> ([u8; CIPHERKEYLEN], [u8; CIPHERKEYLEN]) {
         let mut output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
         self.symmetricstate.split_raw(&mut output.0, &mut output.1);
-        (output.0[..CIPHERKEYLEN].to_vec(), output.1[..CIPHERKEYLEN].to_vec())
+        (
+            output.0[..CIPHERKEYLEN].try_into().unwrap(),
+            output.1[..CIPHERKEYLEN].try_into().unwrap()
+        )
     }
 
     /// Convert this `HandshakeState` into a `TransportState` with an internally stored nonce.
