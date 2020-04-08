@@ -26,6 +26,7 @@ libsodium-accelerated = ["libsodium-resolver", "default-resolver"]
 vector-tests = []
 hfs = []
 pqclean_kyber1024 = ["pqcrypto-kyber", "pqcrypto-traits", "hfs", "default-resolver"]
+risky-raw-split = []
 
 [[bench]]
 name = "benches"

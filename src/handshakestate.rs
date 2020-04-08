@@ -1,3 +1,5 @@
+#[cfg(feature = "risky-raw-split")]
+use crate::constants::{CIPHERKEYLEN, MAXHASHLEN};
 #[cfg(feature = "hfs")]
 use crate::constants::{MAXKEMCTLEN, MAXKEMPUBLEN, MAXKEMSSLEN};
 #[cfg(feature = "hfs")]
@@ -504,6 +506,20 @@ impl HandshakeState {
     /// Check whether it is our turn to send in the handshake state machine
     pub fn is_my_turn(&self) -> bool {
         self.my_turn
+    }
+
+    /// Perform the split calculation and return the resulting keys.
+    ///
+    /// This returns raw key material so it should be used with care. The "risky-raw-split"
+    /// feature has to be enabled to use this function.
+    #[cfg(feature = "risky-raw-split")]
+    pub fn dangerously_get_raw_split(&mut self) -> ([u8; CIPHERKEYLEN], [u8; CIPHERKEYLEN]) {
+        let mut output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
+        self.symmetricstate.split_raw(&mut output.0, &mut output.1);
+        (
+            output.0[..CIPHERKEYLEN].try_into().unwrap(),
+            output.1[..CIPHERKEYLEN].try_into().unwrap()
+        )
     }
 
     /// Convert this `HandshakeState` into a `TransportState` with an internally stored nonce.

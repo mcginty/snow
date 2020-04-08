@@ -122,18 +122,15 @@ impl SymmetricState {
     }
 
     pub fn split(&mut self, child1: &mut CipherState, child2: &mut CipherState) {
-        let hash_len = self.hasher.hash_len();
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(
-            &self.inner.ck[..hash_len],
-            &[0u8; 0],
-            2,
-            &mut hkdf_output.0,
-            &mut hkdf_output.1,
-            &mut [],
-        );
+        self.split_raw(&mut hkdf_output.0, &mut hkdf_output.1);
         child1.set(&hkdf_output.0[..CIPHERKEYLEN], 0);
         child2.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
+    }
+
+    pub fn split_raw(&mut self, mut out1: &mut [u8], mut out2: &mut [u8]) {
+        let hash_len = self.hasher.hash_len();
+        self.hasher.hkdf(&self.inner.ck[..hash_len], &[0u8; 0], 2, &mut out1, &mut out2, &mut []);
     }
 
     pub(crate) fn checkpoint(&mut self) -> SymmetricStateData {
