@@ -1,5 +1,7 @@
 use aes_gcm;
 use blake2::{Blake2b, Blake2s};
+#[cfg(feature = "xchachapoly")]
+use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::{
     aead::{Aead, NewAead},
     ChaCha20Poly1305,
@@ -54,6 +56,8 @@ impl CryptoResolver for DefaultResolver {
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         match *choice {
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
+            #[cfg(feature = "xchachapoly")]
+            CipherChoice::XChaChaPoly => Some(Box::new(CipherXChaChaPoly::default())),
             CipherChoice::AESGCM => Some(Box::new(CipherAesGcm::default())),
         }
     }
@@ -82,6 +86,13 @@ struct CipherAesGcm {
 /// Wraps `chacha20_poly1305_aead`'s ChaCha20Poly1305 implementation.
 #[derive(Default)]
 struct CipherChaChaPoly {
+    key: [u8; 32],
+}
+
+/// Wraps `chachapoly1305`'s XChaCha20Poly1305 implementation.
+#[cfg(feature = "xchachapoly")]
+#[derive(Default)]
+struct CipherXChaChaPoly {
     key: [u8; 32],
 }
 
@@ -244,6 +255,59 @@ impl Cipher for CipherChaChaPoly {
         copy_slices!(ciphertext[..message_len], out);
 
         let result = ChaCha20Poly1305::new(self.key.into()).decrypt_in_place_detached(
+            &nonce_bytes.into(),
+            authtext,
+            &mut out[..message_len],
+            ciphertext[message_len..].into(),
+        );
+
+        match result {
+            Ok(_) => Ok(message_len),
+            Err(_) => Err(()),
+        }
+    }
+}
+
+#[cfg(feature = "xchachapoly")]
+impl Cipher for CipherXChaChaPoly {
+    fn name(&self) -> &'static str {
+        "XChaChaPoly"
+    }
+
+    fn set(&mut self, key: &[u8]) {
+        copy_slices!(key, &mut self.key);
+    }
+
+    fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
+        let mut nonce_bytes = [0u8; 24];
+        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[16..]);
+
+        copy_slices!(plaintext, out);
+
+        let tag = XChaCha20Poly1305::new(self.key.into())
+            .encrypt_in_place_detached(&nonce_bytes.into(), authtext, &mut out[0..plaintext.len()])
+            .unwrap();
+
+        copy_slices!(tag, &mut out[plaintext.len()..]);
+
+        plaintext.len() + tag.len()
+    }
+
+    fn decrypt(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, ()> {
+        let mut nonce_bytes = [0u8; 24];
+        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[16..]);
+
+        let message_len = ciphertext.len() - TAGLEN;
+
+        copy_slices!(ciphertext[..message_len], out);
+
+        let result = XChaCha20Poly1305::new(self.key.into()).decrypt_in_place_detached(
             &nonce_bytes.into(),
             authtext,
             &mut out[..message_len],
@@ -629,6 +693,26 @@ mod tests {
 
         let mut resulttext = [0u8; 117];
         let mut cipher2: CipherChaChaPoly = Default::default();
+        cipher2.set(&key);
+        cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
+        assert!(hex::encode(resulttext.to_vec()) == hex::encode(plaintext.to_vec()));
+    }
+
+    #[cfg(feature = "xchachapoly")]
+    #[test]
+    fn test_xchachapoly_nonempty() {
+        //XChaChaPoly round-trip test, non-empty plaintext
+        let key = [0u8; 32];
+        let nonce = 0u64;
+        let plaintext = [0x34u8; 117];
+        let authtext = [0u8; 0];
+        let mut ciphertext = [0u8; 133];
+        let mut cipher1: CipherXChaChaPoly = Default::default();
+        cipher1.set(&key);
+        cipher1.encrypt(nonce, &authtext, &plaintext, &mut ciphertext);
+
+        let mut resulttext = [0u8; 117];
+        let mut cipher2: CipherXChaChaPoly = Default::default();
         cipher2.set(&key);
         cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
         assert!(hex::encode(resulttext.to_vec()) == hex::encode(plaintext.to_vec()));

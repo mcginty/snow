@@ -37,6 +37,8 @@ impl CryptoResolver for RingResolver {
         match *choice {
             CipherChoice::AESGCM => Some(Box::new(CipherAESGCM::default())),
             CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
+            #[cfg(feature = "xchachapoly")]
+            CipherChoice::XChaChaPoly => None,
         }
     }
 }
