@@ -35,7 +35,7 @@ impl FromStr for BaseChoice {
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum DHChoice {
     Curve25519,
-    Ed448,
+    Curve448,
 }
 
 impl FromStr for DHChoice {
@@ -45,7 +45,7 @@ impl FromStr for DHChoice {
         use self::DHChoice::*;
         match s {
             "25519" => Ok(Curve25519),
-            "448" => Ok(Ed448),
+            "448" => Ok(Curve448),
             _ => bail!(PatternProblem::UnsupportedDhType),
         }
     }
