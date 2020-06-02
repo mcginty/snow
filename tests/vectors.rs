@@ -259,15 +259,9 @@ fn test_vectors_from_json(json: &str) {
 
     let mut passes = 0;
     let mut fails = 0;
-    let mut ignored = 0;
 
     for vector in test_vectors.vectors {
         let params: NoiseParams = vector.protocol_name.parse().unwrap();
-
-        if params.dh == DHChoice::Ed448 {
-            ignored += 1;
-            continue;
-        }
 
         let (init, resp) = match build_session_pair(&vector) {
             Ok((init, resp)) => (init, resp),
@@ -299,7 +293,6 @@ fn test_vectors_from_json(json: &str) {
     }
 
     println!("\n{}/{} passed", passes, passes + fails);
-    println!("* ignored {} unsupported variants", ignored);
     if fails > 0 {
         panic!("at least one vector failed.");
     }
