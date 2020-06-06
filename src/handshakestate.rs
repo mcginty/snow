@@ -228,6 +228,7 @@ impl HandshakeState {
         match self._write_message(payload, message) {
             Ok(res) => {
                 self.pattern_position += 1;
+                self.my_turn = false;
                 Ok(res)
             },
             Err(err) => {
@@ -351,7 +352,6 @@ impl HandshakeState {
         if self.pattern_position == (self.message_patterns.len() - 1) {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
         }
-        self.my_turn = false;
         Ok(byte_index)
     }
 
@@ -372,6 +372,7 @@ impl HandshakeState {
         match self._read_message(message, payload) {
             Ok(res) => {
                 self.pattern_position += 1;
+                self.my_turn = true;
                 Ok(res)
             },
             Err(err) => {
@@ -481,7 +482,6 @@ impl HandshakeState {
         }
 
         self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| Error::Decrypt)?;
-        self.my_turn = true;
         if last {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
         }
