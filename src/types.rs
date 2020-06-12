@@ -30,7 +30,6 @@ pub trait Dh: Send + Sync {
     fn privkey(&self) -> &[u8];
 
     /// Calculate a Diffie-Hellman exchange.
-    #[must_use]
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()>;
 }
 
@@ -45,7 +44,6 @@ pub trait Cipher: Send + Sync {
     /// Encrypt (with associated data) a given plaintext.
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize;
 
-    #[must_use]
     /// Decrypt (with associated data) a given ciphertext.
     fn decrypt(
         &self,

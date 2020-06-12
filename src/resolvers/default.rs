@@ -1,4 +1,3 @@
-use aes_gcm;
 use blake2::{Blake2b, Blake2s};
 #[cfg(feature = "xchachapoly")]
 use chacha20poly1305::XChaCha20Poly1305;
@@ -211,7 +210,7 @@ impl Cipher for CipherAesGcm {
             &mut out[..message_len],
             ciphertext[message_len..].into(),
         )
-        .and_then(|_| Ok(message_len))
+        .map(|_| message_len)
         .map_err(|_| ())
     }
 }
@@ -524,12 +523,9 @@ impl Kem for Kyber1024 {
 
 #[cfg(test)]
 mod tests {
-
-    use hex;
-
     use self::hex::FromHex;
     use super::*;
-    use crate::types::*;
+    use hex;
 
     #[test]
     fn test_sha256() {
