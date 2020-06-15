@@ -2,7 +2,7 @@ use blake2::{Blake2b, Blake2s};
 #[cfg(feature = "xchachapoly")]
 use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::{
-    aead::{Aead, NewAead},
+    aead::{AeadInPlace, NewAead},
     ChaCha20Poly1305,
 };
 use core::convert::TryInto;
@@ -172,7 +172,7 @@ impl Cipher for CipherAesGcm {
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
-        let aead = aes_gcm::Aes256Gcm::new(self.key.into());
+        let aead = aes_gcm::Aes256Gcm::new(&self.key.into());
 
         let mut nonce_bytes = [0u8; 12];
         copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
@@ -195,7 +195,7 @@ impl Cipher for CipherAesGcm {
         ciphertext: &[u8],
         out: &mut [u8],
     ) -> Result<usize, ()> {
-        let aead = aes_gcm::Aes256Gcm::new(self.key.into());
+        let aead = aes_gcm::Aes256Gcm::new(&self.key.into());
 
         let mut nonce_bytes = [0u8; 12];
         copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
@@ -230,7 +230,7 @@ impl Cipher for CipherChaChaPoly {
 
         copy_slices!(plaintext, out);
 
-        let tag = ChaCha20Poly1305::new(self.key.into())
+        let tag = ChaCha20Poly1305::new(&self.key.into())
             .encrypt_in_place_detached(&nonce_bytes.into(), authtext, &mut out[0..plaintext.len()])
             .unwrap();
 
@@ -253,7 +253,7 @@ impl Cipher for CipherChaChaPoly {
 
         copy_slices!(ciphertext[..message_len], out);
 
-        let result = ChaCha20Poly1305::new(self.key.into()).decrypt_in_place_detached(
+        let result = ChaCha20Poly1305::new(&self.key.into()).decrypt_in_place_detached(
             &nonce_bytes.into(),
             authtext,
             &mut out[..message_len],
@@ -283,7 +283,7 @@ impl Cipher for CipherXChaChaPoly {
 
         copy_slices!(plaintext, out);
 
-        let tag = XChaCha20Poly1305::new(self.key.into())
+        let tag = XChaCha20Poly1305::new(&self.key.into())
             .encrypt_in_place_detached(&nonce_bytes.into(), authtext, &mut out[0..plaintext.len()])
             .unwrap();
 
@@ -306,7 +306,7 @@ impl Cipher for CipherXChaChaPoly {
 
         copy_slices!(ciphertext[..message_len], out);
 
-        let result = XChaCha20Poly1305::new(self.key.into()).decrypt_in_place_detached(
+        let result = XChaCha20Poly1305::new(&self.key.into()).decrypt_in_place_detached(
             &nonce_bytes.into(),
             authtext,
             &mut out[..message_len],
@@ -344,11 +344,11 @@ impl Hash for HashSHA256 {
     }
 
     fn input(&mut self, data: &[u8]) {
-        self.hasher.input(data);
+        self.hasher.update(data);
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        let hash = self.hasher.clone().result();
+        let hash = self.hasher.finalize_reset();
         copy_slices!(hash.as_slice(), out)
     }
 }
@@ -377,11 +377,11 @@ impl Hash for HashSHA512 {
     }
 
     fn input(&mut self, data: &[u8]) {
-        self.hasher.input(data);
+        self.hasher.update(data);
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        let hash = self.hasher.clone().result();
+        let hash = self.hasher.finalize_reset();
         copy_slices!(hash.as_slice(), out)
     }
 }
@@ -410,11 +410,11 @@ impl Hash for HashBLAKE2b {
     }
 
     fn input(&mut self, data: &[u8]) {
-        self.hasher.input(data);
+        self.hasher.update(data);
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        let hash = self.hasher.clone().result();
+        let hash = self.hasher.finalize_reset();
         out[..64].copy_from_slice(&hash);
     }
 }
@@ -443,11 +443,11 @@ impl Hash for HashBLAKE2s {
     }
 
     fn input(&mut self, data: &[u8]) {
-        self.hasher.input(data);
+        self.hasher.update(data);
     }
 
     fn result(&mut self, out: &mut [u8]) {
-        let hash = self.hasher.clone().result();
+        let hash = self.hasher.finalize_reset();
         out[..32].copy_from_slice(&hash);
     }
 }
