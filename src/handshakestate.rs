@@ -350,8 +350,11 @@ impl HandshakeState {
     fn _read_message(&mut self, message: &[u8], payload: &mut [u8]) -> Result<usize, Error> {
         if message.len() > MAXMSGLEN {
             bail!(Error::Input);
+        } else if self.my_turn {
+            bail!(StateProblem::NotTurnToRead);
+        } else if self.pattern_position >= self.message_patterns.len() {
+            bail!(StateProblem::HandshakeAlreadyFinished);
         }
-
         let last = self.pattern_position == (self.message_patterns.len() - 1);
 
         let dh_len = self.dh_len();
