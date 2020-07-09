@@ -786,3 +786,21 @@ fn test_stateless_sanity_session() {
     let len = h_r.read_message(1337, &buffer_msg[..len], &mut buffer_out).unwrap();
     assert_eq!(&buffer_out[..len], b"hack the planet");
 }
+
+#[test]
+fn test_handshake_read_oob_error() {
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 200];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    // This shouldn't panic, but it *should* return an error.
+    let _ = h_i.read_message(&buffer_msg[..len], &mut buffer_out);
+}

@@ -195,7 +195,7 @@ impl HandshakeState {
     }
 
     /// Construct a message from `payload` (and pending handshake tokens if in handshake state),
-    /// and writes it to the `output` buffer.
+    /// and writes it to the `message` buffer.
     ///
     /// Returns the size of the written payload.
     ///
@@ -203,12 +203,12 @@ impl HandshakeState {
     ///
     /// Will result in `Error::Input` if the size of the output exceeds the max message
     /// length in the Noise Protocol (65535 bytes).
-    #[must_use]
-    pub fn write_message(&mut self, message: &[u8], payload: &mut [u8]) -> Result<usize, Error> {
+    pub fn write_message(&mut self, payload: &[u8], message: &mut [u8]) -> Result<usize, Error> {
         let checkpoint = self.symmetricstate.checkpoint();
-        match self._write_message(message, payload) {
+        match self._write_message(payload, message) {
             Ok(res) => {
                 self.pattern_position += 1;
+                self.my_turn = false;
                 Ok(res)
             },
             Err(err) => {
@@ -317,7 +317,6 @@ impl HandshakeState {
         if self.pattern_position == (self.message_patterns.len() - 1) {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
         }
-        self.my_turn = false;
         Ok(byte_index)
     }
 
@@ -338,6 +337,7 @@ impl HandshakeState {
         match self._read_message(message, payload) {
             Ok(res) => {
                 self.pattern_position += 1;
+                self.my_turn = true;
                 Ok(res)
             },
             Err(err) => {
@@ -350,8 +350,11 @@ impl HandshakeState {
     fn _read_message(&mut self, message: &[u8], payload: &mut [u8]) -> Result<usize, Error> {
         if message.len() > MAXMSGLEN {
             bail!(Error::Input);
+        } else if self.my_turn {
+            bail!(StateProblem::NotTurnToRead);
+        } else if self.pattern_position >= self.message_patterns.len() {
+            bail!(StateProblem::HandshakeAlreadyFinished);
         }
-
         let last = self.pattern_position == (self.message_patterns.len() - 1);
 
         let dh_len = self.dh_len();
@@ -447,7 +450,6 @@ impl HandshakeState {
         }
 
         self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| Error::Decrypt)?;
-        self.my_turn = true;
         if last {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
         }
@@ -463,7 +465,6 @@ impl HandshakeState {
     /// # Errors
     ///
     /// Will result in `Error::Input` if the PSK is not the right length or the location is out of bounds.
-    #[must_use]
     pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
         if key.len() != PSKLEN || self.psks.len() <= location {
             bail!(Error::Input);
@@ -516,10 +517,7 @@ impl HandshakeState {
     pub fn dangerously_get_raw_split(&mut self) -> ([u8; CIPHERKEYLEN], [u8; CIPHERKEYLEN]) {
         let mut output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
         self.symmetricstate.split_raw(&mut output.0, &mut output.1);
-        (
-            output.0[..CIPHERKEYLEN].try_into().unwrap(),
-            output.1[..CIPHERKEYLEN].try_into().unwrap()
-        )
+        (output.0[..CIPHERKEYLEN].try_into().unwrap(), output.1[..CIPHERKEYLEN].try_into().unwrap())
     }
 
     /// Convert this `HandshakeState` into a `TransportState` with an internally stored nonce.

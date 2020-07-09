@@ -5,6 +5,7 @@ use std::fmt;
 /// All errors in snow will include an `ErrorKind`.
 #[allow(missing_docs)]
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Error {
     /// The noise pattern failed to parse.
     Pattern(PatternProblem),
@@ -30,12 +31,6 @@ pub enum Error {
     /// Key-encapsulation failed
     #[cfg(feature = "hfs")]
     Kem,
-
-    /// This enum may grow additional variants, so this makes sure clients
-    /// don't count on exhaustive matching. (Otherwise, adding a new variant
-    /// could break existing code.)
-    #[doc(hidden)]
-    __Nonexhaustive,
 }
 
 /// The various stages of initialization used to help identify
@@ -130,7 +125,6 @@ impl fmt::Display for Error {
             Error::Decrypt => write!(f, "decrypt error"),
             #[cfg(feature = "hfs")]
             Error::Kem => write!(f, "kem error"),
-            Error::__Nonexhaustive => write!(f, "Nonexhaustive"),
         }
     }
 }
