@@ -13,6 +13,7 @@ use pqcrypto_traits::kem::{Ciphertext, PublicKey, SecretKey, SharedSecret};
 use rand::rngs::OsRng;
 use sha2::{Digest, Sha256, Sha512};
 use x25519_dalek as x25519;
+use x448;
 
 use super::CryptoResolver;
 #[cfg(feature = "pqclean_kyber1024")]
@@ -39,7 +40,7 @@ impl CryptoResolver for DefaultResolver {
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>> {
         match *choice {
             DHChoice::Curve25519 => Some(Box::new(Dh25519::default())),
-            _ => None,
+            DHChoice::Curve448 => Some(Box::new(Dh448::default())),
         }
     }
 
@@ -74,6 +75,16 @@ impl CryptoResolver for DefaultResolver {
 struct Dh25519 {
     privkey: [u8; 32],
     pubkey:  [u8; 32],
+}
+/// Wraps x448 [crate-crypto].
+struct Dh448 {
+    privkey: [u8; 56],
+    pubkey:  [u8; 56],
+}
+impl Default for Dh448 {
+    fn default() -> Dh448 {
+        Dh448 { privkey: [0u8; 56], pubkey: [0u8; 56] }
+    }
 }
 
 /// Wraps `aes-gcm`'s AES256-GCM implementation.
@@ -157,6 +168,45 @@ impl Dh for Dh25519 {
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()> {
         let result = x25519::x25519(self.privkey, pubkey[..32].try_into().unwrap());
+        copy_slices!(&result, out);
+        Ok(())
+    }
+}
+
+impl Dh for Dh448 {
+    fn name(&self) -> &'static str {
+        "448"
+    }
+
+    fn pub_len(&self) -> usize {
+        56
+    }
+
+    fn priv_len(&self) -> usize {
+        56
+    }
+
+    fn set(&mut self, privkey: &[u8]) {
+        copy_slices!(privkey, &mut self.privkey);
+        self.pubkey = x448::x448_unchecked(self.privkey, x448::X448_BASEPOINT_BYTES);
+    }
+
+    fn generate(&mut self, rng: &mut dyn Random) {
+        rng.fill_bytes(&mut self.privkey);
+        self.pubkey = x448::x448_unchecked(self.privkey, x448::X448_BASEPOINT_BYTES);
+    }
+
+    fn pubkey(&self) -> &[u8] {
+        &self.pubkey
+    }
+
+    fn privkey(&self) -> &[u8] {
+        &self.privkey
+    }
+
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()> {
+        let pub_key = x448::PublicKey::from_bytes_unchecked(pubkey).unwrap();
+        let result = x448::x448_unchecked(self.privkey, *pub_key.as_bytes());
         copy_slices!(&result, out);
         Ok(())
     }
@@ -527,6 +577,7 @@ mod tests {
     use super::*;
     use hex;
 
+
     #[test]
     fn test_sha256() {
         let mut output = [0u8; 32];
@@ -609,6 +660,24 @@ mod tests {
         assert!(
             hex::encode(output)
                 == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552"
+        );
+    }
+    #[test]
+    fn test_curve448() {
+        // Curve448 test - draft-curves-10
+        let mut keypair: Dh448 = Default::default();
+        let scalar =
+            Vec::<u8>::from_hex("3d262fddf9ec8e88495266fea19a34d28882acef045104d0d1aae121700a779c984c24f8cdd78fbff44943eba368f54b29259a4f1c600ad3")
+                .unwrap();
+        copy_slices!(&scalar, &mut keypair.privkey);
+        let public =
+            Vec::<u8>::from_hex("06fce640fa3487bfda5f6cf2d5263f8aad88334cbd07437f020f08f9814dc031ddbdc38c19c6da2583fa5429db94ada18aa7a7fb4ef8a086")
+                .unwrap();
+        let mut output = [0u8; 56];
+        keypair.dh(&public, &mut output).unwrap();
+        assert_eq!(
+            hex::encode(&output[..]),
+                 "ce3e4ff95a60dc6697da1db1d85e6afbdf79b50a2412d7546d5f239fe14fbaadeb445fc66a01b0779d98223961111e21766282f73dd96b6f"
         );
     }
 
