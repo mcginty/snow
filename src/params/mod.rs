@@ -6,7 +6,8 @@ use std::str::FromStr;
 mod patterns;
 
 pub use self::patterns::{
-    HandshakeChoice, HandshakeModifier, HandshakePattern, SUPPORTED_HANDSHAKE_PATTERNS,
+    HandshakeChoice, HandshakeModifier, HandshakeModifierList, HandshakePattern,
+    SUPPORTED_HANDSHAKE_PATTERNS,
 };
 
 pub(crate) use self::patterns::{DhToken, HandshakeTokens, MessagePatterns, Token};
