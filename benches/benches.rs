@@ -6,14 +6,6 @@ use snow::{params::*, *};
 
 const MSG_SIZE: usize = 4096;
 
-pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
-    for count in 0..data.len() {
-        out[count] = data[count];
-    }
-
-    data.len()
-}
-
 fn benchmarks(c: &mut Criterion) {
     c.bench(
         "builder",
@@ -92,7 +84,7 @@ fn benchmarks(c: &mut Criterion) {
         c.bench(
             "transport",
             Benchmark::new("AESGCM_SHA256 throughput", |b| {
-                static PATTERN: &'static str = "Noise_NN_25519_AESGCM_SHA256";
+                static PATTERN: &str = "Noise_NN_25519_AESGCM_SHA256";
 
                 let mut h_i = Builder::new(PATTERN.parse().unwrap()).build_initiator().unwrap();
                 let mut h_r = Builder::new(PATTERN.parse().unwrap()).build_responder().unwrap();
@@ -121,7 +113,7 @@ fn benchmarks(c: &mut Criterion) {
     c.bench(
         "transport",
         Benchmark::new("ChaChaPoly_BLAKE2s throughput", |b| {
-            static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
+            static PATTERN: &str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
 
             let mut h_i = Builder::new(PATTERN.parse().unwrap()).build_initiator().unwrap();
             let mut h_r = Builder::new(PATTERN.parse().unwrap()).build_responder().unwrap();

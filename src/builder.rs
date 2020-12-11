@@ -280,7 +280,7 @@ mod tests {
         let params: ::std::result::Result<NoiseParams, _> =
             "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
 
-        if let Ok(_) = params {
+        if params.is_ok() {
             panic!("NoiseParams should have failed");
         }
     }
@@ -292,7 +292,7 @@ mod tests {
             .local_private_key(&[0u8; 32])
             .build_initiator(); // missing remote key, should result in Err
 
-        if let Ok(_) = noise {
+        if noise.is_ok() {
             panic!("builder should have failed on build");
         }
     }
