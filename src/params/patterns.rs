@@ -127,40 +127,30 @@ impl HandshakePattern {
     ///
     /// See: http://noiseprotocol.org/noise.html#one-way-patterns
     pub fn is_oneway(self) -> bool {
-        match self {
-            N | X | K => true,
-            _ => false,
-        }
+        matches!(self, N | X | K)
     }
 
     /// Whether this pattern requires a long-term static key.
     pub fn needs_local_static_key(self, initiator: bool) -> bool {
         if initiator {
-            match self {
-                N | NN | NK | NX | NK1 | NX1 => false,
-                _ => true,
-            }
+            !matches!(self, N | NN | NK | NX | NK1 | NX1)
         } else {
-            match self {
-                NN | XN | KN | IN | X1N | K1N | I1N => false,
-                _ => true,
-            }
+            !matches!(self, NN | XN | KN | IN | X1N | K1N | I1N)
         }
     }
 
     /// Whether this pattern demands a remote public key pre-message.
     pub fn need_known_remote_pubkey(self, initiator: bool) -> bool {
         if initiator {
-            match self {
-                N | K | X | NK | XK | KK | IK | NK1 | X1K | XK1 | X1K1 | K1K | KK1 | K1K1 | I1K
-                | IK1 | I1K1 => true,
-                _ => false,
-            }
+            matches!(
+                self, 
+                N | K | X | NK | XK | KK | IK | NK1 | X1K | XK1 | X1K1 | K1K | KK1 | K1K1 | I1K | IK1 | I1K1
+            )
         } else {
-            match self {
-                K | KN | KK | KX | K1N | K1K | KK1 | K1K1 | K1X | KX1 | K1X1 => true,
-                _ => false,
-            }
+            matches!(
+                self,
+                K | KN | KK | KX | K1N | K1K | KK1 | K1K1 | K1X | KX1 | K1X1
+            )
         }
     }
 }
@@ -195,8 +185,10 @@ impl FromStr for HandshakeModifier {
     }
 }
 
+/// Handshake modifiers that will be used during key exchange handshake.
 #[derive(Clone, PartialEq, Debug)]
 pub struct HandshakeModifierList {
+    /// List of parsed modifiers.
     pub list: Vec<HandshakeModifier>,
 }
 

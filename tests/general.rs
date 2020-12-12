@@ -1,10 +1,6 @@
 #![cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 #![allow(clippy::needless_range_loop)]
 #![allow(non_snake_case)]
-use hex;
-use rand_core;
-use snow;
-use x25519_dalek;
 
 use hex::FromHex;
 use snow::{
@@ -34,7 +30,8 @@ impl RngCore for CountingRng {
     }
 
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
-        Ok(self.fill_bytes(dest))
+        self.fill_bytes(dest);
+        Ok(())
     }
 }
 
@@ -83,13 +80,6 @@ impl CryptoResolver for TestResolver {
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         self.parent.resolve_cipher(choice)
     }
-}
-
-pub fn copy_memory(data: &[u8], out: &mut [u8]) -> usize {
-    for count in 0..data.len() {
-        out[count] = data[count];
-    }
-    data.len()
 }
 
 #[test]

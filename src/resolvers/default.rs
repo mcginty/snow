@@ -523,15 +523,14 @@ impl Kem for Kyber1024 {
 
 #[cfg(test)]
 mod tests {
-    use self::hex::FromHex;
+    use hex::FromHex;
     use super::*;
-    use hex;
 
     #[test]
     fn test_sha256() {
         let mut output = [0u8; 32];
         let mut hasher: HashSHA256 = Default::default();
-        hasher.input("abc".as_bytes());
+        hasher.input(b"abc");
         hasher.result(&mut output);
         assert!(
             hex::encode(output)
@@ -568,7 +567,7 @@ mod tests {
         // BLAKE2b test - draft-saarinen-blake2-06
         let mut output = [0u8; 64];
         let mut hasher: HashBLAKE2b = Default::default();
-        hasher.input("abc".as_bytes());
+        hasher.input(b"abc");
         hasher.result(&mut output);
         assert!(
             hex::encode(output.to_vec())
@@ -584,7 +583,7 @@ mod tests {
         // BLAKE2s test - draft-saarinen-blake2-06
         let mut output = [0u8; 32];
         let mut hasher: HashBLAKE2s = Default::default();
-        hasher.input("abc".as_bytes());
+        hasher.input(b"abc");
         hasher.result(&mut output);
         assert!(
             hex::encode(output)
