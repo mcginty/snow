@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/snow.svg)](https://crates.io/crates/snow)
 [![Docs.rs](https://docs.rs/snow/badge.svg)](https://docs.rs/snow)
-[![Build Status](https://travis-ci.org/mcginty/snow.svg?branch=master)](https://travis-ci.org/mcginty/snow)
+[![Build Status](https://github.com/mcginty/snow/workflows/Build/badge.svg)](https://github.com/mcginty/snow/actions)
 [![dependency status](https://deps.rs/repo/github/mcginty/snow/status.svg)](https://deps.rs/repo/github/mcginty/snow)
 
 ![totally official snow logo](https://i.imgur.com/gFgvo49.jpg?1)
