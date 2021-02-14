@@ -13,27 +13,27 @@ is designed to be Hard To Fuck Up™.
 🔥 **Warning** 🔥 This library has not received any formal audit.
 
 ## What's it look like?
+
 See `examples/simple.rs` for a more complete TCP client/server example.
 
 ```rust
 let mut noise = snow::Builder::new("Noise_NN_25519_ChaChaPoly_BLAKE2s".parse()?)
                     .build_initiator()?;
- 
+
 let mut buf = [0u8; 65535];
- 
+
 // write first handshake message
 noise.write_message(&[], &mut buf)?;
- 
+
 // receive response message
 let incoming = receive_message_from_the_mysterious_ether();
 noise.read_message(&incoming, &mut buf)?;
- 
+
 // complete handshake, and transition the state machine into transport mode
 let mut noise = noise.into_transport_mode()?;
 ```
 
 See the full documentation at [https://docs.rs/snow](https://docs.rs/snow).
-
 
 ## Implemented
 
@@ -44,6 +44,7 @@ However, a not all features have been implemented yet (pull requests welcome):
 - [ ] [The `fallback` modifier](https://noiseprotocol.org/noise_rev34.html#the-fallback-modifier)
 
 ## Crypto
+
 Cryptographic providers are swappable through `Builder::with_resolver()`, but by default
 it chooses select, artisanal pure-Rust implementations (see `Cargo.toml` for a quick
 overview).
@@ -63,10 +64,12 @@ If you enable the `ring-accelerated` feature, Snow will default to choosing `rin
 crypto implementations when available.
 
 #### libsodium
+
 [libsodium](https://libsodium.org/) is a fork of NaCl focused on improved usability
 and regular maintenance.
 
 ##### Compatibility caveat
+
 libsodium [blacklists a set of low-order points](https://github.com/jedisct1/libsodium/blob/master/src/libsodium/crypto_scalarmult/curve25519/ref10/x25519_ref10.c#L20)
 that it deems unsafe because they would output an all-zeroes result.
 
@@ -76,19 +79,31 @@ key for some reason (be it testing, or a real life foot-shot), if you use the li
 backend of snow, it will error in a way that's not fully compatible with the
 specification.
 
-
 ### Resolver primitives supported
 
 |            | default | ring | libsodium |
-|-----------:|:-------:|:----:|:---------:|
-| CSPRNG     | ✔       | ✔    | ✔         |
-| 25519      | ✔       | ✔    | ✔         |
-| 448        |         |      |           |
-| AESGCM     | ✔       | ✔    |           |
-| ChaChaPoly | ✔       | ✔    | ✔         |
-| SHA256     | ✔       | ✔    | ✔         |
-| SHA512     | ✔       | ✔    |           |
-| BLAKE2s    | ✔       |      |           |
-| BLAKE2b    | ✔       |      |           |
+| ---------: | :-----: | :--: | :-------: |
+|     CSPRNG |    ✔    |  ✔   |     ✔     |
+|      25519 |    ✔    |  ✔   |     ✔     |
+|        448 |         |      |           |
+|     AESGCM |    ✔    |  ✔   |           |
+| ChaChaPoly |    ✔    |  ✔   |     ✔     |
+|     SHA256 |    ✔    |  ✔   |     ✔     |
+|     SHA512 |    ✔    |  ✔   |           |
+|    BLAKE2s |    ✔    |      |           |
+|    BLAKE2b |    ✔    |      |           |
 
+## License
 
+Licensed under either of:
+
+- [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+- [MIT license](http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
