@@ -144,14 +144,6 @@ impl StatelessCipherState {
         self.cipher.decrypt(nonce, authtext, ciphertext, out)
     }
 
-    pub fn encrypt(&self, nonce: u64, plaintext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
-        self.encrypt_ad(nonce, &[], plaintext, out)
-    }
-
-    pub fn decrypt(&self, nonce: u64, ciphertext: &[u8], out: &mut [u8]) -> Result<usize, ()> {
-        self.decrypt_ad(nonce, &[], ciphertext, out)
-    }
-
     pub fn rekey(&mut self) {
         self.cipher.rekey()
     }
