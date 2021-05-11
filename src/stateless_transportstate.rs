@@ -66,7 +66,7 @@ impl StatelessTransportState {
         }
 
         let cipher = if self.initiator { &self.cipherstates.0 } else { &self.cipherstates.1 };
-        Ok(cipher.encrypt(nonce, payload, message)?)
+        cipher.encrypt(nonce, payload, message)
     }
 
     /// Reads a noise message from `input`

@@ -577,6 +577,6 @@ fn apply_hfs_modifier(patterns: &mut Patterns) {
     // HandshakePattern is not one-way.
     assert!(
         !(e1_insert_idx.is_some() ^ ee_insert_idx.is_some()),
-        "handshake messages contain one of the {{'e1', 'ekem1'}} tokens, but not the other",
+        "handshake messages contain one of the ['e1', 'ekem1'] tokens, but not the other",
     );
 }

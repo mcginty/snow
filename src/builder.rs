@@ -191,7 +191,7 @@ impl<'builder> Builder<'builder> {
         let mut rs_buf = [0u8; MAXDHLEN];
         let rs = match self.rs {
             Some(v) => {
-                rs_buf[..v.len()].copy_from_slice(&v[..]);
+                rs_buf[..v.len()].copy_from_slice(v);
                 Toggle::on(rs_buf)
             },
             None => Toggle::off(rs_buf),

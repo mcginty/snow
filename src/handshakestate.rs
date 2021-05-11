@@ -471,7 +471,7 @@ impl HandshakeState {
         }
 
         let mut new_psk = [0u8; PSKLEN];
-        new_psk.copy_from_slice(&key[..]);
+        new_psk.copy_from_slice(key);
         self.psks[location as usize] = Some(new_psk);
 
         Ok(())
@@ -522,12 +522,12 @@ impl HandshakeState {
 
     /// Convert this `HandshakeState` into a `TransportState` with an internally stored nonce.
     pub fn into_transport_mode(self) -> Result<TransportState, Error> {
-        Ok(self.try_into()?)
+        self.try_into()
     }
 
     /// Convert this `HandshakeState` into a `StatelessTransportState` without an internally stored nonce.
     pub fn into_stateless_transport_mode(self) -> Result<StatelessTransportState, Error> {
-        Ok(self.try_into()?)
+        self.try_into()
     }
 }
 
