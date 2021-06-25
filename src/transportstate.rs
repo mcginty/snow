@@ -75,14 +75,14 @@ impl TransportState {
     /// authentication tag didn't verify.
     ///
     /// Will result in `StateProblem::Exhausted` if the max nonce overflows.
-    pub fn read_message(&mut self, payload: &[u8], message: &mut [u8]) -> Result<usize, Error> {
+    pub fn read_message(&mut self, message: &[u8], payload: &mut [u8]) -> Result<usize, Error> {
         if self.initiator && self.pattern.is_oneway() {
             return Err(StateProblem::OneWay.into());
         }
         let cipher =
             if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
 
-        cipher.decrypt(payload, message)
+        cipher.decrypt(message, payload)
     }
 
     /// Generate a new key for the egress symmetric cipher according to Section 4.2
