@@ -115,7 +115,7 @@ impl Cipher for CipherAESGCM {
                 &mut out[..plaintext.len()],
             )
             .unwrap();
-        &mut out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
+        out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
 
         plaintext.len() + TAGLEN
     }
@@ -194,7 +194,7 @@ impl Cipher for CipherChaChaPoly {
                 &mut out[..plaintext.len()],
             )
             .unwrap();
-        &mut out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
+        out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
 
         plaintext.len() + TAGLEN
     }

@@ -1,40 +1,35 @@
 #[macro_use]
 extern crate criterion;
 
-use criterion::{Benchmark, Criterion, Throughput};
+use criterion::{Criterion, Throughput};
 use snow::{params::*, *};
 
 const MSG_SIZE: usize = 4096;
 
 fn benchmarks(c: &mut Criterion) {
-    c.bench(
-        "builder",
-        Benchmark::new("skeleton", |b| {
-            b.iter(move || {
-                Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
-                    .build_initiator()
-                    .unwrap();
-            })
+    let mut builder_group = c.benchmark_group("builder");
+    builder_group.throughput(Throughput::Elements(1));
+    builder_group.bench_function("skeleton", |b| {
+        b.iter(move || {
+            Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
+                .build_initiator()
+                .unwrap();
         })
-        .throughput(Throughput::Elements(1)),
-    );
+    });
 
-    c.bench(
-        "builder",
-        Benchmark::new("withkey", |b| {
-            b.iter(move || {
-                Builder::new("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap())
-                    .local_private_key(&[1u8; 32])
-                    .build_initiator()
-                    .unwrap();
-            });
-        })
-        .throughput(Throughput::Elements(1)),
-    );
+    builder_group.bench_function("withkey", |b| {
+        b.iter(move || {
+            Builder::new("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap())
+                .local_private_key(&[1u8; 32])
+                .build_initiator()
+                .unwrap();
+        });
+    });
+    builder_group.finish();
 
-    c.bench(
-        "handshake",
-        Benchmark::new("xx", |b| {
+    let mut handshake_group = c.benchmark_group("handshake");
+    handshake_group.throughput(Throughput::Elements(1));
+    handshake_group.bench_function("xx", |b| {
             b.iter(move || {
                 let pattern: NoiseParams = "Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap();
                 let mut h_i = Builder::new(pattern.clone())
@@ -55,13 +50,9 @@ fn benchmarks(c: &mut Criterion) {
                 let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
                 h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
             })
-        })
-        .throughput(Throughput::Elements(1)),
-    );
+        });
 
-    c.bench(
-        "handshake",
-        Benchmark::new("nn", |b| {
+    handshake_group.bench_function("nn", |b| {
             b.iter(move || {
                 let pattern = "Noise_NN_25519_ChaChaPoly_BLAKE2b";
                 let mut h_i = Builder::new(pattern.parse().unwrap()).build_initiator().unwrap();
@@ -76,14 +67,13 @@ fn benchmarks(c: &mut Criterion) {
                 let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
                 h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
             })
-        })
-        .throughput(Throughput::Elements(1)),
-    );
+        });
+    handshake_group.finish();
 
+    let mut transport_group = c.benchmark_group("transport");
+    transport_group.throughput(Throughput::Bytes(MSG_SIZE as u64 * 2));
     if cfg!(feature = "ring-accelerated") {
-        c.bench(
-            "transport",
-            Benchmark::new("AESGCM_SHA256 throughput", |b| {
+        transport_group.bench_function("AESGCM_SHA256 throughput", |b| {
                 static PATTERN: &str = "Noise_NN_25519_AESGCM_SHA256";
 
                 let mut h_i = Builder::new(PATTERN.parse().unwrap()).build_initiator().unwrap();
@@ -105,14 +95,10 @@ fn benchmarks(c: &mut Criterion) {
                     let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
                     let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
                 })
-            })
-            .throughput(Throughput::Bytes(MSG_SIZE as u64 * 2)),
-        );
+            });
     }
 
-    c.bench(
-        "transport",
-        Benchmark::new("ChaChaPoly_BLAKE2s throughput", |b| {
+    transport_group.bench_function("ChaChaPoly_BLAKE2s throughput", |b| {
             static PATTERN: &str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
 
             let mut h_i = Builder::new(PATTERN.parse().unwrap()).build_initiator().unwrap();
@@ -134,9 +120,7 @@ fn benchmarks(c: &mut Criterion) {
                 let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
                 let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
             })
-        })
-        .throughput(Throughput::Bytes(MSG_SIZE as u64 * 2)),
-    );
+        });
 }
 
 criterion_group!(benches, benchmarks);
