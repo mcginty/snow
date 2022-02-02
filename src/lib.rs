@@ -66,12 +66,6 @@ macro_rules! static_slice {
     });
 }
 
-macro_rules! bail {
-    ($e:expr) => {
-        return Err(($e).into());
-    };
-}
-
 mod builder;
 mod cipherstate;
 mod constants;

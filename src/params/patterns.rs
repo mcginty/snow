@@ -46,7 +46,7 @@ macro_rules! pattern_enum {
                         stringify!($variant) => Ok($variant)
                     ),
                     *,
-                    _    => bail!(PatternProblem::UnsupportedHandshakeType)
+                    _    => return Err(PatternProblem::UnsupportedHandshakeType.into())
                 }
             }
         }
@@ -180,7 +180,7 @@ impl FromStr for HandshakeModifier {
             "fallback" => Ok(HandshakeModifier::Fallback),
             #[cfg(feature = "hfs")]
             "hfs" => Ok(HandshakeModifier::Hfs),
-            _ => bail!(PatternProblem::UnsupportedModifier),
+            _ => return Err(PatternProblem::UnsupportedModifier.into()),
         }
     }
 }
@@ -252,7 +252,7 @@ impl HandshakeChoice {
             }
         }
 
-        bail!(PatternProblem::UnsupportedHandshakeType);
+        return Err(PatternProblem::UnsupportedHandshakeType.into());
     }
 }
 
@@ -491,7 +491,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
                 HandshakeModifier::Psk(n) => apply_psk_modifier(&mut patterns, *n),
                 #[cfg(feature = "hfs")]
                 HandshakeModifier::Hfs => apply_hfs_modifier(&mut patterns),
-                _ => bail!(PatternProblem::UnsupportedModifier),
+                _ => return Err(PatternProblem::UnsupportedModifier.into()),
             }
         }
 
@@ -510,7 +510,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
 /// if `handshake` is invalid because of this. Otherwise it will return `()`.
 fn check_hfs_and_oneway_conflict(handshake: &HandshakeChoice) -> Result<(), Error> {
     if handshake.is_hfs() && handshake.pattern.is_oneway() {
-        bail!(PatternProblem::UnsupportedModifier)
+        return Err(PatternProblem::UnsupportedModifier)
     } else {
         Ok(())
     }

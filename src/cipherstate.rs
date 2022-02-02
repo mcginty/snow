@@ -91,7 +91,7 @@ pub(crate) struct CipherStates(pub CipherState, pub CipherState);
 impl CipherStates {
     pub fn new(initiator: CipherState, responder: CipherState) -> Result<Self, Error> {
         if initiator.name() != responder.name() {
-            bail!(InitStage::ValidateCipherTypes);
+            return Err(InitStage::ValidateCipherTypes.into());
         }
 
         Ok(CipherStates(initiator, responder))

@@ -24,7 +24,7 @@ pub struct StatelessTransportState {
 impl StatelessTransportState {
     pub(crate) fn new(handshake: HandshakeState) -> Result<Self, Error> {
         if !handshake.is_handshake_finished() {
-            bail!(StateProblem::HandshakeNotFinished);
+            return Err(StateProblem::HandshakeNotFinished.into());
         }
 
         let dh_len = handshake.dh_len();
@@ -60,9 +60,9 @@ impl StatelessTransportState {
         message: &mut [u8],
     ) -> Result<usize, Error> {
         if !self.initiator && self.pattern.is_oneway() {
-            bail!(StateProblem::OneWay);
+            return Err(StateProblem::OneWay.into());
         } else if payload.len() + TAGLEN > MAXMSGLEN || payload.len() + TAGLEN > message.len() {
-            bail!(Error::Input);
+            return Err(Error::Input);
         }
 
         let cipher = if self.initiator { &self.cipherstates.0 } else { &self.cipherstates.1 };
@@ -86,7 +86,7 @@ impl StatelessTransportState {
         message: &mut [u8],
     ) -> Result<usize, Error> {
         if self.initiator && self.pattern.is_oneway() {
-            bail!(StateProblem::OneWay);
+            return Err(StateProblem::OneWay.into());
         }
         let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
         cipher.decrypt(nonce, payload, message)
