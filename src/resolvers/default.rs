@@ -1,4 +1,4 @@
-use blake2::{Blake2b, Blake2s};
+use blake2::{Blake2b, Blake2s, Blake2b512, Blake2s256};
 #[cfg(feature = "xchachapoly")]
 use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::{
@@ -107,12 +107,12 @@ struct HashSHA512 {
 
 /// Wraps `blake2-rfc`'s implementation.
 struct HashBLAKE2b {
-    hasher: Blake2b,
+    hasher: Blake2b512,
 }
 
 /// Wraps `blake2-rfc`'s implementation.
 struct HashBLAKE2s {
-    hasher: Blake2s,
+    hasher: Blake2s256,
 }
 
 /// Wraps `kyber1024`'s implementation
