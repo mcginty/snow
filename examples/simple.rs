@@ -11,7 +11,7 @@
 
 use lazy_static::lazy_static;
 
-use clap::App;
+use clap::{arg, App};
 use snow::{params::NoiseParams, Builder};
 use std::{
     io::{self, Read, Write},
@@ -25,7 +25,7 @@ lazy_static! {
 
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
-    let matches = App::new("simple").args_from_usage("-s --server 'Server mode'").get_matches();
+    let matches = App::new("simple").arg(arg!("-s --server 'Server mode'")).get_matches();
 
     if matches.is_present("server") {
         run_server();
