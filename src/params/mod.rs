@@ -118,7 +118,7 @@ impl FromStr for KemChoice {
         use self::KemChoice::*;
         match s {
             "Kyber1024" => Ok(Kyber1024),
-            _ => return Err(PatternProblem::UnsupportedKemType),
+            _ => return Err(PatternProblem::UnsupportedKemType.into()),
         }
     }
 }
@@ -221,7 +221,7 @@ impl FromStr for NoiseParams {
 
         // Validate that a KEM is specified iff the hfs modifier is present
         if p.handshake.is_hfs() != p.kem.is_some() {
-            return Err(PatternProblem::TooFewParameters);
+            return Err(PatternProblem::TooFewParameters.into());
         }
         Ok(p)
     }

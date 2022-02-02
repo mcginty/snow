@@ -246,7 +246,7 @@ impl<'builder> Builder<'builder> {
                 let kem = resolver.resolve_kem(&kem_choice).ok_or(InitStage::GetKemImpl)?;
                 hs.set_kem(kem);
             } else {
-                return Err(InitStage::GetKemImpl)
+                return Err(InitStage::GetKemImpl.into())
             }
         }
         Ok(())

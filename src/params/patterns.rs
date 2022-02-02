@@ -510,7 +510,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
 /// if `handshake` is invalid because of this. Otherwise it will return `()`.
 fn check_hfs_and_oneway_conflict(handshake: &HandshakeChoice) -> Result<(), Error> {
     if handshake.is_hfs() && handshake.pattern.is_oneway() {
-        return Err(PatternProblem::UnsupportedModifier)
+        return Err(PatternProblem::UnsupportedModifier.into())
     } else {
         Ok(())
     }
