@@ -1,6 +1,9 @@
 //! The traits for cryptographic implementations that can be used by Noise.
 
-use crate::{constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN, TAGLEN}, Error};
+use crate::{
+    constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN, TAGLEN},
+    Error,
+};
 use rand_core::{CryptoRng, RngCore};
 
 /// CSPRNG operations

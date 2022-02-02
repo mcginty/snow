@@ -140,10 +140,11 @@ impl HandshakePattern {
     }
 
     /// Whether this pattern demands a remote public key pre-message.
+    #[rustfmt::skip]
     pub fn need_known_remote_pubkey(self, initiator: bool) -> bool {
         if initiator {
             matches!(
-                self, 
+                self,
                 N | K | X | NK | XK | KK | IK | NK1 | X1K | XK1 | X1K1 | K1K | KK1 | K1K1 | I1K | IK1 | I1K1
             )
         } else {
@@ -174,9 +175,9 @@ impl FromStr for HandshakeModifier {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            s if s.starts_with("psk") => Ok(HandshakeModifier::Psk(
-                s[3..].parse().map_err(|_| PatternProblem::InvalidPsk)?,
-            )),
+            s if s.starts_with("psk") => {
+                Ok(HandshakeModifier::Psk(s[3..].parse().map_err(|_| PatternProblem::InvalidPsk)?))
+            },
             "fallback" => Ok(HandshakeModifier::Fallback),
             #[cfg(feature = "hfs")]
             "hfs" => Ok(HandshakeModifier::Hfs),
@@ -510,7 +511,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
 /// if `handshake` is invalid because of this. Otherwise it will return `()`.
 fn check_hfs_and_oneway_conflict(handshake: &HandshakeChoice) -> Result<(), Error> {
     if handshake.is_hfs() && handshake.pattern.is_oneway() {
-        return Err(PatternProblem::UnsupportedModifier.into())
+        return Err(PatternProblem::UnsupportedModifier.into());
     } else {
         Ok(())
     }

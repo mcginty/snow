@@ -1,9 +1,9 @@
 use super::CryptoResolver;
 use crate::{
     constants::TAGLEN,
-    Error,
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
+    Error,
 };
 use ring::{
     aead::{self, LessSafeKey, UnboundKey},

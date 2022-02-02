@@ -32,7 +32,7 @@ impl CipherState {
         out: &mut [u8],
     ) -> Result<usize, Error> {
         if !self.has_key {
-            return Err(StateProblem::MissingKeyMaterial.into())
+            return Err(StateProblem::MissingKeyMaterial.into());
         }
 
         let len = self.cipher.encrypt(self.n, authtext, plaintext, out);
@@ -128,7 +128,7 @@ impl StatelessCipherState {
         out: &mut [u8],
     ) -> Result<usize, Error> {
         if !self.has_key {
-            return Err(StateProblem::MissingKeyMaterial.into())
+            return Err(StateProblem::MissingKeyMaterial.into());
         }
 
         Ok(self.cipher.encrypt(nonce, authtext, plaintext, out))

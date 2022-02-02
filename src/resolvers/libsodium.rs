@@ -4,9 +4,9 @@ use byteorder::{ByteOrder, LittleEndian};
 
 use super::CryptoResolver;
 use crate::{
-    Error,
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
+    Error,
 };
 
 use sodiumoxide::crypto::{

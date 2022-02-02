@@ -1,4 +1,4 @@
-use blake2::{Blake2b, Blake2s, Blake2b512, Blake2s256};
+use blake2::{Blake2b, Blake2b512, Blake2s, Blake2s256};
 #[cfg(feature = "xchachapoly")]
 use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::{
@@ -21,9 +21,9 @@ use crate::params::KemChoice;
 use crate::types::Kem;
 use crate::{
     constants::TAGLEN,
-    Error,
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
+    Error,
 };
 
 /// The default resolver provided by snow. This resolver is designed to
@@ -256,13 +256,14 @@ impl Cipher for CipherChaChaPoly {
 
         copy_slices!(ciphertext[..message_len], out);
 
-        ChaCha20Poly1305::new(&self.key.into()).decrypt_in_place_detached(
-            &nonce_bytes.into(),
-            authtext,
-            &mut out[..message_len],
-            ciphertext[message_len..].into(),
-        )
-        .map_err(|_| Error::Decrypt)?;
+        ChaCha20Poly1305::new(&self.key.into())
+            .decrypt_in_place_detached(
+                &nonce_bytes.into(),
+                authtext,
+                &mut out[..message_len],
+                ciphertext[message_len..].into(),
+            )
+            .map_err(|_| Error::Decrypt)?;
 
         Ok(message_len)
     }
@@ -307,12 +308,14 @@ impl Cipher for CipherXChaChaPoly {
 
         copy_slices!(ciphertext[..message_len], out);
 
-        XChaCha20Poly1305::new(&self.key.into()).decrypt_in_place_detached(
-            &nonce_bytes.into(),
-            authtext,
-            &mut out[..message_len],
-            ciphertext[message_len..].into(),
-        ).map_err(|_| Error::Decrypt)?;
+        XChaCha20Poly1305::new(&self.key.into())
+            .decrypt_in_place_detached(
+                &nonce_bytes.into(),
+                authtext,
+                &mut out[..message_len],
+                ciphertext[message_len..].into(),
+            )
+            .map_err(|_| Error::Decrypt)?;
 
         Ok(message_len)
     }
@@ -509,8 +512,8 @@ impl Kem for Kyber1024 {
 
 #[cfg(test)]
 mod tests {
-    use hex::FromHex;
     use super::*;
+    use hex::FromHex;
 
     #[test]
     fn test_sha256() {
@@ -527,7 +530,10 @@ mod tests {
     #[test]
     fn test_hmac_sha256_sha512() {
         let key = Vec::<u8>::from_hex("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
-        let data = Vec::<u8>::from_hex("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd").unwrap();
+        let data = Vec::<u8>::from_hex(
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        )
+        .unwrap();
         let mut output1 = [0u8; 32];
         let mut hasher: HashSHA256 = Default::default();
         hasher.hmac(&key, &data, &mut output1);

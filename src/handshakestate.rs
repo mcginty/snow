@@ -230,7 +230,7 @@ impl HandshakeState {
             match token {
                 Token::E => {
                     if byte_index + self.e.pub_len() > message.len() {
-                        return Err(Error::Input)
+                        return Err(Error::Input);
                     }
 
                     if !self.fixed_ephemeral {
@@ -249,7 +249,7 @@ impl HandshakeState {
                     if !self.s.is_on() {
                         return Err(StateProblem::MissingKeyMaterial.into());
                     } else if byte_index + self.s.pub_len() > message.len() {
-                        return Err(Error::Input)
+                        return Err(Error::Input);
                     }
 
                     byte_index += self
@@ -414,7 +414,8 @@ impl HandshakeState {
                         return Err(Error::Input);
                     }
                     let mut kem_re = [0; MAXKEMPUBLEN];
-                    self.symmetricstate.decrypt_and_mix_hash(&ptr[..read_len], &mut kem_re[..kem.pub_len()])?;
+                    self.symmetricstate
+                        .decrypt_and_mix_hash(&ptr[..read_len], &mut kem_re[..kem.pub_len()])?;
                     self.kem_re = Some(kem_re);
                     ptr = &ptr[read_len..];
                 },
