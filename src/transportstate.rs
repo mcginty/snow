@@ -62,7 +62,7 @@ impl TransportState {
 
         let cipher =
             if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
-        Ok(cipher.encrypt(payload, message)?)
+        cipher.encrypt(payload, message)
     }
 
     /// Reads a noise message from `input`
@@ -81,7 +81,7 @@ impl TransportState {
         }
         let cipher =
             if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
-        
+
         cipher.decrypt(payload, message)
     }
 

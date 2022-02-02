@@ -129,7 +129,7 @@ pub trait Hash: Send + Sync {
         }
 
         let mut in2 = [0u8; MAXHASHLEN + 1];
-        copy_slices!(&out1[0..hash_len], &mut in2);
+        copy_slices!(out1[0..hash_len], &mut in2);
         in2[hash_len] = 2;
         self.hmac(&temp_key, &in2[..=hash_len], out2);
         if outputs == 2 {
@@ -137,7 +137,7 @@ pub trait Hash: Send + Sync {
         }
 
         let mut in3 = [0u8; MAXHASHLEN + 1];
-        copy_slices!(&out2[0..hash_len], &mut in3);
+        copy_slices!(out2[0..hash_len], &mut in3);
         in3[hash_len] = 3;
         self.hmac(&temp_key, &in3[..=hash_len], out3);
     }

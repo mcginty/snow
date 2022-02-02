@@ -107,11 +107,13 @@ struct HashSHA512 {
 }
 
 /// Wraps `blake2-rfc`'s implementation.
+#[derive(Default)]
 struct HashBLAKE2b {
     hasher: Blake2b512,
 }
 
 /// Wraps `blake2-rfc`'s implementation.
+#[derive(Default)]
 struct HashBLAKE2s {
     hasher: Blake2s256,
 }
@@ -158,7 +160,7 @@ impl Dh for Dh25519 {
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error> {
         let result = x25519::x25519(self.privkey, pubkey[..32].try_into().unwrap());
-        copy_slices!(&result, out);
+        copy_slices!(result, out);
         Ok(())
     }
 }
@@ -176,7 +178,7 @@ impl Cipher for CipherAesGcm {
         let aead = aes_gcm::Aes256Gcm::new(&self.key.into());
 
         let mut nonce_bytes = [0u8; 12];
-        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
+        copy_slices!(nonce.to_be_bytes(), &mut nonce_bytes[4..]);
 
         copy_slices!(plaintext, out);
 
@@ -199,7 +201,7 @@ impl Cipher for CipherAesGcm {
         let aead = aes_gcm::Aes256Gcm::new(&self.key.into());
 
         let mut nonce_bytes = [0u8; 12];
-        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
+        copy_slices!(nonce.to_be_bytes(), &mut nonce_bytes[4..]);
 
         let message_len = ciphertext.len() - TAGLEN;
 
@@ -227,7 +229,7 @@ impl Cipher for CipherChaChaPoly {
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
-        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
+        copy_slices!(nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
         copy_slices!(plaintext, out);
 
@@ -248,7 +250,7 @@ impl Cipher for CipherChaChaPoly {
         out: &mut [u8],
     ) -> Result<usize, Error> {
         let mut nonce_bytes = [0u8; 12];
-        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
+        copy_slices!(nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
         let message_len = ciphertext.len() - TAGLEN;
 
@@ -382,12 +384,6 @@ impl Hash for HashSHA512 {
     }
 }
 
-impl Default for HashBLAKE2b {
-    fn default() -> HashBLAKE2b {
-        HashBLAKE2b { hasher: Blake2b::default() }
-    }
-}
-
 impl Hash for HashBLAKE2b {
     fn name(&self) -> &'static str {
         "BLAKE2b"
@@ -412,12 +408,6 @@ impl Hash for HashBLAKE2b {
     fn result(&mut self, out: &mut [u8]) {
         let hash = self.hasher.finalize_reset();
         out[..64].copy_from_slice(&hash);
-    }
-}
-
-impl Default for HashBLAKE2s {
-    fn default() -> HashBLAKE2s {
-        HashBLAKE2s { hasher: Blake2s::default() }
     }
 }
 

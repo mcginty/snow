@@ -177,14 +177,14 @@ impl<'builder> Builder<'builder> {
 
         let s = match self.s {
             Some(k) => {
-                (&mut *s_dh).set(k);
+                (*s_dh).set(k);
                 Toggle::on(s_dh)
             },
             None => Toggle::off(s_dh),
         };
 
         if let Some(fixed_k) = self.e_fixed {
-            (&mut *e_dh).set(fixed_k);
+            (*e_dh).set(fixed_k);
         }
         let e = Toggle::off(e_dh);
 
@@ -223,7 +223,7 @@ impl<'builder> Builder<'builder> {
             initiator,
             self.params,
             psks,
-            self.plog.unwrap_or_else(|| &[0u8; 0]),
+            self.plog.unwrap_or(&[]),
             cipherstates,
         )?;
         Self::resolve_kem(self.resolver, &mut hs)?;

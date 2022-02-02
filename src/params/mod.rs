@@ -26,7 +26,7 @@ impl FromStr for BaseChoice {
         use self::BaseChoice::*;
         match s {
             "Noise" => Ok(Noise),
-            _ => return Err(PatternProblem::UnsupportedBaseType.into()),
+            _ => Err(PatternProblem::UnsupportedBaseType.into()),
         }
     }
 }
@@ -47,7 +47,7 @@ impl FromStr for DHChoice {
         match s {
             "25519" => Ok(Curve25519),
             "448" => Ok(Ed448),
-            _ => return Err(PatternProblem::UnsupportedDhType.into()),
+            _ => Err(PatternProblem::UnsupportedDhType.into()),
         }
     }
 }
@@ -72,7 +72,7 @@ impl FromStr for CipherChoice {
             #[cfg(feature = "xchachapoly")]
             "XChaChaPoly" => Ok(XChaChaPoly),
             "AESGCM" => Ok(AESGCM),
-            _ => return Err(PatternProblem::UnsupportedCipherType.into()),
+            _ => Err(PatternProblem::UnsupportedCipherType.into()),
         }
     }
 }
@@ -97,7 +97,7 @@ impl FromStr for HashChoice {
             "SHA512" => Ok(SHA512),
             "BLAKE2s" => Ok(Blake2s),
             "BLAKE2b" => Ok(Blake2b),
-            _ => return Err(PatternProblem::UnsupportedHashType.into()),
+            _ => Err(PatternProblem::UnsupportedHashType.into()),
         }
     }
 }
@@ -118,7 +118,7 @@ impl FromStr for KemChoice {
         use self::KemChoice::*;
         match s {
             "Kyber1024" => Ok(Kyber1024),
-            _ => return Err(PatternProblem::UnsupportedKemType.into()),
+            _ => Err(PatternProblem::UnsupportedKemType.into()),
         }
     }
 }

@@ -175,12 +175,12 @@ impl FromStr for HandshakeModifier {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             s if s.starts_with("psk") => Ok(HandshakeModifier::Psk(
-                (&s[3..]).parse().map_err(|_| PatternProblem::InvalidPsk)?,
+                s[3..].parse().map_err(|_| PatternProblem::InvalidPsk)?,
             )),
             "fallback" => Ok(HandshakeModifier::Fallback),
             #[cfg(feature = "hfs")]
             "hfs" => Ok(HandshakeModifier::Hfs),
-            _ => return Err(PatternProblem::UnsupportedModifier.into()),
+            _ => Err(PatternProblem::UnsupportedModifier.into()),
         }
     }
 }
@@ -246,13 +246,13 @@ impl HandshakeChoice {
     fn parse_pattern_and_modifier(s: &str) -> Result<(HandshakePattern, &str), Error> {
         for i in (1..=4).rev() {
             if s.len() > i - 1 && s.is_char_boundary(i) {
-                if let Ok(p) = (&s[..i]).parse() {
+                if let Ok(p) = s[..i].parse() {
                     return Ok((p, &s[i..]));
                 }
             }
         }
 
-        return Err(PatternProblem::UnsupportedHandshakeType.into());
+        Err(PatternProblem::UnsupportedHandshakeType.into())
     }
 }
 
