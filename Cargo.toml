@@ -17,8 +17,8 @@ edition = "2018"
 # and -accelerated suffix means that this resolver will be the default used by the Builder.
 [features]
 default = ["default-resolver"]
-default-resolver = ["aes-gcm", "chacha20poly1305", "blake2", "sha2", "x25519-dalek"]
-nightly = ["blake2/simd_opt", "x25519-dalek/nightly", "subtle/nightly"]
+default-resolver = ["aes-gcm", "chacha20poly1305", "blake2", "sha2", "curve25519-dalek"]
+nightly = ["blake2/simd_opt", "curve25519-dalek/nightly", "subtle/nightly"]
 ring-resolver = ["ring"]
 ring-accelerated = ["ring-resolver", "default-resolver"]
 libsodium-resolver = ["sodiumoxide", "byteorder"]
@@ -45,7 +45,8 @@ aes-gcm = { version = "0.9", optional = true }
 chacha20poly1305 = { version = "0.9", optional = true }
 blake2 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
-x25519-dalek = { version = "1.1", optional = true }
+curve25519-dalek = { version = "4.0.0-pre.1", optional = true }
+
 pqcrypto-kyber = { version = "0.7", optional = true }
 pqcrypto-traits = { version = "0.3", optional = true }
 
@@ -63,6 +64,8 @@ serde_json = "1.0"
 serde_derive = "1.0"
 hex = "0.4"
 lazy_static = "1.4"
+x25519-dalek = "1"
+rand = "0.8"
 
 [build-dependencies]
 rustc_version = "0.4"
