@@ -125,7 +125,7 @@ impl FromStr for KemChoice {
 
 /// The set of choices (as specified in the Noise spec) that constitute a full protocol definition.
 ///
-/// See: [Chapter 11: Protocol Names](http://noiseprotocol.org/noise.html#protocol-names).
+/// See: [Chapter 8: Protocol names and modifiers](https://noiseprotocol.org/noise.html#protocol-names-and-modifiers).
 ///
 /// # Examples
 ///
