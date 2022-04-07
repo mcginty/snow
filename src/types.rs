@@ -44,6 +44,9 @@ pub trait Cipher: Send + Sync {
     /// Set the key
     fn set(&mut self, key: &[u8]);
 
+    /// Get the key
+    fn get(&self) -> &[u8];
+
     /// Encrypt (with associated data) a given plaintext.
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize;
 

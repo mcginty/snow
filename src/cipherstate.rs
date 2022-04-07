@@ -167,6 +167,10 @@ impl StatelessCipherState {
     pub fn rekey_manually(&mut self, key: &[u8]) {
         self.cipher.set(key);
     }
+
+    pub fn key(&self) -> &[u8] {
+        self.cipher.get()
+    }
 }
 
 impl From<CipherState> for StatelessCipherState {
