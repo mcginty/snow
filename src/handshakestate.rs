@@ -68,7 +68,7 @@ impl HandshakeState {
             || (s.is_on() && rs.is_on() && s.pub_len() > rs.len())
             || (s.is_on() && re.is_on() && s.pub_len() > re.len())
         {
-            bail!(InitStage::ValidateKeyLengths);
+            return Err(InitStage::ValidateKeyLengths.into());
         }
 
         let tokens = HandshakeTokens::try_from(&params.handshake)?;
@@ -169,9 +169,9 @@ impl HandshakeState {
             (DhToken::Es, true) | (DhToken::Se, false) => (&self.e, &self.rs),
         };
         if !(dh.is_on() && key.is_on()) {
-            bail!(StateProblem::MissingKeyMaterial);
+            return Err(StateProblem::MissingKeyMaterial.into());
         }
-        dh.dh(&**key, &mut dh_out).map_err(|_| Error::Dh)?;
+        dh.dh(&**key, &mut dh_out)?;
         Ok(dh_out)
     }
 
@@ -220,9 +220,9 @@ impl HandshakeState {
 
     fn _write_message(&mut self, payload: &[u8], message: &mut [u8]) -> Result<usize, Error> {
         if !self.my_turn {
-            bail!(StateProblem::NotTurnToWrite);
+            return Err(StateProblem::NotTurnToWrite.into());
         } else if self.pattern_position >= self.message_patterns.len() {
-            bail!(StateProblem::HandshakeAlreadyFinished);
+            return Err(StateProblem::HandshakeAlreadyFinished.into());
         }
 
         let mut byte_index = 0;
@@ -230,7 +230,7 @@ impl HandshakeState {
             match token {
                 Token::E => {
                     if byte_index + self.e.pub_len() > message.len() {
-                        bail!(Error::Input)
+                        return Err(Error::Input);
                     }
 
                     if !self.fixed_ephemeral {
@@ -247,9 +247,9 @@ impl HandshakeState {
                 },
                 Token::S => {
                     if !self.s.is_on() {
-                        bail!(StateProblem::MissingKeyMaterial);
+                        return Err(StateProblem::MissingKeyMaterial.into());
                     } else if byte_index + self.s.pub_len() > message.len() {
-                        bail!(Error::Input)
+                        return Err(Error::Input);
                     }
 
                     byte_index += self
@@ -261,7 +261,7 @@ impl HandshakeState {
                         self.symmetricstate.mix_key_and_hash(&psk);
                     },
                     None => {
-                        bail!(StateProblem::MissingPsk);
+                        return Err(StateProblem::MissingPsk.into());
                     },
                 },
                 Token::Dh(t) => {
@@ -272,7 +272,7 @@ impl HandshakeState {
                 Token::E1 => {
                     let kem = self.kem.as_mut().ok_or(Error::Input)?;
                     if kem.pub_len() > message.len() {
-                        bail!(Error::Input);
+                        return Err(Error::Input);
                     }
 
                     kem.generate(&mut *self.rng);
@@ -287,14 +287,14 @@ impl HandshakeState {
                     let mut ciphertext_buf = [0; MAXKEMCTLEN];
 
                     if kem.ciphertext_len() > message.len() {
-                        bail!(Error::Input);
+                        return Err(Error::Input);
                     }
 
                     let kem_output = &mut kem_output_buf[..kem.shared_secret_len()];
                     let ciphertext = &mut ciphertext_buf[..kem.ciphertext_len()];
                     let pubkey = &self.kem_re.as_ref().unwrap()[..kem.pub_len()];
                     if kem.encapsulate(pubkey, kem_output, ciphertext).is_err() {
-                        bail!(Error::Kem);
+                        return Err(Error::Kem);
                     }
 
                     byte_index += self.symmetricstate.encrypt_and_mix_hash(
@@ -307,12 +307,12 @@ impl HandshakeState {
         }
 
         if byte_index + payload.len() + TAGLEN > message.len() {
-            bail!(Error::Input);
+            return Err(Error::Input);
         }
         byte_index +=
             self.symmetricstate.encrypt_and_mix_hash(payload, &mut message[byte_index..])?;
         if byte_index > MAXMSGLEN {
-            bail!(Error::Input);
+            return Err(Error::Input);
         }
         if self.pattern_position == (self.message_patterns.len() - 1) {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
@@ -329,9 +329,7 @@ impl HandshakeState {
     /// Will result in `Error::Decrypt` if the contents couldn't be decrypted and/or the
     /// authentication tag didn't verify.
     ///
-    /// # Panics
-    ///
-    /// This function will panic if there is no key, or if there is a nonce overflow.
+    /// Will result in `StateProblem::Exhausted` if the max nonce count overflows.
     pub fn read_message(&mut self, message: &[u8], payload: &mut [u8]) -> Result<usize, Error> {
         let checkpoint = self.symmetricstate.checkpoint();
         match self._read_message(message, payload) {
@@ -349,11 +347,11 @@ impl HandshakeState {
 
     fn _read_message(&mut self, message: &[u8], payload: &mut [u8]) -> Result<usize, Error> {
         if message.len() > MAXMSGLEN {
-            bail!(Error::Input);
+            return Err(Error::Input);
         } else if self.my_turn {
-            bail!(StateProblem::NotTurnToRead);
+            return Err(StateProblem::NotTurnToRead.into());
         } else if self.pattern_position >= self.message_patterns.len() {
-            bail!(StateProblem::HandshakeAlreadyFinished);
+            return Err(StateProblem::HandshakeAlreadyFinished.into());
         }
         let last = self.pattern_position == (self.message_patterns.len() - 1);
 
@@ -363,7 +361,7 @@ impl HandshakeState {
             match token {
                 Token::E => {
                     if ptr.len() < dh_len {
-                        bail!(Error::Input);
+                        return Err(Error::Input);
                     }
                     self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
                     ptr = &ptr[dh_len..];
@@ -376,22 +374,20 @@ impl HandshakeState {
                 Token::S => {
                     let data = if self.symmetricstate.has_key() {
                         if ptr.len() < dh_len + TAGLEN {
-                            bail!(Error::Input);
+                            return Err(Error::Input);
                         }
                         let temp = &ptr[..dh_len + TAGLEN];
                         ptr = &ptr[dh_len + TAGLEN..];
                         temp
                     } else {
                         if ptr.len() < dh_len {
-                            bail!(Error::Input);
+                            return Err(Error::Input);
                         }
                         let temp = &ptr[..dh_len];
                         ptr = &ptr[dh_len..];
                         temp
                     };
-                    self.symmetricstate
-                        .decrypt_and_mix_hash(data, &mut self.rs[..dh_len])
-                        .map_err(|_| Error::Decrypt)?;
+                    self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len])?;
                     self.rs.enable();
                 },
                 Token::Psk(n) => match self.psks[*n as usize] {
@@ -399,7 +395,7 @@ impl HandshakeState {
                         self.symmetricstate.mix_key_and_hash(&psk);
                     },
                     None => {
-                        bail!(StateProblem::MissingPsk);
+                        return Err(StateProblem::MissingPsk.into());
                     },
                 },
                 Token::Dh(t) => {
@@ -415,12 +411,11 @@ impl HandshakeState {
                         kem.pub_len()
                     };
                     if ptr.len() < read_len {
-                        bail!(Error::Input);
+                        return Err(Error::Input);
                     }
                     let mut kem_re = [0; MAXKEMPUBLEN];
                     self.symmetricstate
-                        .decrypt_and_mix_hash(&ptr[..read_len], &mut kem_re[..kem.pub_len()])
-                        .map_err(|_| Error::Decrypt)?;
+                        .decrypt_and_mix_hash(&ptr[..read_len], &mut kem_re[..kem.pub_len()])?;
                     self.kem_re = Some(kem_re);
                     ptr = &ptr[read_len..];
                 },
@@ -433,13 +428,11 @@ impl HandshakeState {
                         kem.ciphertext_len()
                     };
                     if ptr.len() < read_len {
-                        bail!(Error::Input);
+                        return Err(Error::Input);
                     }
                     let mut ciphertext_buf = [0; MAXKEMCTLEN];
                     let ciphertext = &mut ciphertext_buf[..kem.ciphertext_len()];
-                    self.symmetricstate
-                        .decrypt_and_mix_hash(&ptr[..read_len], ciphertext)
-                        .map_err(|_| Error::Decrypt)?;
+                    self.symmetricstate.decrypt_and_mix_hash(&ptr[..read_len], ciphertext)?;
                     let mut kem_output_buf = [0; MAXKEMSSLEN];
                     let kem_output = &mut kem_output_buf[..kem.shared_secret_len()];
                     kem.decapsulate(ciphertext, kem_output).map_err(|_| Error::Kem)?;
@@ -449,7 +442,7 @@ impl HandshakeState {
             }
         }
 
-        self.symmetricstate.decrypt_and_mix_hash(ptr, payload).map_err(|_| Error::Decrypt)?;
+        self.symmetricstate.decrypt_and_mix_hash(ptr, payload)?;
         if last {
             self.symmetricstate.split(&mut self.cipherstates.0, &mut self.cipherstates.1);
         }
@@ -467,11 +460,11 @@ impl HandshakeState {
     /// Will result in `Error::Input` if the PSK is not the right length or the location is out of bounds.
     pub fn set_psk(&mut self, location: usize, key: &[u8]) -> Result<(), Error> {
         if key.len() != PSKLEN || self.psks.len() <= location {
-            bail!(Error::Input);
+            return Err(Error::Input);
         }
 
         let mut new_psk = [0u8; PSKLEN];
-        new_psk.copy_from_slice(&key[..]);
+        new_psk.copy_from_slice(key);
         self.psks[location as usize] = Some(new_psk);
 
         Ok(())
@@ -522,12 +515,12 @@ impl HandshakeState {
 
     /// Convert this `HandshakeState` into a `TransportState` with an internally stored nonce.
     pub fn into_transport_mode(self) -> Result<TransportState, Error> {
-        Ok(self.try_into()?)
+        self.try_into()
     }
 
     /// Convert this `HandshakeState` into a `StatelessTransportState` without an internally stored nonce.
     pub fn into_stateless_transport_mode(self) -> Result<StatelessTransportState, Error> {
-        Ok(self.try_into()?)
+        self.try_into()
     }
 }
 

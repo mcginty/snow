@@ -155,11 +155,11 @@ impl<'builder> Builder<'builder> {
 
     fn build(self, initiator: bool) -> Result<HandshakeState, Error> {
         if self.s.is_none() && self.params.handshake.pattern.needs_local_static_key(initiator) {
-            bail!(Prerequisite::LocalPrivateKey);
+            return Err(Prerequisite::LocalPrivateKey.into());
         }
 
         if self.rs.is_none() && self.params.handshake.pattern.need_known_remote_pubkey(initiator) {
-            bail!(Prerequisite::RemotePublicKey);
+            return Err(Prerequisite::RemotePublicKey.into());
         }
 
         let rng = self.resolver.resolve_rng().ok_or(InitStage::GetRngImpl)?;
@@ -177,21 +177,21 @@ impl<'builder> Builder<'builder> {
 
         let s = match self.s {
             Some(k) => {
-                (&mut *s_dh).set(k);
+                (*s_dh).set(k);
                 Toggle::on(s_dh)
             },
             None => Toggle::off(s_dh),
         };
 
         if let Some(fixed_k) = self.e_fixed {
-            (&mut *e_dh).set(fixed_k);
+            (*e_dh).set(fixed_k);
         }
         let e = Toggle::off(e_dh);
 
         let mut rs_buf = [0u8; MAXDHLEN];
         let rs = match self.rs {
             Some(v) => {
-                rs_buf[..v.len()].copy_from_slice(&v[..]);
+                rs_buf[..v.len()].copy_from_slice(v);
                 Toggle::on(rs_buf)
             },
             None => Toggle::off(rs_buf),
@@ -203,7 +203,7 @@ impl<'builder> Builder<'builder> {
         for (i, psk) in self.psks.iter().enumerate() {
             if let Some(key) = *psk {
                 if key.len() != PSKLEN {
-                    bail!(InitStage::ValidatePskLengths);
+                    return Err(InitStage::ValidatePskLengths.into());
                 }
                 let mut k = [0u8; PSKLEN];
                 k.copy_from_slice(key);
@@ -223,7 +223,7 @@ impl<'builder> Builder<'builder> {
             initiator,
             self.params,
             psks,
-            self.plog.unwrap_or_else(|| &[0u8; 0]),
+            self.plog.unwrap_or(&[]),
             cipherstates,
         )?;
         Self::resolve_kem(self.resolver, &mut hs)?;
@@ -246,7 +246,7 @@ impl<'builder> Builder<'builder> {
                 let kem = resolver.resolve_kem(&kem_choice).ok_or(InitStage::GetKemImpl)?;
                 hs.set_kem(kem);
             } else {
-                bail!(InitStage::GetKemImpl)
+                return Err(InitStage::GetKemImpl.into());
             }
         }
         Ok(())

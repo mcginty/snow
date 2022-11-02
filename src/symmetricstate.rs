@@ -41,7 +41,7 @@ impl SymmetricState {
             self.hasher.input(handshake_name.as_bytes());
             self.hasher.result(&mut self.inner.h);
         }
-        copy_slices!(&self.inner.h, &mut self.inner.ck);
+        copy_slices!(self.inner.h, &mut self.inner.ck);
         self.inner.has_key = false;
     }
 
@@ -56,7 +56,7 @@ impl SymmetricState {
             &mut hkdf_output.1,
             &mut [],
         );
-        copy_slices!(&hkdf_output.0, &mut self.inner.ck);
+        copy_slices!(hkdf_output.0, &mut self.inner.ck);
         self.cipherstate.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
         self.inner.has_key = true;
     }
@@ -80,7 +80,7 @@ impl SymmetricState {
             &mut hkdf_output.1,
             &mut hkdf_output.2,
         );
-        copy_slices!(&hkdf_output.0, &mut self.inner.ck);
+        copy_slices!(hkdf_output.0, &mut self.inner.ck);
         self.mix_hash(&hkdf_output.1[..hash_len]);
         self.cipherstate.set(&hkdf_output.2[..CIPHERKEYLEN], 0);
     }
@@ -106,13 +106,13 @@ impl SymmetricState {
         Ok(output_len)
     }
 
-    pub fn decrypt_and_mix_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, ()> {
+    pub fn decrypt_and_mix_hash(&mut self, data: &[u8], out: &mut [u8]) -> Result<usize, Error> {
         let hash_len = self.hasher.hash_len();
         let payload_len = if self.inner.has_key {
             self.cipherstate.decrypt_ad(&self.inner.h[..hash_len], data, out)?
         } else {
             if out.len() < data.len() {
-                return Err(());
+                return Err(Error::Decrypt);
             }
             copy_slices!(data, out);
             data.len()
@@ -128,9 +128,9 @@ impl SymmetricState {
         child2.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
     }
 
-    pub fn split_raw(&mut self, mut out1: &mut [u8], mut out2: &mut [u8]) {
+    pub fn split_raw(&mut self, out1: &mut [u8], out2: &mut [u8]) {
         let hash_len = self.hasher.hash_len();
-        self.hasher.hkdf(&self.inner.ck[..hash_len], &[0u8; 0], 2, &mut out1, &mut out2, &mut []);
+        self.hasher.hkdf(&self.inner.ck[..hash_len], &[0u8; 0], 2, out1, out2, &mut []);
     }
 
     pub(crate) fn checkpoint(&mut self) -> SymmetricStateData {

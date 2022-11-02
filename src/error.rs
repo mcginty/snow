@@ -105,6 +105,8 @@ pub enum StateProblem {
     HandshakeAlreadyFinished,
     OneWay,
     StatelessTransportMode,
+    /// The nonce counter attempted to go higher than (2^64) - 1
+    Exhausted,
 }
 
 impl From<StateProblem> for Error {
@@ -117,8 +119,12 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::Pattern(reason) => write!(f, "pattern error: {:?}", reason),
-            Error::Init(reason) => write!(f, "initialization error: {:?}", reason),
-            Error::Prereq(reason) => write!(f, "prerequisite error: {:?}", reason),
+            Error::Init(reason) => {
+                write!(f, "initialization error: {:?}", reason)
+            },
+            Error::Prereq(reason) => {
+                write!(f, "prerequisite error: {:?}", reason)
+            },
             Error::State(reason) => write!(f, "state error: {:?}", reason),
             Error::Input => write!(f, "input error"),
             Error::Dh => write!(f, "diffie-hellman error"),

@@ -3,6 +3,7 @@ use crate::{
     constants::TAGLEN,
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
+    Error,
 };
 use ring::{
     aead::{self, LessSafeKey, UnboundKey},
@@ -114,7 +115,7 @@ impl Cipher for CipherAESGCM {
                 &mut out[..plaintext.len()],
             )
             .unwrap();
-        &mut out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
+        out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
 
         plaintext.len() + TAGLEN
     }
@@ -125,7 +126,7 @@ impl Cipher for CipherAESGCM {
         authtext: &[u8],
         ciphertext: &[u8],
         out: &mut [u8],
-    ) -> Result<usize, ()> {
+    ) -> Result<usize, Error> {
         let mut nonce_bytes = [0u8; 12];
         copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
         let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
@@ -137,7 +138,7 @@ impl Cipher for CipherAESGCM {
             let len = self
                 .key
                 .open_in_place(nonce, aead::Aad::from(authtext), in_out)
-                .map_err(|_| ())?
+                .map_err(|_| Error::Decrypt)?
                 .len();
 
             Ok(len)
@@ -147,7 +148,8 @@ impl Cipher for CipherAESGCM {
             let out0 = self
                 .key
                 .open_in_place(nonce, aead::Aad::from(authtext), &mut in_out)
-                .map_err(|_| ())?;
+                .map_err(|_| Error::Decrypt)?;
+
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
@@ -192,7 +194,7 @@ impl Cipher for CipherChaChaPoly {
                 &mut out[..plaintext.len()],
             )
             .unwrap();
-        &mut out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
+        out[plaintext.len()..plaintext.len() + TAGLEN].copy_from_slice(tag.as_ref());
 
         plaintext.len() + TAGLEN
     }
@@ -203,7 +205,7 @@ impl Cipher for CipherChaChaPoly {
         authtext: &[u8],
         ciphertext: &[u8],
         out: &mut [u8],
-    ) -> Result<usize, ()> {
+    ) -> Result<usize, Error> {
         let mut nonce_bytes = [0u8; 12];
         copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
         let nonce = aead::Nonce::assume_unique_for_key(nonce_bytes);
@@ -215,7 +217,7 @@ impl Cipher for CipherChaChaPoly {
             let len = self
                 .key
                 .open_in_place(nonce, aead::Aad::from(authtext), in_out)
-                .map_err(|_| ())?
+                .map_err(|_| Error::Decrypt)?
                 .len();
 
             Ok(len)
@@ -225,7 +227,8 @@ impl Cipher for CipherChaChaPoly {
             let out0 = self
                 .key
                 .open_in_place(nonce, aead::Aad::from(authtext), &mut in_out)
-                .map_err(|_| ())?;
+                .map_err(|_| Error::Decrypt)?;
+
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }

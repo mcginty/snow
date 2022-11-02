@@ -26,7 +26,7 @@ impl FromStr for BaseChoice {
         use self::BaseChoice::*;
         match s {
             "Noise" => Ok(Noise),
-            _ => bail!(PatternProblem::UnsupportedBaseType),
+            _ => Err(PatternProblem::UnsupportedBaseType.into()),
         }
     }
 }
@@ -47,7 +47,7 @@ impl FromStr for DHChoice {
         match s {
             "25519" => Ok(Curve25519),
             "448" => Ok(Ed448),
-            _ => bail!(PatternProblem::UnsupportedDhType),
+            _ => Err(PatternProblem::UnsupportedDhType.into()),
         }
     }
 }
@@ -72,7 +72,7 @@ impl FromStr for CipherChoice {
             #[cfg(feature = "xchachapoly")]
             "XChaChaPoly" => Ok(XChaChaPoly),
             "AESGCM" => Ok(AESGCM),
-            _ => bail!(PatternProblem::UnsupportedCipherType),
+            _ => Err(PatternProblem::UnsupportedCipherType.into()),
         }
     }
 }
@@ -97,7 +97,7 @@ impl FromStr for HashChoice {
             "SHA512" => Ok(SHA512),
             "BLAKE2s" => Ok(Blake2s),
             "BLAKE2b" => Ok(Blake2b),
-            _ => bail!(PatternProblem::UnsupportedHashType),
+            _ => Err(PatternProblem::UnsupportedHashType.into()),
         }
     }
 }
@@ -118,14 +118,14 @@ impl FromStr for KemChoice {
         use self::KemChoice::*;
         match s {
             "Kyber1024" => Ok(Kyber1024),
-            _ => bail!(PatternProblem::UnsupportedKemType),
+            _ => Err(PatternProblem::UnsupportedKemType.into()),
         }
     }
 }
 
 /// The set of choices (as specified in the Noise spec) that constitute a full protocol definition.
 ///
-/// See: [Chapter 11: Protocol Names](http://noiseprotocol.org/noise.html#protocol-names).
+/// See: [Chapter 8: Protocol names and modifiers](https://noiseprotocol.org/noise.html#protocol-names-and-modifiers).
 ///
 /// # Examples
 ///
@@ -221,7 +221,7 @@ impl FromStr for NoiseParams {
 
         // Validate that a KEM is specified iff the hfs modifier is present
         if p.handshake.is_hfs() != p.kem.is_some() {
-            bail!(PatternProblem::TooFewParameters);
+            return Err(PatternProblem::TooFewParameters.into());
         }
         Ok(p)
     }

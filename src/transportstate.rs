@@ -24,7 +24,7 @@ pub struct TransportState {
 impl TransportState {
     pub(crate) fn new(handshake: HandshakeState) -> Result<Self, Error> {
         if !handshake.is_handshake_finished() {
-            bail!(StateProblem::HandshakeNotFinished);
+            return Err(StateProblem::HandshakeNotFinished.into());
         }
 
         let dh_len = handshake.dh_len();
@@ -55,14 +55,14 @@ impl TransportState {
     /// length in the Noise Protocol (65535 bytes).
     pub fn write_message(&mut self, payload: &[u8], message: &mut [u8]) -> Result<usize, Error> {
         if !self.initiator && self.pattern.is_oneway() {
-            bail!(StateProblem::OneWay);
+            return Err(StateProblem::OneWay.into());
         } else if payload.len() + TAGLEN > MAXMSGLEN || payload.len() + TAGLEN > message.len() {
-            bail!(Error::Input);
+            return Err(Error::Input);
         }
 
         let cipher =
             if self.initiator { &mut self.cipherstates.0 } else { &mut self.cipherstates.1 };
-        Ok(cipher.encrypt(payload, message)?)
+        cipher.encrypt(payload, message)
     }
 
     /// Read a noise message from `message` and write the payload to the `payload` buffer.
@@ -74,16 +74,15 @@ impl TransportState {
     /// Will result in `Error::Decrypt` if the contents couldn't be decrypted and/or the
     /// authentication tag didn't verify.
     ///
-    /// # Panics
-    ///
-    /// This function will panic if there is no key, or if there is a nonce overflow.
-    pub fn read_message(&mut self, message: &[u8], payload: &mut [u8]) -> Result<usize, Error> {
+    /// Will result in `StateProblem::Exhausted` if the max nonce overflows.
+    pub fn read_message(&mut self, payload: &[u8], message: &mut [u8]) -> Result<usize, Error> {
         if self.initiator && self.pattern.is_oneway() {
-            bail!(StateProblem::OneWay);
+            return Err(StateProblem::OneWay.into());
         }
         let cipher =
             if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
-        cipher.decrypt(message, payload).map_err(|_| Error::Decrypt)
+
+        cipher.decrypt(payload, message)
     }
 
     /// Generate a new key for the egress symmetric cipher according to Section 4.2

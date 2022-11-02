@@ -46,7 +46,7 @@ macro_rules! pattern_enum {
                         stringify!($variant) => Ok($variant)
                     ),
                     *,
-                    _    => bail!(PatternProblem::UnsupportedHandshakeType)
+                    _    => return Err(PatternProblem::UnsupportedHandshakeType.into())
                 }
             }
         }
@@ -140,10 +140,11 @@ impl HandshakePattern {
     }
 
     /// Whether this pattern demands a remote public key pre-message.
+    #[rustfmt::skip]
     pub fn need_known_remote_pubkey(self, initiator: bool) -> bool {
         if initiator {
             matches!(
-                self, 
+                self,
                 N | K | X | NK | XK | KK | IK | NK1 | X1K | XK1 | X1K1 | K1K | KK1 | K1K1 | I1K | IK1 | I1K1
             )
         } else {
@@ -174,13 +175,13 @@ impl FromStr for HandshakeModifier {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            s if s.starts_with("psk") => Ok(HandshakeModifier::Psk(
-                (&s[3..]).parse().map_err(|_| PatternProblem::InvalidPsk)?,
-            )),
+            s if s.starts_with("psk") => {
+                Ok(HandshakeModifier::Psk(s[3..].parse().map_err(|_| PatternProblem::InvalidPsk)?))
+            },
             "fallback" => Ok(HandshakeModifier::Fallback),
             #[cfg(feature = "hfs")]
             "hfs" => Ok(HandshakeModifier::Hfs),
-            _ => bail!(PatternProblem::UnsupportedModifier),
+            _ => Err(PatternProblem::UnsupportedModifier.into()),
         }
     }
 }
@@ -246,13 +247,13 @@ impl HandshakeChoice {
     fn parse_pattern_and_modifier(s: &str) -> Result<(HandshakePattern, &str), Error> {
         for i in (1..=4).rev() {
             if s.len() > i - 1 && s.is_char_boundary(i) {
-                if let Ok(p) = (&s[..i]).parse() {
+                if let Ok(p) = s[..i].parse() {
                     return Ok((p, &s[i..]));
                 }
             }
         }
 
-        bail!(PatternProblem::UnsupportedHandshakeType);
+        Err(PatternProblem::UnsupportedHandshakeType.into())
     }
 }
 
@@ -491,7 +492,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
                 HandshakeModifier::Psk(n) => apply_psk_modifier(&mut patterns, *n),
                 #[cfg(feature = "hfs")]
                 HandshakeModifier::Hfs => apply_hfs_modifier(&mut patterns),
-                _ => bail!(PatternProblem::UnsupportedModifier),
+                _ => return Err(PatternProblem::UnsupportedModifier.into()),
             }
         }
 
@@ -510,7 +511,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
 /// if `handshake` is invalid because of this. Otherwise it will return `()`.
 fn check_hfs_and_oneway_conflict(handshake: &HandshakeChoice) -> Result<(), Error> {
     if handshake.is_hfs() && handshake.pattern.is_oneway() {
-        bail!(PatternProblem::UnsupportedModifier)
+        return Err(PatternProblem::UnsupportedModifier.into());
     } else {
         Ok(())
     }
@@ -577,6 +578,6 @@ fn apply_hfs_modifier(patterns: &mut Patterns) {
     // HandshakePattern is not one-way.
     assert!(
         !(e1_insert_idx.is_some() ^ ee_insert_idx.is_some()),
-        "handshake messages contain one of the {{'e1', 'ekem1'}} tokens, but not the other",
+        "handshake messages contain one of the ['e1', 'ekem1'] tokens, but not the other",
     );
 }

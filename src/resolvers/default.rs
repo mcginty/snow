@@ -1,18 +1,17 @@
-use blake2::{Blake2b, Blake2s};
+use blake2::{Blake2b, Blake2b512, Blake2s, Blake2s256};
 #[cfg(feature = "xchachapoly")]
 use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::{
     aead::{AeadInPlace, NewAead},
     ChaCha20Poly1305,
 };
-use core::convert::TryInto;
+use curve25519_dalek::{constants::ED25519_BASEPOINT_TABLE, scalar::Scalar, montgomery::MontgomeryPoint};
 #[cfg(feature = "pqclean_kyber1024")]
 use pqcrypto_kyber::kyber1024;
 #[cfg(feature = "pqclean_kyber1024")]
 use pqcrypto_traits::kem::{Ciphertext, PublicKey, SecretKey, SharedSecret};
-use rand::rngs::OsRng;
+use rand_core::OsRng;
 use sha2::{Digest, Sha256, Sha512};
-use x25519_dalek as x25519;
 
 use super::CryptoResolver;
 #[cfg(feature = "pqclean_kyber1024")]
@@ -23,6 +22,7 @@ use crate::{
     constants::TAGLEN,
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
+    Error,
 };
 
 /// The default resolver provided by snow. This resolver is designed to
@@ -72,7 +72,7 @@ impl CryptoResolver for DefaultResolver {
 /// Wraps x25519-dalek.
 #[derive(Default)]
 struct Dh25519 {
-    privkey: [u8; 32],
+    privkey: Scalar,
     pubkey:  [u8; 32],
 }
 
@@ -106,13 +106,15 @@ struct HashSHA512 {
 }
 
 /// Wraps `blake2-rfc`'s implementation.
+#[derive(Default)]
 struct HashBLAKE2b {
-    hasher: Blake2b,
+    hasher: Blake2b512,
 }
 
 /// Wraps `blake2-rfc`'s implementation.
+#[derive(Default)]
 struct HashBLAKE2s {
-    hasher: Blake2s,
+    hasher: Blake2s256,
 }
 
 /// Wraps `kyber1024`'s implementation
@@ -123,6 +125,22 @@ struct Kyber1024 {
 }
 
 impl Random for OsRng {}
+
+impl Dh25519 {
+    fn derive_pubkey(&mut self) {
+        // https://github.com/dalek-cryptography/x25519-dalek/blob/1c39ff92e0dfc0b24aa02d694f26f3b9539322a5/src/x25519.rs#L150
+        let point = (&ED25519_BASEPOINT_TABLE * &self.privkey).to_montgomery();
+        self.pubkey = point.to_bytes();
+    }
+}
+
+fn clamp_scalar(mut scalar: [u8; 32]) -> Scalar {
+    scalar[0] &= 248;
+    scalar[31] &= 127;
+    scalar[31] |= 64;
+
+    Scalar::from_bits(scalar)
+}
 
 impl Dh for Dh25519 {
     fn name(&self) -> &'static str {
@@ -138,13 +156,17 @@ impl Dh for Dh25519 {
     }
 
     fn set(&mut self, privkey: &[u8]) {
-        copy_slices!(privkey, &mut self.privkey);
-        self.pubkey = x25519::x25519(self.privkey, x25519::X25519_BASEPOINT_BYTES);
+        let mut bytes = [0u8; 32];
+        copy_slices!(privkey, bytes);
+        self.privkey = clamp_scalar(bytes);
+        self.derive_pubkey();
     }
 
     fn generate(&mut self, rng: &mut dyn Random) {
-        rng.fill_bytes(&mut self.privkey);
-        self.pubkey = x25519::x25519(self.privkey, x25519::X25519_BASEPOINT_BYTES);
+        let mut bytes = [0u8; 32];
+        rng.fill_bytes(&mut bytes);
+        self.privkey = clamp_scalar(bytes);
+        self.derive_pubkey();
     }
 
     fn pubkey(&self) -> &[u8] {
@@ -152,12 +174,14 @@ impl Dh for Dh25519 {
     }
 
     fn privkey(&self) -> &[u8] {
-        &self.privkey
+        self.privkey.as_bytes()
     }
 
-    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()> {
-        let result = x25519::x25519(self.privkey, pubkey[..32].try_into().unwrap());
-        copy_slices!(&result, out);
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error> {
+        let mut pubkey_owned = [0u8; 32];
+        copy_slices!(&pubkey[..32], pubkey_owned);
+        let result = (self.privkey * MontgomeryPoint(pubkey_owned)).to_bytes();
+        copy_slices!(result, out);
         Ok(())
     }
 }
@@ -175,7 +199,7 @@ impl Cipher for CipherAesGcm {
         let aead = aes_gcm::Aes256Gcm::new(&self.key.into());
 
         let mut nonce_bytes = [0u8; 12];
-        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
+        copy_slices!(nonce.to_be_bytes(), &mut nonce_bytes[4..]);
 
         copy_slices!(plaintext, out);
 
@@ -194,11 +218,11 @@ impl Cipher for CipherAesGcm {
         authtext: &[u8],
         ciphertext: &[u8],
         out: &mut [u8],
-    ) -> Result<usize, ()> {
+    ) -> Result<usize, Error> {
         let aead = aes_gcm::Aes256Gcm::new(&self.key.into());
 
         let mut nonce_bytes = [0u8; 12];
-        copy_slices!(&nonce.to_be_bytes(), &mut nonce_bytes[4..]);
+        copy_slices!(nonce.to_be_bytes(), &mut nonce_bytes[4..]);
 
         let message_len = ciphertext.len() - TAGLEN;
 
@@ -211,7 +235,7 @@ impl Cipher for CipherAesGcm {
             ciphertext[message_len..].into(),
         )
         .map(|_| message_len)
-        .map_err(|_| ())
+        .map_err(|_| Error::Decrypt)
     }
 }
 
@@ -226,7 +250,7 @@ impl Cipher for CipherChaChaPoly {
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let mut nonce_bytes = [0u8; 12];
-        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
+        copy_slices!(nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
         copy_slices!(plaintext, out);
 
@@ -245,25 +269,24 @@ impl Cipher for CipherChaChaPoly {
         authtext: &[u8],
         ciphertext: &[u8],
         out: &mut [u8],
-    ) -> Result<usize, ()> {
+    ) -> Result<usize, Error> {
         let mut nonce_bytes = [0u8; 12];
-        copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[4..]);
+        copy_slices!(nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
         let message_len = ciphertext.len() - TAGLEN;
 
         copy_slices!(ciphertext[..message_len], out);
 
-        let result = ChaCha20Poly1305::new(&self.key.into()).decrypt_in_place_detached(
-            &nonce_bytes.into(),
-            authtext,
-            &mut out[..message_len],
-            ciphertext[message_len..].into(),
-        );
+        ChaCha20Poly1305::new(&self.key.into())
+            .decrypt_in_place_detached(
+                &nonce_bytes.into(),
+                authtext,
+                &mut out[..message_len],
+                ciphertext[message_len..].into(),
+            )
+            .map_err(|_| Error::Decrypt)?;
 
-        match result {
-            Ok(_) => Ok(message_len),
-            Err(_) => Err(()),
-        }
+        Ok(message_len)
     }
 }
 
@@ -298,7 +321,7 @@ impl Cipher for CipherXChaChaPoly {
         authtext: &[u8],
         ciphertext: &[u8],
         out: &mut [u8],
-    ) -> Result<usize, ()> {
+    ) -> Result<usize, Error> {
         let mut nonce_bytes = [0u8; 24];
         copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[16..]);
 
@@ -306,17 +329,16 @@ impl Cipher for CipherXChaChaPoly {
 
         copy_slices!(ciphertext[..message_len], out);
 
-        let result = XChaCha20Poly1305::new(&self.key.into()).decrypt_in_place_detached(
-            &nonce_bytes.into(),
-            authtext,
-            &mut out[..message_len],
-            ciphertext[message_len..].into(),
-        );
+        XChaCha20Poly1305::new(&self.key.into())
+            .decrypt_in_place_detached(
+                &nonce_bytes.into(),
+                authtext,
+                &mut out[..message_len],
+                ciphertext[message_len..].into(),
+            )
+            .map_err(|_| Error::Decrypt)?;
 
-        match result {
-            Ok(_) => Ok(message_len),
-            Err(_) => Err(()),
-        }
+        Ok(message_len)
     }
 }
 
@@ -386,12 +408,6 @@ impl Hash for HashSHA512 {
     }
 }
 
-impl Default for HashBLAKE2b {
-    fn default() -> HashBLAKE2b {
-        HashBLAKE2b { hasher: Blake2b::default() }
-    }
-}
-
 impl Hash for HashBLAKE2b {
     fn name(&self) -> &'static str {
         "BLAKE2b"
@@ -416,12 +432,6 @@ impl Hash for HashBLAKE2b {
     fn result(&mut self, out: &mut [u8]) {
         let hash = self.hasher.finalize_reset();
         out[..64].copy_from_slice(&hash);
-    }
-}
-
-impl Default for HashBLAKE2s {
-    fn default() -> HashBLAKE2s {
-        HashBLAKE2s { hasher: Blake2s::default() }
     }
 }
 
@@ -523,8 +533,8 @@ impl Kem for Kyber1024 {
 
 #[cfg(test)]
 mod tests {
-    use hex::FromHex;
     use super::*;
+    use hex::FromHex;
 
     #[test]
     fn test_sha256() {
@@ -541,7 +551,10 @@ mod tests {
     #[test]
     fn test_hmac_sha256_sha512() {
         let key = Vec::<u8>::from_hex("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
-        let data = Vec::<u8>::from_hex("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd").unwrap();
+        let data = Vec::<u8>::from_hex(
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        )
+        .unwrap();
         let mut output1 = [0u8; 32];
         let mut hasher: HashSHA256 = Default::default();
         hasher.hmac(&key, &data, &mut output1);
@@ -599,15 +612,15 @@ mod tests {
         let scalar =
             Vec::<u8>::from_hex("a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4")
                 .unwrap();
-        copy_slices!(&scalar, &mut keypair.privkey);
+        keypair.set(&scalar);
         let public =
             Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c")
                 .unwrap();
         let mut output = [0u8; 32];
         keypair.dh(&public, &mut output).unwrap();
-        assert!(
-            hex::encode(output)
-                == "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552"
+        assert_eq!(
+            hex::encode(output),
+                "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552"
         );
     }
 

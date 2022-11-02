@@ -1,6 +1,9 @@
 //! The traits for cryptographic implementations that can be used by Noise.
 
-use crate::constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN, TAGLEN};
+use crate::{
+    constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN, TAGLEN},
+    Error,
+};
 use rand_core::{CryptoRng, RngCore};
 
 /// CSPRNG operations
@@ -30,7 +33,7 @@ pub trait Dh: Send + Sync {
     fn privkey(&self) -> &[u8];
 
     /// Calculate a Diffie-Hellman exchange.
-    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), ()>;
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error>;
 }
 
 /// Cipher operations
@@ -51,7 +54,7 @@ pub trait Cipher: Send + Sync {
         authtext: &[u8],
         ciphertext: &[u8],
         out: &mut [u8],
-    ) -> Result<usize, ()>;
+    ) -> Result<usize, Error>;
 
     /// Rekey according to Section 4.2 of the Noise Specification, with a default
     /// implementation guaranteed to be secure for all ciphers.
@@ -129,7 +132,7 @@ pub trait Hash: Send + Sync {
         }
 
         let mut in2 = [0u8; MAXHASHLEN + 1];
-        copy_slices!(&out1[0..hash_len], &mut in2);
+        copy_slices!(out1[0..hash_len], &mut in2);
         in2[hash_len] = 2;
         self.hmac(&temp_key, &in2[..=hash_len], out2);
         if outputs == 2 {
@@ -137,7 +140,7 @@ pub trait Hash: Send + Sync {
         }
 
         let mut in3 = [0u8; MAXHASHLEN + 1];
-        copy_slices!(&out2[0..hash_len], &mut in3);
+        copy_slices!(out2[0..hash_len], &mut in3);
         in3[hash_len] = 3;
         self.hmac(&temp_key, &in3[..=hash_len], out3);
     }

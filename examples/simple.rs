@@ -2,7 +2,7 @@
     not(any(feature = "default-resolver", feature = "ring-accelerated",)),
     allow(dead_code, unused_extern_crates, unused_imports)
 )]
-//! This is a barebones TCP Client/Server that establishes a `Noise_NN` session, and sends
+//! This is a barebones TCP Client/Server that establishes a `Noise_XX` session, and sends
 //! an important message across the wire.
 //!
 //! # Usage
@@ -11,7 +11,7 @@
 
 use lazy_static::lazy_static;
 
-use clap::App;
+use clap::{arg, Command};
 use snow::{params::NoiseParams, Builder};
 use std::{
     io::{self, Read, Write},
@@ -25,7 +25,9 @@ lazy_static! {
 
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
-    let matches = App::new("simple").args_from_usage("-s --server 'Server mode'").get_matches();
+    let matches = Command::new("simple")
+        .arg(arg!(-s --server "Server mode"))
+        .get_matches();
 
     if matches.is_present("server") {
         run_server();
