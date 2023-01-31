@@ -5,7 +5,7 @@ use chacha20poly1305::{
     aead::{AeadInPlace, NewAead},
     ChaCha20Poly1305,
 };
-use curve25519_dalek::{constants::ED25519_BASEPOINT_TABLE, scalar::Scalar, montgomery::MontgomeryPoint};
+use curve25519_dalek::{edwards::EdwardsPoint, montgomery::MontgomeryPoint, scalar::Scalar};
 #[cfg(feature = "pqclean_kyber1024")]
 use pqcrypto_kyber::kyber1024;
 #[cfg(feature = "pqclean_kyber1024")]
@@ -128,8 +128,9 @@ impl Random for OsRng {}
 
 impl Dh25519 {
     fn derive_pubkey(&mut self) {
-        // https://github.com/dalek-cryptography/x25519-dalek/blob/1c39ff92e0dfc0b24aa02d694f26f3b9539322a5/src/x25519.rs#L150
-        let point = (&ED25519_BASEPOINT_TABLE * &self.privkey).to_montgomery();
+        // TODO: use `MontgomeryPoint::mul_base` in final v4 release of curve25519-dalek
+        // See dalek-cryptography/curve25519-dalek#503
+        let point = EdwardsPoint::mul_base(&self.privkey).to_montgomery();
         self.pubkey = point.to_bytes();
     }
 }
