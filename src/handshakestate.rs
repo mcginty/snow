@@ -25,7 +25,7 @@ use std::{
 /// **Note:** you are probably looking for [`Builder`](struct.Builder.html) to
 /// get started.
 ///
-/// See: [http://noiseprotocol.org/noise.html#the-handshakestate-object](http://noiseprotocol.org/noise.html#the-handshakestate-object)
+/// See: https://noiseprotocol.org/noise.html#the-handshakestate-object
 pub struct HandshakeState {
     pub(crate) rng:              Box<dyn Random>,
     pub(crate) symmetricstate:   SymmetricState,
@@ -177,7 +177,7 @@ impl HandshakeState {
 
     /// This method will return `true` if the *previous* write payload was encrypted.
     ///
-    /// See [Payload Security Properties](http://noiseprotocol.org/noise.html#payload-security-properties)
+    /// See [Payload Security Properties](https://noiseprotocol.org/noise.html#payload-security-properties)
     /// for more information on the specific properties of your chosen handshake pattern.
     ///
     /// # Examples

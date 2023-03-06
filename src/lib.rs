@@ -1,6 +1,6 @@
 //! The `snow` crate is a straightforward, Hard To Fuck Up™ Noise Protocol implementation.
 //!
-//! Read the [Noise Protocol Framework Spec](http://noiseprotocol.org/noise.html) for more
+//! Read the [Noise Protocol Framework Spec](https://noiseprotocol.org/noise.html) for more
 //! information.
 //!
 //! The typical usage flow is to use [`Builder`] to construct a [`HandshakeState`], where you
