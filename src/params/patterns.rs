@@ -125,7 +125,7 @@ pattern_enum! {
 impl HandshakePattern {
     /// If the protocol is one-way only
     ///
-    /// See: http://noiseprotocol.org/noise.html#one-way-patterns
+    /// See: https://noiseprotocol.org/noise.html#one-way-handshake-patterns
     pub fn is_oneway(self) -> bool {
         matches!(self, N | X | K)
     }
