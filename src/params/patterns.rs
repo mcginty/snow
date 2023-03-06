@@ -29,7 +29,7 @@ macro_rules! pattern_enum {
         $($variant:ident),* $(,)*
     }) => {
         /// One of the patterns as defined in the
-        /// [Handshake Pattern](http://noiseprotocol.org/noise.html#handshake-patterns)
+        /// [Handshake Pattern](https://noiseprotocol.org/noise.html#handshake-patterns)
         /// section.
         #[allow(missing_docs)]
         #[derive(Copy, Clone, PartialEq, Debug)]
@@ -71,7 +71,7 @@ macro_rules! pattern_enum {
 
 /// The tokens which describe patterns involving DH calculations.
 ///
-/// See: http://noiseprotocol.org/noise.html#handshake-patterns
+/// See: https://noiseprotocol.org/noise.html#handshake-patterns
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub(crate) enum DhToken {
@@ -83,7 +83,7 @@ pub(crate) enum DhToken {
 
 /// The tokens which describe message patterns.
 ///
-/// See: http://noiseprotocol.org/noise.html#handshake-patterns
+/// See: https://noiseprotocol.org/noise.html#handshake-patterns
 #[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub(crate) enum Token {
@@ -273,7 +273,7 @@ pub(crate) type MessagePatterns = Vec<Vec<Token>>;
 
 /// The defined token patterns for a given handshake.
 ///
-/// See: http://noiseprotocol.org/noise.html#handshake-patterns
+/// See: https://noiseprotocol.org/noise.html#handshake-patterns
 #[derive(Debug)]
 pub(crate) struct HandshakeTokens {
     pub premsg_pattern_i: PremessagePatterns,
