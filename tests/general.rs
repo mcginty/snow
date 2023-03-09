@@ -803,3 +803,70 @@ fn test_handshake_read_oob_error() {
     // This shouldn't panic, but it *should* return an error.
     let _ = h_i.read_message(&buffer_msg[..len], &mut buffer_out);
 }
+
+#[test]
+fn test_stateful_nonce_maxiumum_behavior() {
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 200];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let h_i = h_i.into_stateless_transport_mode().unwrap();
+    let mut h_r = h_r.into_transport_mode().unwrap();
+
+    let mut sender_nonce = u64::MAX - 2;
+    let len = h_i.write_message(sender_nonce, b"xyz", &mut buffer_msg).unwrap();
+
+    h_r.set_receiving_nonce(sender_nonce);
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    // Simulate exhausting the nonce space for the stateful transport.
+    sender_nonce += 1;
+    let len = h_i.write_message(sender_nonce, b"abc", &mut buffer_msg).unwrap();
+
+    h_r.set_receiving_nonce(sender_nonce + 1); // u64::MAX
+
+    // This should fail because we've simulated exhausting the nonce space, as the spec says 2^64-1 is reserved
+    // and may not be used in the `CipherState` object.
+    assert!(matches!(
+        dbg!(h_r.read_message(&buffer_msg[..len], &mut buffer_out)),
+        Err(snow::Error::State(snow::error::StateProblem::Exhausted))
+    ));
+}
+
+#[test]
+fn test_stateless_nonce_maximum_behavior() {
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 200];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let h_i = h_i.into_stateless_transport_mode().unwrap();
+    let h_r = h_r.into_stateless_transport_mode().unwrap();
+
+    let max_nonce = u64::MAX;
+
+    assert!(matches!(
+        h_i.write_message(max_nonce, b"xyz", &mut buffer_msg),
+        Err(snow::Error::State(snow::error::StateProblem::Exhausted))
+    ));
+
+    assert!(matches!(
+        h_r.read_message(max_nonce, &buffer_msg, &mut buffer_out),
+        Err(snow::Error::State(snow::error::StateProblem::Exhausted))
+    ));
+}

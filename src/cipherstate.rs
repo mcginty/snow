@@ -35,8 +35,11 @@ impl CipherState {
             return Err(StateProblem::MissingKeyMaterial.into());
         }
 
+        validate_nonce(self.n)?;
         let len = self.cipher.encrypt(self.n, authtext, plaintext, out);
-        self.n = self.n.checked_add(1).ok_or(StateProblem::Exhausted)?;
+
+        // We have validated this will not wrap around.
+        self.n += 1;
 
         Ok(len)
     }
@@ -55,8 +58,11 @@ impl CipherState {
             return Err(StateProblem::MissingKeyMaterial.into());
         }
 
+        validate_nonce(self.n)?;
         let len = self.cipher.decrypt(self.n, authtext, ciphertext, out);
-        self.n = self.n.checked_add(1).ok_or(StateProblem::Exhausted)?;
+
+        // We have validated this will not wrap around.
+        self.n += 1;
 
         len
     }
@@ -131,6 +137,8 @@ impl StatelessCipherState {
             return Err(StateProblem::MissingKeyMaterial.into());
         }
 
+        validate_nonce(nonce)?;
+
         Ok(self.cipher.encrypt(nonce, authtext, plaintext, out))
     }
 
@@ -149,6 +157,8 @@ impl StatelessCipherState {
             return Err(StateProblem::MissingKeyMaterial.into());
         }
 
+        validate_nonce(nonce)?;
+
         self.cipher.decrypt(nonce, authtext, ciphertext, out)
     }
 
@@ -166,6 +176,19 @@ impl StatelessCipherState {
 
     pub fn rekey_manually(&mut self, key: &[u8]) {
         self.cipher.set(key);
+    }
+}
+
+/// Validates that a nonce value has not exceeded the maximum
+/// defined by the Noise spec.
+fn validate_nonce(current: u64) -> Result<(), Error> {
+    // 2^64-1 is reserved and may not be used in the state machine (5.1).
+    //
+    // It is used by the default cipher rekey function (4.2).
+    if current == u64::MAX {
+        Err(Error::State(StateProblem::Exhausted))
+    } else {
+        Ok(())
     }
 }
 
