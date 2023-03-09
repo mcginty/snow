@@ -60,8 +60,7 @@ pub trait Cipher: Send + Sync {
     /// implementation guaranteed to be secure for all ciphers.
     fn rekey(&mut self) {
         let mut ciphertext = [0; CIPHERKEYLEN + TAGLEN];
-        let ciphertext_len =
-            self.encrypt(u64::max_value(), &[], &[0; CIPHERKEYLEN], &mut ciphertext);
+        let ciphertext_len = self.encrypt(u64::MAX, &[], &[0; CIPHERKEYLEN], &mut ciphertext);
         assert_eq!(ciphertext_len, ciphertext.len());
         self.set(&ciphertext[..CIPHERKEYLEN]);
     }
