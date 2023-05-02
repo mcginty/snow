@@ -24,7 +24,7 @@ use std::{
 #[derive(Clone)]
 struct HexBytes {
     original: String,
-    payload:  Vec<u8>,
+    payload: Vec<u8>,
 }
 
 impl From<Vec<u8>> for HexBytes {
@@ -85,7 +85,7 @@ impl Serialize for HexBytes {
 
 #[derive(Serialize, Deserialize)]
 struct TestMessage {
-    payload:    HexBytes,
+    payload: HexBytes,
     ciphertext: HexBytes,
 }
 
@@ -128,13 +128,13 @@ struct TestVector {
     #[serde(skip_serializing_if = "Option::is_none")]
     init_remote_static: Option<HexBytes>,
 
-    resp_prologue:      HexBytes,
+    resp_prologue: HexBytes,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_psks:          Option<Vec<HexBytes>>,
+    resp_psks: Option<Vec<HexBytes>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_static:        Option<HexBytes>,
+    resp_static: Option<HexBytes>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_ephemeral:     Option<HexBytes>,
+    resp_ephemeral: Option<HexBytes>,
     #[serde(skip_serializing_if = "Option::is_none")]
     resp_remote_static: Option<HexBytes>,
 
@@ -264,7 +264,7 @@ fn test_vectors_from_json(json: &str) {
     for vector in test_vectors.vectors {
         let params: NoiseParams = vector.protocol_name.parse().unwrap();
 
-        if params.dh == DHChoice::Ed448 {
+        if params.dh == DHChoice::Curve448 {
             ignored += 1;
             continue;
         }
@@ -378,7 +378,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = init.write_message(&payload, &mut ibuf).unwrap();
         messages.push(TestMessage {
-            payload:    payload.clone().into(),
+            payload: payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
         let _ = resp.read_message(&ibuf[..len], &mut obuf).unwrap();
@@ -390,7 +390,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = resp.write_message(&payload, &mut ibuf).unwrap();
         messages.push(TestMessage {
-            payload:    payload.clone().into(),
+            payload: payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
         let _ = init.read_message(&ibuf[..len], &mut obuf).unwrap();
