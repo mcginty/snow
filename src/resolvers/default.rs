@@ -5,7 +5,7 @@ use chacha20poly1305::{
     aead::{AeadInPlace, NewAead},
     ChaCha20Poly1305,
 };
-use curve25519_dalek::{constants::X25519_BASEPOINT, montgomery::MontgomeryPoint};
+use curve25519_dalek::montgomery::MontgomeryPoint;
 #[cfg(feature = "pqclean_kyber1024")]
 use pqcrypto_kyber::kyber1024;
 #[cfg(feature = "pqclean_kyber1024")]
@@ -128,7 +128,7 @@ impl Random for OsRng {}
 
 impl Dh25519 {
     fn derive_pubkey(&mut self) {
-        let point = X25519_BASEPOINT.mul_clamped(self.privkey);
+        let point = MontgomeryPoint::mul_base_clamped(self.privkey);
         self.pubkey = point.to_bytes();
     }
 }
