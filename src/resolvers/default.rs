@@ -140,6 +140,9 @@ fn clamp_scalar(mut scalar: [u8; 32]) -> Scalar {
     scalar[31] &= 127;
     scalar[31] |= 64;
 
+    // The above bit operations ensure that the integer represented by
+    // `scalar_bytes` is less than 2***255-19 as required by this function.
+    #[allow(deprecated)]
     Scalar::from_bits(scalar)
 }
 
