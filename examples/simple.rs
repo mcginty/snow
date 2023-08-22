@@ -25,11 +25,9 @@ lazy_static! {
 
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
-    let matches = Command::new("simple")
-        .arg(arg!(-s --server "Server mode"))
-        .get_matches();
+    let matches = Command::new("simple").arg(arg!(-s --server "Server mode")).get_matches();
 
-    if matches.is_present("server") {
+    if matches.contains_id("server") {
         run_server();
     } else {
         run_client();
