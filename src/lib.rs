@@ -1,14 +1,14 @@
-//! The `snow` crate is a straightforward, Hard To Fuck Up™ Noise Protocol implementation.
-//!
-//! Read the [Noise Protocol Framework Spec](https://noiseprotocol.org/noise.html) for more
+//! The `snow` crate aims to be a straightforward Noise Protocol implementation. See the
+//! [Noise Protocol Framework Spec](https://noiseprotocol.org/noise.html) for more
 //! information.
 //!
 //! The typical usage flow is to use [`Builder`] to construct a [`HandshakeState`], where you
-//! will complete the handshake phase and convert into either a [`TransportState`] or
-//! [`StatelessTransportState`].
+//! will complete the handshake phase and convert into either a [`TransportState`] (typically
+//! when done over a reliable transport where the internal message counter can be used) or
+//! [`StatelessTransportState`] (when you control the message counter for unreliable transports
+//! like UDP).
 //!
-//! # Examples
-//! See `examples/simple.rs` for a more complete TCP client/server example with static keys.
+//! # Example
 //!
 //! ```
 //! # use snow::Error;
@@ -50,6 +50,8 @@
 //! #     try_main().unwrap();
 //! # }
 //! ```
+//!
+//! See `examples/simple.rs` for a more complete TCP client/server example with static keys.
 
 #![warn(missing_docs)]
 

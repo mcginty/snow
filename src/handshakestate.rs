@@ -25,7 +25,7 @@ use std::{
 /// **Note:** you are probably looking for [`Builder`](struct.Builder.html) to
 /// get started.
 ///
-/// See: https://noiseprotocol.org/noise.html#the-handshakestate-object
+/// See: <https://noiseprotocol.org/noise.html#the-handshakestate-object>
 pub struct HandshakeState {
     pub(crate) rng:              Box<dyn Random>,
     pub(crate) symmetricstate:   SymmetricState,

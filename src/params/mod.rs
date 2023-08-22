@@ -13,9 +13,9 @@ pub use self::patterns::{
 pub(crate) use self::patterns::{DhToken, HandshakeTokens, MessagePatterns, Token};
 
 /// I recommend you choose `Noise`.
-#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum BaseChoice {
+    /// Ole' faithful.
     Noise,
 }
 
@@ -31,11 +31,12 @@ impl FromStr for BaseChoice {
     }
 }
 
-/// One of `25519` or `448`, per the spec.
-#[allow(missing_docs)]
+/// Which Diffie-Hellman primitive to use. One of `25519` or `448`, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum DHChoice {
+    /// The Curve25519 ellpitic curve.
     Curve25519,
+    /// The Curve448 elliptic curve.
     Curve448,
 }
 
@@ -53,12 +54,16 @@ impl FromStr for DHChoice {
 }
 
 /// One of `ChaChaPoly` or `AESGCM`, per the spec.
-#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum CipherChoice {
+    /// The ChaCha20Poly1305 AEAD.
     ChaChaPoly,
     #[cfg(feature = "xchachapoly")]
+    /// The XChaCha20Poly1305 AEAD, an extended nonce variant of ChaCha20Poly1305.
+    /// This variant is hidden behind a feature flag to highlight that it is not in the
+    /// official specification of the Noise Protocol.
     XChaChaPoly,
+    /// The AES-GCM AEAD.
     AESGCM,
 }
 
@@ -78,12 +83,16 @@ impl FromStr for CipherChoice {
 }
 
 /// One of the supported SHA-family or BLAKE-family hash choices, per the spec.
-#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum HashChoice {
+    /// The SHA-256 hash function.
     SHA256,
+    /// The SHA-512 hash function.
     SHA512,
+    /// The BLAKE2s hash function, designed to be more efficient on 8-bit to 32-bit
+    /// architectures.
     Blake2s,
+    /// The BLAKE2b hash function, designed to be more efficient on 64-bit architectures.
     Blake2b,
 }
 
@@ -104,9 +113,9 @@ impl FromStr for HashChoice {
 
 /// One of the supported Kems provided for unstable HFS extension.
 #[cfg(feature = "hfs")]
-#[allow(missing_docs)]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum KemChoice {
+    /// The 1024-bit Kyber variant.
     Kyber1024,
 }
 
@@ -136,16 +145,22 @@ impl FromStr for KemChoice {
 ///
 /// let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
 /// ```
-#[allow(missing_docs)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct NoiseParams {
+    /// The full pattern string.
     pub name:      String,
+    /// In this case, always `Noise`.
     pub base:      BaseChoice,
+    /// The pattern's handshake choice (e.g. `XX`).
     pub handshake: HandshakeChoice,
+    /// The pattern's DH choice (e.g. `25519`).
     pub dh:        DHChoice,
     #[cfg(feature = "hfs")]
+    /// The pattern's KEM choice (e.g. `Kyber1024`).
     pub kem:       Option<KemChoice>,
+    /// The pattern's cipher choice (e.g. `AESGCM`).
     pub cipher:    CipherChoice,
+    /// The pattern's hash choice (e.g. `SHA256`).
     pub hash:      HashChoice,
 }
 

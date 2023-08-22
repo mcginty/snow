@@ -12,7 +12,7 @@ use std::{convert::TryFrom, fmt};
 /// `CipherState`s (for sending and receiving) that were spawned from the `SymmetricState`'s
 /// `Split()` method, called after a handshake has been finished.
 ///
-/// See: https://noiseprotocol.org/noise.html#the-handshakestate-object
+/// See: <https://noiseprotocol.org/noise.html#the-handshakestate-object>
 pub struct StatelessTransportState {
     cipherstates: StatelessCipherStates,
     pattern:      HandshakePattern,

@@ -72,7 +72,6 @@ macro_rules! pattern_enum {
 /// The tokens which describe patterns involving DH calculations.
 ///
 /// See: https://noiseprotocol.org/noise.html#handshake-patterns
-#[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub(crate) enum DhToken {
     Ee,
@@ -84,7 +83,6 @@ pub(crate) enum DhToken {
 /// The tokens which describe message patterns.
 ///
 /// See: https://noiseprotocol.org/noise.html#handshake-patterns
-#[allow(missing_docs)]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub(crate) enum Token {
     E,
@@ -125,7 +123,7 @@ pattern_enum! {
 impl HandshakePattern {
     /// If the protocol is one-way only
     ///
-    /// See: https://noiseprotocol.org/noise.html#one-way-handshake-patterns
+    /// See: <https://noiseprotocol.org/noise.html#one-way-handshake-patterns>
     pub fn is_oneway(self) -> bool {
         matches!(self, N | X | K)
     }
