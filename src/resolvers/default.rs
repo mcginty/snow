@@ -33,31 +33,31 @@ pub struct DefaultResolver;
 
 impl CryptoResolver for DefaultResolver {
     fn resolve_rng(&self) -> Option<Box<dyn Random>> {
-        Some(Box::new(OsRng::default()))
+        Some(Box::new(OsRng))
     }
 
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>> {
         match *choice {
-            DHChoice::Curve25519 => Some(Box::new(Dh25519::default())),
+            DHChoice::Curve25519 => Some(Box::<Dh25519>::default()),
             _ => None,
         }
     }
 
     fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<dyn Hash>> {
         match *choice {
-            HashChoice::SHA256 => Some(Box::new(HashSHA256::default())),
-            HashChoice::SHA512 => Some(Box::new(HashSHA512::default())),
-            HashChoice::Blake2s => Some(Box::new(HashBLAKE2s::default())),
-            HashChoice::Blake2b => Some(Box::new(HashBLAKE2b::default())),
+            HashChoice::SHA256 => Some(Box::<HashSHA256>::default()),
+            HashChoice::SHA512 => Some(Box::<HashSHA512>::default()),
+            HashChoice::Blake2s => Some(Box::<HashBLAKE2s>::default()),
+            HashChoice::Blake2b => Some(Box::<HashBLAKE2b>::default()),
         }
     }
 
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>> {
         match *choice {
-            CipherChoice::ChaChaPoly => Some(Box::new(CipherChaChaPoly::default())),
+            CipherChoice::ChaChaPoly => Some(Box::<CipherChaChaPoly>::default()),
             #[cfg(feature = "xchachapoly")]
             CipherChoice::XChaChaPoly => Some(Box::new(CipherXChaChaPoly::default())),
-            CipherChoice::AESGCM => Some(Box::new(CipherAesGcm::default())),
+            CipherChoice::AESGCM => Some(Box::<CipherAesGcm>::default()),
         }
     }
 
@@ -558,7 +558,7 @@ mod tests {
         let mut hasher: HashSHA512 = Default::default();
         hasher.hmac(&key, &data, &mut output2);
         assert!(
-            hex::encode(output2.to_vec())
+            hex::encode(output2)
                 == "fa73b0089d56a284efb0f0756c890be9\
                                      b1b5dbdd8ee81a3655f83e33b2279d39\
                                      bf3e848279a722c806b485a47e67c807\
@@ -574,7 +574,7 @@ mod tests {
         hasher.input(b"abc");
         hasher.result(&mut output);
         assert!(
-            hex::encode(output.to_vec())
+            hex::encode(output)
                 == "ba80a53f981c4d0d6a2797b69f12f6e9\
                                     4c212f14685ac4b74b12bb6fdbffa2d1\
                                     7d87c5392aab792dc252d5de4533cc95\
@@ -694,7 +694,7 @@ mod tests {
         let mut cipher2: CipherChaChaPoly = Default::default();
         cipher2.set(&key);
         cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
-        assert!(hex::encode(resulttext.to_vec()) == hex::encode(plaintext.to_vec()));
+        assert!(hex::encode(resulttext) == hex::encode(plaintext));
     }
 
     #[cfg(feature = "xchachapoly")]
@@ -780,7 +780,7 @@ mod tests {
                                  6d206f74686572207468616e20617320\
                                  2fe2809c776f726b20696e2070726f67\
                                  726573732e2fe2809d";
-        assert!(hex::encode(out[..ciphertext.len()].to_owned()) == desired_plaintext);
+        assert!(hex::encode(&out[..ciphertext.len()]) == desired_plaintext);
     }
 
     #[test]

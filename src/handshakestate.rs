@@ -465,7 +465,7 @@ impl HandshakeState {
 
         let mut new_psk = [0u8; PSKLEN];
         new_psk.copy_from_slice(key);
-        self.psks[location as usize] = Some(new_psk);
+        self.psks[location] = Some(new_psk);
 
         Ok(())
     }

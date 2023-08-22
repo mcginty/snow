@@ -66,7 +66,7 @@ impl<'builder> Builder<'builder> {
     pub fn new(params: NoiseParams) -> Self {
         use crate::resolvers::DefaultResolver;
 
-        Self::with_resolver(params, Box::new(DefaultResolver::default()))
+        Self::with_resolver(params, Box::new(DefaultResolver))
     }
 
     /// Create a Builder with the ring resolver and default resolver as a fallback.
@@ -304,17 +304,17 @@ mod tests {
         let mut keypair_2 = Keypair { private: vec![0x01; 32], public: vec![0x01; 32] };
 
         // If both private and public are the same, return true
-        assert_eq!(keypair_1 == keypair_2, true);
+        assert!(keypair_1 == keypair_2);
 
         // If either public or private are different, return false
 
         // Wrong private
         keypair_2.private = vec![0x50; 32];
-        assert_eq!(keypair_1 == keypair_2, false);
+        assert!(keypair_1 != keypair_2);
         // Reset to original
         keypair_2.private = vec![0x01; 32];
         // Wrong public
         keypair_2.public = vec![0x50; 32];
-        assert_eq!(keypair_1 == keypair_2, false);
+        assert!(keypair_1 != keypair_2);
     }
 }
