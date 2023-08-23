@@ -2,8 +2,8 @@ use blake2::{Blake2b, Blake2b512, Blake2s, Blake2s256};
 #[cfg(feature = "xchachapoly")]
 use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::{
-    aead::{AeadInPlace, NewAead},
-    ChaCha20Poly1305,
+    aead::AeadInPlace,
+    KeyInit, ChaCha20Poly1305,
 };
 use curve25519_dalek::montgomery::MontgomeryPoint;
 #[cfg(feature = "pqclean_kyber1024")]
