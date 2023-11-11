@@ -51,7 +51,7 @@ pqcrypto-kyber = { version = "0.8", optional = true }
 pqcrypto-traits = { version = "0.3", optional = true }
 
 # ring crypto provider
-ring = { version = "^0.17.5", optional = true, features = ["std"] }
+ring = { version = "0.17", optional = true, features = ["std"] }
 # libsodium crypto provider
 sodiumoxide = { version = "0.2", optional = true }
 byteorder = { version = "1.4", optional = true }
