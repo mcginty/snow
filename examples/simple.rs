@@ -10,8 +10,6 @@
 //! as `cargo run --example simple` to see the magic happen.
 
 use lazy_static::lazy_static;
-
-use clap::{arg, App};
 use snow::{params::NoiseParams, Builder};
 use std::{
     io::{self, Read, Write},
@@ -25,9 +23,10 @@ lazy_static! {
 
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
-    let matches = App::new("simple").arg(arg!("-s --server 'Server mode'")).get_matches();
+    let server_mode =
+        std::env::args().next_back().map(|arg| arg == "-s" || arg == "--server").unwrap_or(true);
 
-    if matches.is_present("server") {
+    if server_mode {
         run_server();
     } else {
         run_client();
