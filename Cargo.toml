@@ -57,7 +57,6 @@ sodiumoxide = { version = "0.2", optional = true }
 byteorder = { version = "1.4", optional = true }
 
 [dev-dependencies]
-clap = "4.0"
 criterion = "0.5"
 serde = "1.0"
 serde_json = "1.0"
