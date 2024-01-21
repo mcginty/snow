@@ -1,5 +1,5 @@
 use crate::error::{Error, PatternProblem};
-use std::{convert::TryFrom, str::FromStr};
+use std::{convert::TryFrom, str::FromStr, mem};
 
 /// A small helper macro that behaves similar to the `vec![]` standard macro,
 /// except it allocates a bit extra to avoid resizing.
@@ -95,12 +95,20 @@ pub(crate) enum Token {
     Ekem1,
 }
 
-#[cfg(feature = "hfs")]
 impl Token {
+    #[cfg(feature = "hfs")]
     fn is_dh(&self) -> bool {
         match *self {
             Dh(_) => true,
             _ => false,
+        }
+    }
+
+    fn invert_direction(&self) -> Token {
+        match *self {
+            Dh(DhToken::Es) => Dh(DhToken::Se),
+            Dh(DhToken::Se) => Dh(DhToken::Es),
+            x => x,
         }
     }
 }
@@ -488,9 +496,9 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
         for modifier in handshake.modifiers.list.iter() {
             match modifier {
                 HandshakeModifier::Psk(n) => apply_psk_modifier(&mut patterns, *n),
+                HandshakeModifier::Fallback => apply_fallback_modifier(&mut patterns),
                 #[cfg(feature = "hfs")]
                 HandshakeModifier::Hfs => apply_hfs_modifier(&mut patterns),
-                _ => return Err(PatternProblem::UnsupportedModifier.into()),
             }
         }
 
@@ -530,6 +538,49 @@ fn apply_psk_modifier(patterns: &mut Patterns, n: u8) {
             patterns.2[i].push(Token::Psk(n));
         },
     }
+}
+
+fn apply_fallback_modifier(patterns: &mut Patterns) {
+    // From the noise spec, Section 10.2:
+    //
+    //     The fallback modifier converts an Alice-initiated pattern to a
+    //     Bob-initiated pattern by converting Alice's initial message to
+    //     a pre-message that Bob must receive through some other means
+    //     (e.g. via an initial IK message from Alice). After this conversion,
+    //     the rest of the handshake pattern is interpreted as a Bob-initiated
+    //     handshake pattern.
+    //
+    //     Note that fallback can only be applied to handshake patterns in
+    //     Alice-initiated form where Alice's first message is capable of being
+    //     interpreted as a pre-message (i.e. it must be either "e", "s", or "e, s").
+
+    assert!(patterns.0.is_empty(), "Cannot convert a pattern with pre-existing pre-messages");
+
+    // Replace first pattern with empty one.
+    let tokens = patterns.2.remove(0);
+
+    // Set first pattern as Alice pre-message
+    patterns.0 = match tokens.as_slice() {
+        [Token::E] => static_slice![Token: E],
+        [Token::S] => static_slice![Token: S],
+        [Token::E, Token::S] | [Token::S, Token::E] =>
+            static_slice![Token: E, S],
+        _ => panic!("Cannot apply fallback modifier, the first message cannot be interpreted as a pre-message")
+    };
+
+    // In the standard it does not invert the arrows,
+    // it just says that the protocol is Bob-initiated and the first
+    // message begins with <-, but since we encode the patterns with
+    // the "initiator" as the first pattern, we need to perform an
+    // inversion (described in 7.2)
+    mem::swap(&mut patterns.0, &mut patterns.1);
+
+    for pattern in patterns.2.iter_mut() {
+        for token in pattern.iter_mut() {
+            *token = token.invert_direction();
+        }
+    }
+
 }
 
 #[cfg(feature = "hfs")]

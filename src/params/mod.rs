@@ -324,4 +324,18 @@ mod tests {
             _ => panic!("missing token!"),
         }
     }
+
+    #[test]
+    fn test_xx_fallback_handshake() {
+        let p: NoiseParams = "Noise_XXfallback_25519_AESGCM_SHA256".parse().unwrap();
+
+        let tokens = HandshakeTokens::try_from(&p.handshake).unwrap();
+
+        assert!(tokens.premsg_pattern_i.is_empty());
+        assert_eq!(tokens.premsg_pattern_r, &[Token::E]);
+        assert_eq!(tokens.msg_patterns[0].as_slice(), &[Token::E, Token::Dh(DhToken::Ee), Token::S, Token::Dh(DhToken::Se)]);
+        assert_eq!(tokens.msg_patterns[1].as_slice(), &[Token::S, Token::Dh(DhToken::Es)]);
+        // Hey, why is this different from XXfallback listed in Noise spec 10.4?
+        // It's the same, it's just in Bob-initiated form.
+    }
 }
