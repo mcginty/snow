@@ -1,10 +1,7 @@
 use blake2::{Blake2b, Blake2b512, Blake2s, Blake2s256};
 #[cfg(feature = "xchachapoly")]
 use chacha20poly1305::XChaCha20Poly1305;
-use chacha20poly1305::{
-    aead::AeadInPlace,
-    KeyInit, ChaCha20Poly1305,
-};
+use chacha20poly1305::{aead::AeadInPlace, ChaCha20Poly1305, KeyInit};
 use curve25519_dalek::montgomery::MontgomeryPoint;
 #[cfg(feature = "pqclean_kyber1024")]
 use pqcrypto_kyber::kyber1024;
@@ -611,7 +608,7 @@ mod tests {
         keypair.dh(&public, &mut output).unwrap();
         assert_eq!(
             hex::encode(output),
-                "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552"
+            "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552"
         );
     }
 
