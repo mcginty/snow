@@ -66,6 +66,8 @@ pub enum PatternProblem {
     UnsupportedCipherType,
     /// The PSK position must be a number, and a pretty small one at that.
     InvalidPsk,
+    /// Duplicate modifiers must not be used in the same pattern.
+    DuplicateModifier,
     /// Invalid modifier (e.g. `fallback`).
     /// Check that there are no typos and that any feature flags you might need are toggled
     UnsupportedModifier,
