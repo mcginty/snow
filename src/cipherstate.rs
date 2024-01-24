@@ -59,12 +59,12 @@ impl CipherState {
         }
 
         validate_nonce(self.n)?;
-        let len = self.cipher.decrypt(self.n, authtext, ciphertext, out);
+        let len = self.cipher.decrypt(self.n, authtext, ciphertext, out)?;
 
         // We have validated this will not wrap around.
         self.n += 1;
 
-        len
+        Ok(len)
     }
 
     pub fn encrypt(&mut self, plaintext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
