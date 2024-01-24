@@ -50,6 +50,8 @@ pub enum Error {
 pub enum PatternProblem {
     /// Caused by a pattern string that is too short and malformed (e.g. `Noise_NN_25519`).
     TooFewParameters,
+    /// Caused by a pattern string that is too long (e.g. `Noise_NN_25519_SHA256_SomeOtherThing`).
+    TooManyParameters,
     /// The handshake section of the string (e.g. `XXpsk3`) isn't supported. Check for typos
     /// and necessary feature flags.
     UnsupportedHandshakeType,
