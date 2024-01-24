@@ -201,7 +201,12 @@ impl FromStr for HandshakeModifierList {
             let modifier_names = s.split('+');
             let mut modifiers = vec![];
             for modifier_name in modifier_names {
-                modifiers.push(modifier_name.parse()?);
+                let modifier: HandshakeModifier = modifier_name.parse()?;
+                if modifiers.contains(&modifier) {
+                    return Err(Error::Pattern(PatternProblem::DuplicateModifier));
+                } else {
+                    modifiers.push(modifier);
+                }
             }
             Ok(HandshakeModifierList { list: modifiers })
         }
