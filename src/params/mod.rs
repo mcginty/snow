@@ -324,4 +324,14 @@ mod tests {
             _ => panic!("missing token!"),
         }
     }
+
+    #[test]
+    fn test_invalid_psk_handshake() {
+        let p: NoiseParams = "Noise_XXpsk9_25519_AESGCM_SHA256".parse().unwrap();
+
+        assert_eq!(
+            Error::Pattern(PatternProblem::InvalidPsk),
+            HandshakeTokens::try_from(&p.handshake).unwrap_err()
+        );
+    }
 }

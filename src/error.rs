@@ -15,7 +15,7 @@ use std::fmt;
 ///
 /// `snow` may eventually add a feature flag and enum variant to only return
 /// an "unspecified" error for those who would prefer safety over observability.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[non_exhaustive]
 pub enum Error {
     /// The noise pattern failed to parse.
@@ -46,7 +46,7 @@ pub enum Error {
 
 /// The various stages of initialization used to help identify
 /// the specific cause of an `Init` error.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum PatternProblem {
     /// Caused by a pattern string that is too short and malformed (e.g. `Noise_NN_25519`).
     TooFewParameters,
@@ -83,7 +83,7 @@ impl From<PatternProblem> for Error {
 
 /// The various stages of initialization used to help identify
 /// the specific cause of an `Init` error.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum InitStage {
     /// Provided and received key lengths were not equal.
     ValidateKeyLengths,
@@ -114,7 +114,7 @@ impl From<InitStage> for Error {
 }
 
 /// A prerequisite that may be missing.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Prerequisite {
     /// A local private key wasn't provided when it was needed by the selected pattern.
     LocalPrivateKey,
@@ -129,7 +129,7 @@ impl From<Prerequisite> for Error {
 }
 
 /// Specific errors in the state machine.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum StateProblem {
     /// Missing key material in the internal handshake state.
     MissingKeyMaterial,

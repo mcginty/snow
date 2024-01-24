@@ -289,6 +289,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
     #[allow(clippy::cognitive_complexity)]
     fn try_from(handshake: &'a HandshakeChoice) -> Result<Self, Self::Error> {
         // Hfs cannot be combined with one-way handshake patterns
+        #[cfg(feature = "hfs")]
         check_hfs_and_oneway_conflict(handshake)?;
 
         #[rustfmt::skip]
@@ -487,7 +488,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
 
         for modifier in handshake.modifiers.list.iter() {
             match modifier {
-                HandshakeModifier::Psk(n) => apply_psk_modifier(&mut patterns, *n),
+                HandshakeModifier::Psk(n) => apply_psk_modifier(&mut patterns, *n)?,
                 #[cfg(feature = "hfs")]
                 HandshakeModifier::Hfs => apply_hfs_modifier(&mut patterns),
                 _ => return Err(PatternProblem::UnsupportedModifier.into()),
@@ -515,21 +516,18 @@ fn check_hfs_and_oneway_conflict(handshake: &HandshakeChoice) -> Result<(), Erro
     }
 }
 
-#[cfg(not(feature = "hfs"))]
-fn check_hfs_and_oneway_conflict(_: &HandshakeChoice) -> Result<(), Error> {
-    Ok(())
-}
-
-fn apply_psk_modifier(patterns: &mut Patterns, n: u8) {
-    match n {
-        0 => {
-            patterns.2[0].insert(0, Token::Psk(n));
-        },
-        _ => {
-            let i = (n as usize) - 1;
-            patterns.2[i].push(Token::Psk(n));
-        },
+/// Given our PSK modifier, we inject the token at the appropriate place.
+fn apply_psk_modifier(patterns: &mut Patterns, n: u8) -> Result<(), Error> {
+    let tokens = patterns
+        .2
+        .get_mut((n as usize).saturating_sub(1))
+        .ok_or(Error::Pattern(PatternProblem::InvalidPsk))?;
+    if n == 0 {
+        tokens.insert(0, Token::Psk(n));
+    } else {
+        tokens.push(Token::Psk(n));
     }
+    Ok(())
 }
 
 #[cfg(feature = "hfs")]
