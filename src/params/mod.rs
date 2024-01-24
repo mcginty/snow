@@ -199,14 +199,18 @@ impl FromStr for NoiseParams {
     #[cfg(not(feature = "hfs"))]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split('_');
-        Ok(NoiseParams::new(
+        let params = NoiseParams::new(
             s.to_owned(),
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
-        ))
+        );
+        if split.next().is_some() {
+            return Err(PatternProblem::TooManyParameters.into());
+        }
+        Ok(params)
     }
 
     #[cfg(feature = "hfs")]
@@ -233,6 +237,9 @@ impl FromStr for NoiseParams {
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
         );
+        if split.next().is_some() {
+            return Err(PatternProblem::TooManyParameters.into());
+        }
 
         // Validate that a KEM is specified iff the hfs modifier is present
         if p.handshake.is_hfs() != p.kem.is_some() {
@@ -345,6 +352,14 @@ mod tests {
         assert_eq!(
             Error::Pattern(PatternProblem::InvalidPsk),
             HandshakeTokens::try_from(&p.handshake).unwrap_err()
+        );
+    }
+
+    #[test]
+    fn test_extraneous_string_data() {
+        assert_eq!(
+            Error::Pattern(PatternProblem::TooManyParameters),
+            "Noise_XXpsk0_25519_AESGCM_SHA256_HackThePlanet".parse::<NoiseParams>().unwrap_err()
         );
     }
 }
