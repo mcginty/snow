@@ -1,4 +1,6 @@
 #![cfg(feature = "vector-tests")]
+#![allow(clippy::restriction)]
+
 #[macro_use]
 extern crate serde_derive;
 

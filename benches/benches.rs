@@ -1,3 +1,5 @@
+#![allow(clippy::restriction)]
+
 #[macro_use]
 extern crate criterion;
 

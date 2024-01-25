@@ -36,6 +36,29 @@ harness = false
 [badges]
 travis-ci = { repository = "mcginty/snow", branch = "master" }
 
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = "warn"
+unseparated_literal_suffix = "warn"
+mod_module_files = "warn"
+std_instead_of_core = "warn"
+exhaustive_structs = "warn"
+missing_trait_methods = "warn"
+missing_inline_in_public_item = "warn"
+absolute_paths = "warn"
+as_conversions = "warn"
+shadow_reuse = "warn"
+# TODO(mcginty): warn once rewrite of slice code happens
+indexing_slicing = "allow"
+missing_asserts_for_indexing = "warn"
+missing_assert_message = "warn"
+string_slice = "warn"
+arithmetic_side_effects = "allow"
+exhaustive_enums = "warn"
+wildcard_enum_match_arm = "warn"
+
 [dependencies]
 rand_core = { version = "0.6", features = ["std", "getrandom"] }
 subtle = "2.4"

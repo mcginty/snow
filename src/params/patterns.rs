@@ -1,7 +1,7 @@
 #![allow(clippy::enum_glob_use)]
 
 use crate::error::{Error, PatternProblem};
-use std::{convert::TryFrom, str::FromStr};
+use core::{convert::TryFrom, str::FromStr};
 
 /// A small helper macro that behaves similar to the `vec![]` standard macro,
 /// except it allocates a bit extra to avoid resizing.
@@ -34,6 +34,7 @@ macro_rules! pattern_enum {
         /// [Handshake Pattern](https://noiseprotocol.org/noise.html#handshake-patterns)
         /// section.
         #[allow(missing_docs)]
+        #[allow(clippy::exhaustive_enums)]
         #[derive(Copy, Clone, PartialEq, Debug)]
         pub enum $name {
             $($variant),*,
@@ -160,6 +161,7 @@ impl HandshakePattern {
 
 /// A modifier applied to the base pattern as defined in the Noise spec.
 #[derive(Copy, Clone, PartialEq, Debug)]
+#[non_exhaustive]
 pub enum HandshakeModifier {
     /// Insert a PSK to mix at the associated position
     Psk(u8),
@@ -175,6 +177,7 @@ pub enum HandshakeModifier {
 impl FromStr for HandshakeModifier {
     type Err = Error;
 
+    #[allow(clippy::string_slice)]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             s if s.starts_with("psk") => {
@@ -219,6 +222,7 @@ impl FromStr for HandshakeModifierList {
 /// The pattern/modifier combination choice (no primitives specified)
 /// for a full noise protocol definition.
 #[derive(Clone, PartialEq, Debug)]
+#[non_exhaustive]
 pub struct HandshakeChoice {
     /// The base pattern itself
     pub pattern: HandshakePattern,
@@ -252,6 +256,7 @@ impl HandshakeChoice {
     }
 
     /// Parse and split a base `HandshakePattern` from its optional modifiers
+    #[allow(clippy::string_slice)]
     fn parse_pattern_and_modifier(s: &str) -> Result<(HandshakePattern, &str), Error> {
         for i in (1..=4).rev() {
             if s.len() > i - 1 && s.is_char_boundary(i) {
@@ -533,7 +538,7 @@ fn check_hfs_and_oneway_conflict(handshake: &HandshakeChoice) -> Result<(), Erro
 fn apply_psk_modifier(patterns: &mut Patterns, n: u8) -> Result<(), Error> {
     let tokens = patterns
         .2
-        .get_mut((n as usize).saturating_sub(1))
+        .get_mut((usize::from(n)).saturating_sub(1))
         .ok_or(Error::Pattern(PatternProblem::InvalidPsk))?;
     if n == 0 {
         tokens.insert(0, Token::Psk(n));

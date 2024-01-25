@@ -1,3 +1,4 @@
+#![allow(clippy::absolute_paths)]
 //! All error types used by Snow operations.
 
 use std::fmt;
@@ -47,6 +48,7 @@ pub enum Error {
 /// The various stages of initialization used to help identify
 /// the specific cause of an `Init` error.
 #[derive(Debug, PartialEq)]
+#[non_exhaustive]
 pub enum PatternProblem {
     /// Caused by a pattern string that is too short and malformed (e.g. `Noise_NN_25519`).
     TooFewParameters,
@@ -77,6 +79,15 @@ pub enum PatternProblem {
     /// Invalid KEM type.
     /// Check that there are no typos and that any feature flags you might need are toggled
     UnsupportedKemType,
+    /// Invalid string (non-ASCII)
+    NonAscii,
+}
+#[allow(clippy::missing_trait_methods)]
+impl std::error::Error for PatternProblem {}
+impl fmt::Display for PatternProblem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
 }
 
 impl From<PatternProblem> for Error {
@@ -88,6 +99,7 @@ impl From<PatternProblem> for Error {
 /// The various stages of initialization used to help identify
 /// the specific cause of an `Init` error.
 #[derive(Debug, PartialEq)]
+#[non_exhaustive]
 pub enum InitStage {
     /// Provided and received key lengths were not equal.
     ValidateKeyLengths,
@@ -112,6 +124,13 @@ pub enum InitStage {
     /// they can introduce subtle security issues.
     ParameterOverwrite,
 }
+#[allow(clippy::missing_trait_methods)]
+impl std::error::Error for InitStage {}
+impl fmt::Display for InitStage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
 
 impl From<InitStage> for Error {
     fn from(reason: InitStage) -> Self {
@@ -121,11 +140,19 @@ impl From<InitStage> for Error {
 
 /// A prerequisite that may be missing.
 #[derive(Debug, PartialEq)]
+#[non_exhaustive]
 pub enum Prerequisite {
     /// A local private key wasn't provided when it was needed by the selected pattern.
     LocalPrivateKey,
     /// A remote public key wasn't provided when it was needed by the selected pattern.
     RemotePublicKey,
+}
+#[allow(clippy::missing_trait_methods)]
+impl std::error::Error for Prerequisite {}
+impl fmt::Display for Prerequisite {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
 }
 
 impl From<Prerequisite> for Error {
@@ -136,6 +163,7 @@ impl From<Prerequisite> for Error {
 
 /// Specific errors in the state machine.
 #[derive(Debug, PartialEq)]
+#[non_exhaustive]
 pub enum StateProblem {
     /// Missing key material in the internal handshake state.
     MissingKeyMaterial,
@@ -153,6 +181,13 @@ pub enum StateProblem {
     OneWay,
     /// The nonce counter attempted to go higher than (2^64) - 1
     Exhausted,
+}
+#[allow(clippy::missing_trait_methods)]
+impl std::error::Error for StateProblem {}
+impl fmt::Display for StateProblem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
 }
 
 impl From<StateProblem> for Error {
@@ -181,4 +216,17 @@ impl fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {}
+#[allow(clippy::missing_trait_methods)]
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Error::Pattern(reason) => Some(reason),
+            Error::Init(reason) => Some(reason),
+            Error::Prereq(reason) => Some(reason),
+            Error::State(reason) => Some(reason),
+            Error::Input | Error::Dh | Error::Decrypt => None,
+            #[cfg(feature = "hfs")]
+            Error::Kem => None,
+        }
+    }
+}

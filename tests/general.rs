@@ -1,5 +1,6 @@
 #![cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 #![allow(clippy::needless_range_loop)]
+#![allow(clippy::restriction)]
 #![allow(non_snake_case)]
 
 use hex::FromHex;
@@ -417,7 +418,7 @@ fn test_rekey() -> TestResult {
     // rekey outgoing on initiator
     h_i.rekey_outgoing();
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg)?;
-    assert!(h_r.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap_err();
     h_r.set_receiving_nonce(h_i.sending_nonce());
 
     // rekey incoming on responder
@@ -429,7 +430,7 @@ fn test_rekey() -> TestResult {
     // rekey outgoing on responder
     h_r.rekey_outgoing();
     let len = h_r.write_message(b"hack the planet", &mut buffer_msg)?;
-    assert!(h_i.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap_err();
     h_i.set_receiving_nonce(h_r.sending_nonce());
 
     // rekey incoming on initiator
@@ -468,7 +469,7 @@ fn test_rekey_manually() -> TestResult {
     // The message *should* have failed to read, so we also force nonce re-sync.
     h_i.rekey_manually(Some(&[1u8; 32]), None);
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg)?;
-    assert!(h_r.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap_err();
     h_r.set_receiving_nonce(h_i.sending_nonce());
 
     // rekey responder-side responder key to K1, expecting a successful decryption.
@@ -483,7 +484,7 @@ fn test_rekey_manually() -> TestResult {
     // The message *should* have failed to read, so we also force nonce re-sync.
     h_r.rekey_manually(None, Some(&[1u8; 32]));
     let len = h_r.write_message(b"hack the planet", &mut buffer_msg)?;
-    assert!(h_i.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap_err();
     h_i.set_receiving_nonce(h_r.sending_nonce());
 
     // rekey intiator-side responder key to K1, expecting a successful decryption.
@@ -500,7 +501,7 @@ fn test_handshake_message_exceeds_max_len() -> TestResult {
     let mut h_i = Builder::new(params).build_initiator()?;
 
     let mut buffer_out = [0u8; 65535 * 2];
-    assert!(h_i.write_message(&[0u8; 65530], &mut buffer_out).is_err());
+    h_i.write_message(&[0u8; 65530], &mut buffer_out).unwrap_err();
     Ok(())
 }
 
@@ -510,7 +511,7 @@ fn test_handshake_message_undersized_output_buffer() -> TestResult {
     let mut h_i = Builder::new(params).build_initiator()?;
 
     let mut buffer_out = [0u8; 200];
-    assert!(h_i.write_message(&[0u8; 400], &mut buffer_out).is_err());
+    h_i.write_message(&[0u8; 400], &mut buffer_out).unwrap_err();
     Ok(())
 }
 
@@ -552,7 +553,7 @@ fn test_transport_message_exceeds_max_len() -> TestResult {
     let mut buffer_out = [0u8; 65535 * 2];
     noise.write_message(&[0u8; 0], &mut buffer_out)?;
     let mut noise = noise.into_transport_mode()?;
-    assert!(noise.write_message(&[0u8; 65534], &mut buffer_out).is_err());
+    noise.write_message(&[0u8; 65534], &mut buffer_out).unwrap_err();
     Ok(())
 }
 
@@ -564,7 +565,7 @@ fn test_transport_message_undersized_output_buffer() -> TestResult {
     let mut buffer_out = [0u8; 200];
     noise.write_message(&[0u8; 0], &mut buffer_out)?;
     let mut noise = noise.into_transport_mode()?;
-    assert!(noise.write_message(&[0u8; 300], &mut buffer_out).is_err());
+    noise.write_message(&[0u8; 300], &mut buffer_out).unwrap_err();
     Ok(())
 }
 
@@ -576,7 +577,7 @@ fn test_oneway_initiator_enforcements() -> TestResult {
     let mut buffer_out = [0u8; 1024];
     noise.write_message(&[0u8; 0], &mut buffer_out)?;
     let mut noise = noise.into_transport_mode()?;
-    assert!(noise.read_message(&[0u8; 1024], &mut buffer_out).is_err());
+    noise.read_message(&[0u8; 1024], &mut buffer_out).unwrap_err();
     Ok(())
 }
 
@@ -596,8 +597,8 @@ fn test_oneway_responder_enforcements() -> TestResult {
     let mut init = init.into_transport_mode()?;
     let mut resp = resp.into_transport_mode()?;
 
-    assert!(init.read_message(&[0u8; 1024], &mut buffer_init).is_err());
-    assert!(resp.write_message(&[0u8; 1024], &mut buffer_resp).is_err());
+    init.read_message(&[0u8; 1024], &mut buffer_init).unwrap_err();
+    resp.write_message(&[0u8; 1024], &mut buffer_resp).unwrap_err();
     Ok(())
 }
 
@@ -612,7 +613,7 @@ fn test_buffer_issues() -> TestResult {
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     let res = h_r.read_message(&buffer_msg[..len], &mut buffer_out);
 
-    assert!(res.is_err());
+    res.unwrap_err();
     Ok(())
 }
 
@@ -636,17 +637,17 @@ fn test_read_buffer_issues() -> TestResult {
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     let res = h_r.read_message(&buffer_msg[..len], &mut buffer_out);
 
-    assert!(res.is_ok());
+    res.unwrap();
 
     let len = h_r.write_message(b"abc", &mut buffer_msg)?;
     let res = h_i.read_message(&buffer_msg[..len], &mut buffer_out);
 
-    assert!(res.is_ok());
+    res.unwrap();
 
     let _len = h_i.write_message(b"abc", &mut buffer_msg)?;
     let res = h_r.read_message(&buffer_msg[..2], &mut buffer_out);
 
-    assert!(res.is_err());
+    res.unwrap_err();
     Ok(())
 }
 
@@ -676,7 +677,7 @@ fn test_buffer_issues_encrypted_handshake() -> TestResult {
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     let res = h_r.read_message(&buffer_msg[..len], &mut buffer_out);
 
-    assert!(res.is_err());
+    res.unwrap_err();
     Ok(())
 }
 
@@ -947,12 +948,12 @@ fn test_stateful_nonce_increment_behavior() -> TestResult {
     corrupted[0] = corrupted[0].wrapping_add(1);
 
     // This should result in an error, but should not change any internal state
-    assert!(h_r.read_message(&corrupted, &mut buffer_out).is_err());
+    h_r.read_message(&corrupted, &mut buffer_out).unwrap_err();
 
     // This should now succeed as the nonce counter should have remained the same
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
     // This should now fail again as the nonce counter should have incremented
-    assert!(h_r.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap_err();
     Ok(())
 }

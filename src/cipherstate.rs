@@ -68,11 +68,11 @@ impl CipherState {
     }
 
     pub fn encrypt(&mut self, plaintext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
-        self.encrypt_ad(&[0u8; 0], plaintext, out)
+        self.encrypt_ad(&[0_u8; 0], plaintext, out)
     }
 
     pub fn decrypt(&mut self, ciphertext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
-        self.decrypt_ad(&[0u8; 0], ciphertext, out)
+        self.decrypt_ad(&[0_u8; 0], ciphertext, out)
     }
 
     pub fn rekey(&mut self) {

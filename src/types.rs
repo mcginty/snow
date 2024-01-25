@@ -67,10 +67,14 @@ pub trait Cipher: Send + Sync {
     fn rekey(&mut self) {
         let mut ciphertext = [0; CIPHERKEYLEN + TAGLEN];
         let ciphertext_len = self.encrypt(u64::MAX, &[], &[0; CIPHERKEYLEN], &mut ciphertext);
-        assert_eq!(ciphertext_len, ciphertext.len());
+        assert_eq!(
+            ciphertext_len,
+            ciphertext.len(),
+            "returned ciphertext length not expected size"
+        );
 
         // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
-        let mut key = [0u8; CIPHERKEYLEN];
+        let mut key = [0_u8; CIPHERKEYLEN];
         key.copy_from_slice(&ciphertext[..CIPHERKEYLEN]);
 
         self.set(&key);
@@ -101,19 +105,20 @@ pub trait Hash: Send + Sync {
     ///
     /// NOTE: This method clobbers the existing internal state
     fn hmac(&mut self, key: &[u8], data: &[u8], out: &mut [u8]) {
-        assert!(key.len() <= self.block_len());
+        let key_len = key.len();
         let block_len = self.block_len();
         let hash_len = self.hash_len();
-        let mut ipad = [0x36u8; MAXBLOCKLEN];
-        let mut opad = [0x5cu8; MAXBLOCKLEN];
-        for count in 0..key.len() {
+        assert!(key.len() <= block_len, "key and block lengths differ");
+        let mut ipad = [0x36_u8; MAXBLOCKLEN];
+        let mut opad = [0x5c_u8; MAXBLOCKLEN];
+        for count in 0..key_len {
             ipad[count] ^= key[count];
             opad[count] ^= key[count];
         }
         self.reset();
         self.input(&ipad[..block_len]);
         self.input(data);
-        let mut inner_output = [0u8; MAXHASHLEN];
+        let mut inner_output = [0_u8; MAXHASHLEN];
         self.result(&mut inner_output);
         self.reset();
         self.input(&opad[..block_len]);
@@ -134,14 +139,14 @@ pub trait Hash: Send + Sync {
         out3: &mut [u8],
     ) {
         let hash_len = self.hash_len();
-        let mut temp_key = [0u8; MAXHASHLEN];
+        let mut temp_key = [0_u8; MAXHASHLEN];
         self.hmac(chaining_key, input_key_material, &mut temp_key);
-        self.hmac(&temp_key, &[1u8], out1);
+        self.hmac(&temp_key, &[1_u8], out1);
         if outputs == 1 {
             return;
         }
 
-        let mut in2 = [0u8; MAXHASHLEN + 1];
+        let mut in2 = [0_u8; MAXHASHLEN + 1];
         copy_slices!(out1[0..hash_len], &mut in2);
         in2[hash_len] = 2;
         self.hmac(&temp_key, &in2[..=hash_len], out2);
@@ -149,7 +154,7 @@ pub trait Hash: Send + Sync {
             return;
         }
 
-        let mut in3 = [0u8; MAXHASHLEN + 1];
+        let mut in3 = [0_u8; MAXHASHLEN + 1];
         copy_slices!(out2[0..hash_len], &mut in3);
         in3[hash_len] = 3;
         self.hmac(&temp_key, &in3[..=hash_len], out3);

@@ -36,7 +36,7 @@ fn main() {
 
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn run_server() {
-    let mut buf = vec![0u8; 65535];
+    let mut buf = vec![0_u8; 65535];
 
     // Initialize our responder using a builder.
     let builder = Builder::new(PARAMS.clone());
@@ -75,7 +75,7 @@ fn run_server() {
 
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn run_client() {
-    let mut buf = vec![0u8; 65535];
+    let mut buf = vec![0_u8; 65535];
 
     // Initialize our initiator using a builder.
     let builder = Builder::new(PARAMS.clone());
@@ -116,10 +116,10 @@ fn run_client() {
 
 /// Hyper-basic stream transport receiver. 16-bit BE size followed by payload.
 fn recv(stream: &mut TcpStream) -> io::Result<Vec<u8>> {
-    let mut msg_len_buf = [0u8; 2];
+    let mut msg_len_buf = [0_u8; 2];
     stream.read_exact(&mut msg_len_buf)?;
     let msg_len = usize::from(u16::from_be_bytes(msg_len_buf));
-    let mut msg = vec![0u8; msg_len];
+    let mut msg = vec![0_u8; msg_len];
     stream.read_exact(&mut msg[..])?;
     Ok(msg)
 }
