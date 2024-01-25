@@ -1,6 +1,6 @@
 use crate::{
     cipherstate::CipherStates,
-    constants::{MAXDHLEN, MAXMSGLEN, TAGLEN},
+    constants::{CIPHERKEYLEN, MAXDHLEN, MAXMSGLEN, TAGLEN},
     error::{Error, StateProblem},
     handshakestate::HandshakeState,
     params::HandshakePattern,
@@ -110,7 +110,11 @@ impl TransportState {
     }
 
     /// Set a new key for the one or both of the initiator-egress and responder-egress symmetric ciphers.
-    pub fn rekey_manually(&mut self, initiator: Option<&[u8]>, responder: Option<&[u8]>) {
+    pub fn rekey_manually(
+        &mut self,
+        initiator: Option<&[u8; CIPHERKEYLEN]>,
+        responder: Option<&[u8; CIPHERKEYLEN]>,
+    ) {
         if let Some(key) = initiator {
             self.rekey_initiator_manually(key);
         }
@@ -120,12 +124,12 @@ impl TransportState {
     }
 
     /// Set a new key for the initiator-egress symmetric cipher.
-    pub fn rekey_initiator_manually(&mut self, key: &[u8]) {
+    pub fn rekey_initiator_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.cipherstates.rekey_initiator_manually(key)
     }
 
     /// Set a new key for the responder-egress symmetric cipher.
-    pub fn rekey_responder_manually(&mut self, key: &[u8]) {
+    pub fn rekey_responder_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.cipherstates.rekey_responder_manually(key)
     }
 

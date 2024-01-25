@@ -16,7 +16,7 @@ use std::{
     net::{TcpListener, TcpStream},
 };
 
-static SECRET: &[u8] = b"i don't care for fidget spinners";
+static SECRET: &[u8; 32] = b"i don't care for fidget spinners";
 lazy_static! {
     static ref PARAMS: NoiseParams = "Noise_XXpsk3_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
 }

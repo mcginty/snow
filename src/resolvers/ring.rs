@@ -1,6 +1,6 @@
 use super::CryptoResolver;
 use crate::{
-    constants::TAGLEN,
+    constants::{CIPHERKEYLEN, TAGLEN},
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
     Error,
@@ -95,7 +95,7 @@ impl Cipher for CipherAESGCM {
         "AESGCM"
     }
 
-    fn set(&mut self, key: &[u8]) {
+    fn set(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.key = aead::LessSafeKey::new(UnboundKey::new(&aead::AES_256_GCM, key).unwrap());
     }
 
@@ -175,7 +175,7 @@ impl Cipher for CipherChaChaPoly {
         "ChaChaPoly"
     }
 
-    fn set(&mut self, key: &[u8]) {
+    fn set(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.key = LessSafeKey::new(UnboundKey::new(&aead::CHACHA20_POLY1305, key).unwrap());
     }
 

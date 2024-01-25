@@ -60,7 +60,7 @@ pub struct Builder<'builder> {
     s:        Option<&'builder [u8]>,
     e_fixed:  Option<&'builder [u8]>,
     rs:       Option<&'builder [u8]>,
-    psks:     [Option<&'builder [u8]>; MAX_PSKS],
+    psks:     [Option<&'builder [u8; 32]>; MAX_PSKS],
     plog:     Option<&'builder [u8]>,
 }
 
@@ -110,7 +110,7 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Specify a PSK (only used with `NoisePSK` base parameter)
-    pub fn psk(mut self, location: u8, key: &'builder [u8]) -> Result<Self, Error> {
+    pub fn psk(mut self, location: u8, key: &'builder [u8; PSKLEN]) -> Result<Self, Error> {
         let location = location as usize;
         if location >= MAX_PSKS {
             Err(InitStage::ValidatePskPosition.into())

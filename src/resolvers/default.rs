@@ -16,7 +16,7 @@ use crate::params::KemChoice;
 #[cfg(feature = "pqclean_kyber1024")]
 use crate::types::Kem;
 use crate::{
-    constants::TAGLEN,
+    constants::{CIPHERKEYLEN, TAGLEN},
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
     Error,
@@ -76,20 +76,20 @@ struct Dh25519 {
 /// Wraps `aes-gcm`'s AES256-GCM implementation.
 #[derive(Default)]
 struct CipherAesGcm {
-    key: [u8; 32],
+    key: [u8; CIPHERKEYLEN],
 }
 
 /// Wraps `chacha20_poly1305_aead`'s ChaCha20Poly1305 implementation.
 #[derive(Default)]
 struct CipherChaChaPoly {
-    key: [u8; 32],
+    key: [u8; CIPHERKEYLEN],
 }
 
 /// Wraps `chachapoly1305`'s XChaCha20Poly1305 implementation.
 #[cfg(feature = "xchachapoly")]
 #[derive(Default)]
 struct CipherXChaChaPoly {
-    key: [u8; 32],
+    key: [u8; CIPHERKEYLEN],
 }
 
 /// Wraps `RustCrypto`'s SHA-256 implementation.
@@ -144,14 +144,14 @@ impl Dh for Dh25519 {
     }
 
     fn set(&mut self, privkey: &[u8]) {
-        let mut bytes = [0u8; 32];
+        let mut bytes = [0u8; CIPHERKEYLEN];
         copy_slices!(privkey, bytes);
         self.privkey = bytes;
         self.derive_pubkey();
     }
 
     fn generate(&mut self, rng: &mut dyn Random) {
-        let mut bytes = [0u8; 32];
+        let mut bytes = [0u8; CIPHERKEYLEN];
         rng.fill_bytes(&mut bytes);
         self.privkey = bytes;
         self.derive_pubkey();
@@ -166,7 +166,7 @@ impl Dh for Dh25519 {
     }
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error> {
-        let mut pubkey_owned = [0u8; 32];
+        let mut pubkey_owned = [0u8; CIPHERKEYLEN];
         copy_slices!(&pubkey[..32], pubkey_owned);
         let result = MontgomeryPoint(pubkey_owned).mul_clamped(self.privkey).to_bytes();
         copy_slices!(result, out);
@@ -179,7 +179,7 @@ impl Cipher for CipherAesGcm {
         "AESGCM"
     }
 
-    fn set(&mut self, key: &[u8]) {
+    fn set(&mut self, key: &[u8; CIPHERKEYLEN]) {
         copy_slices!(key, &mut self.key)
     }
 
@@ -232,7 +232,7 @@ impl Cipher for CipherChaChaPoly {
         "ChaChaPoly"
     }
 
-    fn set(&mut self, key: &[u8]) {
+    fn set(&mut self, key: &[u8; CIPHERKEYLEN]) {
         copy_slices!(key, &mut self.key);
     }
 
@@ -284,7 +284,7 @@ impl Cipher for CipherXChaChaPoly {
         "XChaChaPoly"
     }
 
-    fn set(&mut self, key: &[u8]) {
+    fn set(&mut self, key: &[u8; CIPHERKEYLEN]) {
         copy_slices!(key, &mut self.key);
     }
 
@@ -717,7 +717,7 @@ mod tests {
     #[test]
     fn test_chachapoly_known_answer() {
         //ChaChaPoly known-answer test - RFC 7539
-        let key = Vec::<u8>::from_hex(
+        let key = <[u8; 32]>::from_hex(
             "1c9240a5eb55d38af333888604f6b5f0\
                   473917c1402b80099dca5cbc207075c0",
         )

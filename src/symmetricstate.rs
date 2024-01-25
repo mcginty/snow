@@ -56,8 +56,13 @@ impl SymmetricState {
             &mut hkdf_output.1,
             &mut [],
         );
-        copy_slices!(hkdf_output.0, &mut self.inner.ck);
-        self.cipherstate.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
+
+        // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
+        let mut cipher_key = [0u8; CIPHERKEYLEN];
+        cipher_key.copy_from_slice(&hkdf_output.1[..CIPHERKEYLEN]);
+
+        self.inner.ck = hkdf_output.0;
+        self.cipherstate.set(&cipher_key, 0);
         self.inner.has_key = true;
     }
 
@@ -80,9 +85,13 @@ impl SymmetricState {
             &mut hkdf_output.1,
             &mut hkdf_output.2,
         );
-        copy_slices!(hkdf_output.0, &mut self.inner.ck);
+        self.inner.ck = hkdf_output.0;
         self.mix_hash(&hkdf_output.1[..hash_len]);
-        self.cipherstate.set(&hkdf_output.2[..CIPHERKEYLEN], 0);
+
+        // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
+        let mut cipher_key = [0u8; CIPHERKEYLEN];
+        cipher_key.copy_from_slice(&hkdf_output.2[..CIPHERKEYLEN]);
+        self.cipherstate.set(&cipher_key, 0);
     }
 
     pub fn has_key(&self) -> bool {
@@ -124,8 +133,13 @@ impl SymmetricState {
     pub fn split(&mut self, child1: &mut CipherState, child2: &mut CipherState) {
         let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
         self.split_raw(&mut hkdf_output.0, &mut hkdf_output.1);
-        child1.set(&hkdf_output.0[..CIPHERKEYLEN], 0);
-        child2.set(&hkdf_output.1[..CIPHERKEYLEN], 0);
+
+        // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
+        let mut cipher_keys = ([0u8; CIPHERKEYLEN], [0u8; CIPHERKEYLEN]);
+        cipher_keys.0.copy_from_slice(&hkdf_output.0[..CIPHERKEYLEN]);
+        cipher_keys.1.copy_from_slice(&hkdf_output.1[..CIPHERKEYLEN]);
+        child1.set(&cipher_keys.0, 0);
+        child2.set(&cipher_keys.1, 0);
     }
 
     pub fn split_raw(&mut self, out1: &mut [u8], out2: &mut [u8]) {
