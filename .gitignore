@@ -7,3 +7,4 @@ target/
 vendor/
 hfuzz_*/
 .vscode/
+.zed/
