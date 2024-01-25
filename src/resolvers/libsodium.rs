@@ -19,6 +19,7 @@ use sodiumoxide::crypto::{
 
 /// A resolver that uses [libsodium](https://github.com/jedisct1/libsodium)
 /// via [sodiumoxide](https://crates.io/crates/sodiumoxide).
+#[allow(clippy::module_name_repetitions)]
 #[derive(Default)]
 pub struct SodiumResolver;
 

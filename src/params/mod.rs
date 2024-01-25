@@ -1,3 +1,6 @@
+#![allow(clippy::match_on_vec_items)]
+#![allow(clippy::enum_glob_use)]
+
 //! All structures related to Noise parameter definitions (cryptographic primitive choices, protocol
 //! patterns/names)
 
@@ -146,6 +149,7 @@ impl FromStr for KemChoice {
 /// let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
 /// ```
 #[derive(PartialEq, Clone, Debug)]
+#[allow(clippy::module_name_repetitions)]
 pub struct NoiseParams {
     /// The full pattern string.
     pub name:      String,
@@ -166,7 +170,8 @@ pub struct NoiseParams {
 
 impl NoiseParams {
     #[cfg(not(feature = "hfs"))]
-    /// Construct a new NoiseParams via specifying enums directly.
+    /// Construct a new `NoiseParams` via specifying enums directly.
+    #[must_use]
     pub fn new(
         name: String,
         base: BaseChoice,
@@ -300,7 +305,7 @@ mod tests {
         let mods = p.handshake.modifiers.list;
         match (mods[0], mods[1], mods[2]) {
             (Psk(0), Psk(1), Psk(2)) => {},
-            _ => panic!("modifiers weren't as expected! actual: {:?}", mods),
+            _ => panic!("modifiers weren't as expected! actual: {mods:?}"),
         }
     }
 

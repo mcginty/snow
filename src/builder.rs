@@ -76,6 +76,7 @@ impl<'builder> Builder<'builder> {
         feature = "default-resolver",
         not(any(feature = "ring-accelerated", feature = "libsodium-accelerated"))
     ))]
+    #[must_use]
     pub fn new(params: NoiseParams) -> Self {
         use crate::resolvers::DefaultResolver;
 
@@ -105,11 +106,17 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Create a Builder with a custom crypto resolver.
+    #[must_use]
     pub fn with_resolver(params: NoiseParams, resolver: BoxedCryptoResolver) -> Self {
         Builder { params, resolver, s: None, e_fixed: None, rs: None, plog: None, psks: [None; 10] }
     }
 
     /// Specify a PSK (only used with `NoisePSK` base parameter)
+    ///
+    /// # Errors
+    /// * `InitError(InitStage::ValidatePskPosition)` if the location is a number larger than
+    ///   allowed.
+    /// * `InitError(InitStage::ParameterOverwrite)` if this method has been called previously.
     pub fn psk(mut self, location: u8, key: &'builder [u8; PSKLEN]) -> Result<Self, Error> {
         let location = location as usize;
         if location >= MAX_PSKS {
@@ -125,6 +132,9 @@ impl<'builder> Builder<'builder> {
     /// Your static private key (can be generated with [`generate_keypair()`]).
     ///
     /// [`generate_keypair()`]: #method.generate_keypair
+    ///
+    /// # Errors
+    /// * `InitError(InitStage::ParameterOverwrite)` if this method has been called previously.
     pub fn local_private_key(mut self, key: &'builder [u8]) -> Result<Self, Error> {
         if self.s.is_some() {
             Err(InitStage::ParameterOverwrite.into())
@@ -135,6 +145,7 @@ impl<'builder> Builder<'builder> {
     }
 
     #[doc(hidden)]
+    #[must_use]
     pub fn fixed_ephemeral_key_for_testing_only(mut self, key: &'builder [u8]) -> Self {
         self.e_fixed = Some(key);
         self
@@ -143,6 +154,9 @@ impl<'builder> Builder<'builder> {
     /// Arbitrary data to be hashed in to the handshake hash value.
     ///
     /// This may only be set once
+    ///
+    /// # Errors
+    /// * `InitError(InitStage::ParameterOverwrite)` if this method has been called previously.
     pub fn prologue(mut self, key: &'builder [u8]) -> Result<Self, Error> {
         if self.plog.is_some() {
             Err(InitStage::ParameterOverwrite.into())
@@ -153,6 +167,9 @@ impl<'builder> Builder<'builder> {
     }
 
     /// The responder's static public key.
+    ///
+    /// # Errors
+    /// * `InitError(InitStage::ParameterOverwrite)` if this method has been called previously.
     pub fn remote_public_key(mut self, pub_key: &'builder [u8]) -> Result<Self, Error> {
         if self.rs.is_some() {
             Err(InitStage::ParameterOverwrite.into())
@@ -164,6 +181,10 @@ impl<'builder> Builder<'builder> {
 
     // TODO: performance issue w/ creating a new RNG and DH instance per call.
     /// Generate a new asymmetric keypair (for use as a static key).
+    ///
+    /// # Errors
+    /// * `InitError(InitStage::GetRngImpl)` if the RNG implementation failed to resolve.
+    /// * `InitError(InitStage::GetDhImpl)` if the DH implementation failed to resolve.
     pub fn generate_keypair(&self) -> Result<Keypair, Error> {
         let mut rng = self.resolver.resolve_rng().ok_or(InitStage::GetRngImpl)?;
         let mut dh = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
@@ -178,11 +199,19 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Build a [`HandshakeState`] for the side who will initiate the handshake (send the first message)
+    ///
+    /// # Errors
+    /// * `InitError(InitStage::GetRngImpl)` if the RNG implementation failed to resolve.
+    /// * `InitError(InitStage::GetDhImpl)` if the DH implementation failed to resolve.
     pub fn build_initiator(self) -> Result<HandshakeState, Error> {
         self.build(true)
     }
 
     /// Build a [`HandshakeState`] for the side who will be responder (receive the first message)
+    ///
+    /// # Errors
+    /// An `InitError(InitStage)` variant will be returned for various issues in the building of a
+    /// usable `HandshakeState`. See `InitStage` for further details.
     pub fn build_responder(self) -> Result<HandshakeState, Error> {
         self.build(false)
     }
@@ -256,7 +285,7 @@ impl<'builder> Builder<'builder> {
             re,
             initiator,
             self.params,
-            psks,
+            &psks,
             self.plog.unwrap_or(&[]),
             cipherstates,
         )?;
@@ -265,6 +294,7 @@ impl<'builder> Builder<'builder> {
     }
 
     #[cfg(not(feature = "hfs"))]
+    #[allow(clippy::unnecessary_wraps)]
     fn resolve_kem(_: Box<dyn CryptoResolver>, _: &mut HandshakeState) -> Result<(), Error> {
         // HFS is disabled, return nothing
         Ok(())
@@ -316,9 +346,7 @@ mod tests {
         let params: ::std::result::Result<NoiseParams, _> =
             "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
 
-        if params.is_ok() {
-            panic!("NoiseParams should have failed");
-        }
+        assert!(params.is_err(), "NoiseParams should have failed");
     }
 
     #[test]
@@ -328,20 +356,18 @@ mod tests {
             .local_private_key(&[0u8; 32])?
             .build_initiator(); // missing remote key, should result in Err
 
-        if noise.is_ok() {
-            panic!("builder should have failed on build");
-        }
+        assert!(noise.is_err(), "builder should have failed on build");
         Ok(())
     }
 
     #[test]
     fn test_builder_param_overwrite() -> TestResult {
         fn build_builder<'a>() -> Result<Builder<'a>, Error> {
-            Ok(Builder::new("Noise_NNpsk0_25519_ChaChaPoly_SHA256".parse()?)
+            Builder::new("Noise_NNpsk0_25519_ChaChaPoly_SHA256".parse()?)
                 .prologue(&[2u8; 10])?
                 .psk(0, &[0u8; 32])?
                 .local_private_key(&[0u8; 32])?
-                .remote_public_key(&[1u8; 32])?)
+                .remote_public_key(&[1u8; 32])
         }
 
         assert_eq!(

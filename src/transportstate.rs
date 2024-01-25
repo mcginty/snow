@@ -40,7 +40,7 @@ impl TransportState {
     /// doesn't necessitate a remote static key, *or* if the remote
     /// static key is not yet known (as can be the case in the `XX`
     /// pattern, for example).
-    pub fn get_remote_static(&self) -> Option<&[u8]> {
+    #[must_use] pub fn get_remote_static(&self) -> Option<&[u8]> {
         self.rs.get().map(|rs| &rs[..self.dh_len])
     }
 
@@ -91,9 +91,9 @@ impl TransportState {
     /// of the Noise Specification.
     pub fn rekey_outgoing(&mut self) {
         if self.initiator {
-            self.cipherstates.rekey_initiator()
+            self.cipherstates.rekey_initiator();
         } else {
-            self.cipherstates.rekey_responder()
+            self.cipherstates.rekey_responder();
         }
     }
 
@@ -103,9 +103,9 @@ impl TransportState {
     /// of the Noise Specification.
     pub fn rekey_incoming(&mut self) {
         if self.initiator {
-            self.cipherstates.rekey_responder()
+            self.cipherstates.rekey_responder();
         } else {
-            self.cipherstates.rekey_initiator()
+            self.cipherstates.rekey_initiator();
         }
     }
 
@@ -125,12 +125,12 @@ impl TransportState {
 
     /// Set a new key for the initiator-egress symmetric cipher.
     pub fn rekey_initiator_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
-        self.cipherstates.rekey_initiator_manually(key)
+        self.cipherstates.rekey_initiator_manually(key);
     }
 
     /// Set a new key for the responder-egress symmetric cipher.
     pub fn rekey_responder_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
-        self.cipherstates.rekey_responder_manually(key)
+        self.cipherstates.rekey_responder_manually(key);
     }
 
     /// Set the forthcoming *inbound* nonce value. Useful for using noise on lossy transports.
@@ -147,7 +147,7 @@ impl TransportState {
     /// # Errors
     ///
     /// Will result in `Error::State` if not in transport mode.
-    pub fn receiving_nonce(&self) -> u64 {
+    #[must_use] pub fn receiving_nonce(&self) -> u64 {
         if self.initiator {
             self.cipherstates.1.nonce()
         } else {
@@ -160,7 +160,7 @@ impl TransportState {
     /// # Errors
     ///
     /// Will result in `Error::State` if not in transport mode.
-    pub fn sending_nonce(&self) -> u64 {
+    #[must_use] pub fn sending_nonce(&self) -> u64 {
         if self.initiator {
             self.cipherstates.0.nonce()
         } else {
@@ -169,7 +169,7 @@ impl TransportState {
     }
 
     /// Check if this session was started with the "initiator" role.
-    pub fn is_initiator(&self) -> bool {
+    #[must_use] pub fn is_initiator(&self) -> bool {
         self.initiator
     }
 }

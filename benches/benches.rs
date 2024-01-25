@@ -2,7 +2,7 @@
 extern crate criterion;
 
 use criterion::{Criterion, Throughput};
-use snow::{params::*, *};
+use snow::{params::NoiseParams, Builder};
 
 const MSG_SIZE: usize = 4096;
 
@@ -14,7 +14,7 @@ fn benchmarks(c: &mut Criterion) {
             Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
                 .build_initiator()
                 .unwrap();
-        })
+        });
     });
 
     builder_group.bench_function("withkey", |b| {
@@ -54,7 +54,7 @@ fn benchmarks(c: &mut Criterion) {
             h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
             let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
             h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-        })
+        });
     });
 
     handshake_group.bench_function("nn", |b| {
@@ -71,7 +71,7 @@ fn benchmarks(c: &mut Criterion) {
             h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
             let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
             h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-        })
+        });
     });
     handshake_group.finish();
 
@@ -99,7 +99,7 @@ fn benchmarks(c: &mut Criterion) {
             b.iter(move || {
                 let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
                 let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
-            })
+            });
         });
     }
 
@@ -124,7 +124,7 @@ fn benchmarks(c: &mut Criterion) {
         b.iter(move || {
             let len = h_i.write_message(&buffer_msg[..MSG_SIZE], &mut buffer_out).unwrap();
             let _ = h_r.read_message(&buffer_out[..len], &mut buffer_msg).unwrap();
-        })
+        });
     });
 }
 
