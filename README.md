@@ -81,17 +81,17 @@ specification.
 
 ### Resolver primitives supported
 
-|            | default | ring | libsodium |
-| ---------: | :-----: | :--: | :-------: |
-|     CSPRNG |    ✔    |  ✔   |     ✔     |
-|      25519 |    ✔    |  ✔   |     ✔     |
-|        448 |         |      |           |
-|     AESGCM |    ✔    |  ✔   |           |
-| ChaChaPoly |    ✔    |  ✔   |     ✔     |
-|     SHA256 |    ✔    |  ✔   |     ✔     |
-|     SHA512 |    ✔    |  ✔   |           |
-|    BLAKE2s |    ✔    |      |           |
-|    BLAKE2b |    ✔    |      |           |
+|            | default | ring |
+| ---------: | :-----: | :--: |
+|     CSPRNG |    ✔    |  ✔   |
+|      25519 |    ✔    |  ✔   |
+|        448 |         |      |
+|     AESGCM |    ✔    |  ✔   |
+| ChaChaPoly |    ✔    |  ✔   |
+|     SHA256 |    ✔    |  ✔   |
+|     SHA512 |    ✔    |  ✔   |
+|    BLAKE2s |    ✔    |      |
+|    BLAKE2b |    ✔    |      |
 
 ## License
 

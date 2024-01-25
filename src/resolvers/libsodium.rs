@@ -1,4 +1,6 @@
-extern crate sodiumoxide;
+//! # NOTE
+//! This backend is deprecated, as sodiumoxide is unmaintained. This will be removed in a
+//! following version of snow.
 
 use byteorder::{ByteOrder, LittleEndian};
 
