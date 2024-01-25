@@ -24,7 +24,7 @@ use std::{
 #[derive(Clone)]
 struct HexBytes {
     original: String,
-    payload: Vec<u8>,
+    payload:  Vec<u8>,
 }
 
 impl From<Vec<u8>> for HexBytes {
@@ -85,7 +85,7 @@ impl Serialize for HexBytes {
 
 #[derive(Serialize, Deserialize)]
 struct TestMessage {
-    payload: HexBytes,
+    payload:    HexBytes,
     ciphertext: HexBytes,
 }
 
@@ -128,13 +128,13 @@ struct TestVector {
     #[serde(skip_serializing_if = "Option::is_none")]
     init_remote_static: Option<HexBytes>,
 
-    resp_prologue: HexBytes,
+    resp_prologue:      HexBytes,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_psks: Option<Vec<HexBytes>>,
+    resp_psks:          Option<Vec<HexBytes>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_static: Option<HexBytes>,
+    resp_static:        Option<HexBytes>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_ephemeral: Option<HexBytes>,
+    resp_ephemeral:     Option<HexBytes>,
     #[serde(skip_serializing_if = "Option::is_none")]
     resp_remote_static: Option<HexBytes>,
 
@@ -156,8 +156,8 @@ fn build_session_pair(vector: &TestVector) -> Result<(HandshakeState, HandshakeS
         if let (&Some(ref ipsks), &Some(ref rpsks)) = (&vector.init_psks, &vector.resp_psks) {
             for modifier in params.handshake.modifiers.list {
                 if let HandshakeModifier::Psk(n) = modifier {
-                    init_builder = init_builder.psk(n, &*ipsks[psk_index]);
-                    resp_builder = resp_builder.psk(n, &*rpsks[psk_index]);
+                    init_builder = init_builder.psk(n, &*ipsks[psk_index]).unwrap();
+                    resp_builder = resp_builder.psk(n, &*rpsks[psk_index]).unwrap();
                     psk_index += 1;
                 }
             }
@@ -167,16 +167,16 @@ fn build_session_pair(vector: &TestVector) -> Result<(HandshakeState, HandshakeS
     }
 
     if let Some(ref init_s) = vector.init_static {
-        init_builder = init_builder.local_private_key(&*init_s);
+        init_builder = init_builder.local_private_key(&*init_s).unwrap();
     }
     if let Some(ref resp_s) = vector.resp_static {
-        resp_builder = resp_builder.local_private_key(&*resp_s);
+        resp_builder = resp_builder.local_private_key(&*resp_s).unwrap();
     }
     if let Some(ref init_remote_static) = vector.init_remote_static {
-        init_builder = init_builder.remote_public_key(&*init_remote_static);
+        init_builder = init_builder.remote_public_key(&*init_remote_static).unwrap();
     }
     if let Some(ref resp_remote_static) = vector.resp_remote_static {
-        resp_builder = resp_builder.remote_public_key(&*resp_remote_static);
+        resp_builder = resp_builder.remote_public_key(&*resp_remote_static).unwrap();
     }
     if let Some(ref init_e) = vector.init_ephemeral {
         init_builder = init_builder.fixed_ephemeral_key_for_testing_only(&*init_e);
@@ -187,10 +187,12 @@ fn build_session_pair(vector: &TestVector) -> Result<(HandshakeState, HandshakeS
 
     let init = init_builder
         .prologue(&vector.init_prologue)
+        .unwrap()
         .build_initiator()
         .map_err(|e| format!("{:?}", e))?;
     let resp = resp_builder
         .prologue(&vector.resp_prologue)
+        .unwrap()
         .build_responder()
         .map_err(|e| format!("{:?}", e))?;
 
@@ -346,27 +348,27 @@ fn generate_vector(params: NoiseParams) -> TestVector {
     let mut psk_index = 0;
     for modifier in params.handshake.modifiers.list {
         if let HandshakeModifier::Psk(n) = modifier {
-            init_b = init_b.psk(n, &psks[psk_index]);
-            resp_b = resp_b.psk(n, &psks[psk_index]);
+            init_b = init_b.psk(n, &psks[psk_index]).unwrap();
+            resp_b = resp_b.psk(n, &psks[psk_index]).unwrap();
             psk_index += 1;
         }
     }
     init_b = init_b.fixed_ephemeral_key_for_testing_only(&ie.private);
-    init_b = init_b.prologue(&prologue);
+    init_b = init_b.prologue(&prologue).unwrap();
     if params.handshake.pattern.needs_local_static_key(true) {
-        init_b = init_b.local_private_key(&is.private);
+        init_b = init_b.local_private_key(&is.private).unwrap();
     }
     if params.handshake.pattern.need_known_remote_pubkey(true) {
-        init_b = init_b.remote_public_key(&rs.public);
+        init_b = init_b.remote_public_key(&rs.public).unwrap();
     }
 
     resp_b = resp_b.fixed_ephemeral_key_for_testing_only(&re.private);
-    resp_b = resp_b.prologue(&prologue);
+    resp_b = resp_b.prologue(&prologue).unwrap();
     if params.handshake.pattern.needs_local_static_key(false) {
-        resp_b = resp_b.local_private_key(&rs.private);
+        resp_b = resp_b.local_private_key(&rs.private).unwrap();
     }
     if params.handshake.pattern.need_known_remote_pubkey(false) {
-        resp_b = resp_b.remote_public_key(&is.public);
+        resp_b = resp_b.remote_public_key(&is.public).unwrap();
     }
 
     let mut init = init_b.build_initiator().unwrap();
@@ -378,7 +380,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = init.write_message(&payload, &mut ibuf).unwrap();
         messages.push(TestMessage {
-            payload: payload.clone().into(),
+            payload:    payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
         let _ = resp.read_message(&ibuf[..len], &mut obuf).unwrap();
@@ -390,7 +392,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = resp.write_message(&payload, &mut ibuf).unwrap();
         messages.push(TestMessage {
-            payload: payload.clone().into(),
+            payload:    payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
         let _ = init.read_message(&ibuf[..len], &mut obuf).unwrap();
