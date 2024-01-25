@@ -63,35 +63,19 @@ as well as a `RingAcceleratedResolver` available to be used with
 If you enable the `ring-accelerated` feature, Snow will default to choosing `ring`'s
 crypto implementations when available.
 
-#### libsodium
-
-[libsodium](https://libsodium.org/) is a fork of NaCl focused on improved usability
-and regular maintenance.
-
-##### Compatibility caveat
-
-libsodium [blacklists a set of low-order points](https://github.com/jedisct1/libsodium/blob/master/src/libsodium/crypto_scalarmult/curve25519/ref10/x25519_ref10.c#L20)
-that it deems unsafe because they would output an all-zeroes result.
-
-Noise [does not validate Curve25519 points](https://moderncrypto.org/mail-archive/noise/2017/000971.html),
-so if another Noise implementation provides an all-zero (or another low-order) public
-key for some reason (be it testing, or a real life foot-shot), if you use the libsodium
-backend of snow, it will error in a way that's not fully compatible with the
-specification.
-
 ### Resolver primitives supported
 
-|            | default | ring | libsodium |
-| ---------: | :-----: | :--: | :-------: |
-|     CSPRNG |    ✔    |  ✔   |     ✔     |
-|      25519 |    ✔    |  ✔   |     ✔     |
-|        448 |         |      |           |
-|     AESGCM |    ✔    |  ✔   |           |
-| ChaChaPoly |    ✔    |  ✔   |     ✔     |
-|     SHA256 |    ✔    |  ✔   |     ✔     |
-|     SHA512 |    ✔    |  ✔   |           |
-|    BLAKE2s |    ✔    |      |           |
-|    BLAKE2b |    ✔    |      |           |
+|            | default | ring |
+| ---------: | :-----: | :--: |
+|     CSPRNG |    ✔    |  ✔   |
+|      25519 |    ✔    |  ✔   |
+|        448 |         |      |
+|     AESGCM |    ✔    |  ✔   |
+| ChaChaPoly |    ✔    |  ✔   |
+|     SHA256 |    ✔    |  ✔   |
+|     SHA512 |    ✔    |  ✔   |
+|    BLAKE2s |    ✔    |      |
+|    BLAKE2b |    ✔    |      |
 
 ## License
 
