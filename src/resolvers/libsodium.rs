@@ -6,6 +6,7 @@ use byteorder::{ByteOrder, LittleEndian};
 
 use super::CryptoResolver;
 use crate::{
+    constants::CIPHERKEYLEN,
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
     Error,
@@ -144,7 +145,7 @@ impl Cipher for SodiumChaChaPoly {
         "ChaChaPoly"
     }
 
-    fn set(&mut self, key: &[u8]) {
+    fn set(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.key = sodium_chacha20poly1305::Key::from_slice(&key[0..32])
             .expect("Can't get key for ChaChaPoly");
     }

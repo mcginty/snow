@@ -18,38 +18,39 @@ use std::{
     fmt,
     fs::{File, OpenOptions},
     io::Read,
+    marker::PhantomData,
     ops::Deref,
 };
 
 #[derive(Clone)]
-struct HexBytes {
+struct HexBytes<T> {
     original: String,
-    payload:  Vec<u8>,
+    payload:  T,
 }
 
-impl From<Vec<u8>> for HexBytes {
-    fn from(payload: Vec<u8>) -> Self {
+impl<T: AsRef<[u8]>> From<T> for HexBytes<T> {
+    fn from(payload: T) -> Self {
         Self { original: hex::encode(&payload), payload }
     }
 }
 
-impl Deref for HexBytes {
-    type Target = Vec<u8>;
+impl<T> Deref for HexBytes<T> {
+    type Target = T;
 
     fn deref(&self) -> &Self::Target {
         &self.payload
     }
 }
 
-impl fmt::Debug for HexBytes {
+impl<T> fmt::Debug for HexBytes<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.original)
     }
 }
 
-struct HexBytesVisitor;
-impl<'de> Visitor<'de> for HexBytesVisitor {
-    type Value = HexBytes;
+struct HexBytesVisitor<T: AsRef<[u8]>>(PhantomData<T>);
+impl<'de, T: AsRef<[u8]> + FromHex> Visitor<'de> for HexBytesVisitor<T> {
+    type Value = HexBytes<T>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "a hex string")
@@ -59,22 +60,22 @@ impl<'de> Visitor<'de> for HexBytesVisitor {
     where
         E: de::Error,
     {
-        let bytes = Vec::<u8>::from_hex(s)
-            .map_err(|_| de::Error::invalid_value(Unexpected::Str(s), &self))?;
+        let bytes =
+            T::from_hex(s).map_err(|_| de::Error::invalid_value(Unexpected::Str(s), &self))?;
         Ok(HexBytes { original: s.to_owned(), payload: bytes })
     }
 }
 
-impl<'de> Deserialize<'de> for HexBytes {
-    fn deserialize<D>(deserializer: D) -> Result<HexBytes, D::Error>
+impl<'de, T: AsRef<[u8]> + FromHex> Deserialize<'de> for HexBytes<T> {
+    fn deserialize<D>(deserializer: D) -> Result<HexBytes<T>, D::Error>
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_str(HexBytesVisitor)
+        deserializer.deserialize_str(HexBytesVisitor(Default::default()))
     }
 }
 
-impl Serialize for HexBytes {
+impl<T: AsRef<[u8]>> Serialize for HexBytes<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -85,8 +86,8 @@ impl Serialize for HexBytes {
 
 #[derive(Serialize, Deserialize)]
 struct TestMessage {
-    payload:    HexBytes,
-    ciphertext: HexBytes,
+    payload:    HexBytes<Vec<u8>>,
+    ciphertext: HexBytes<Vec<u8>>,
 }
 
 impl fmt::Debug for TestMessage {
@@ -114,29 +115,29 @@ struct TestVector {
     #[serde(skip_serializing_if = "Option::is_none")]
     fallback_pattern: Option<String>,
 
-    init_prologue: HexBytes,
+    init_prologue: HexBytes<Vec<u8>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    init_psks: Option<Vec<HexBytes>>,
+    init_psks: Option<Vec<HexBytes<[u8; 32]>>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    init_static: Option<HexBytes>,
+    init_static: Option<HexBytes<Vec<u8>>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    init_ephemeral: Option<HexBytes>,
+    init_ephemeral: Option<HexBytes<Vec<u8>>>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    init_remote_static: Option<HexBytes>,
+    init_remote_static: Option<HexBytes<Vec<u8>>>,
 
-    resp_prologue:      HexBytes,
+    resp_prologue:      HexBytes<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_psks:          Option<Vec<HexBytes>>,
+    resp_psks:          Option<Vec<HexBytes<[u8; 32]>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_static:        Option<HexBytes>,
+    resp_static:        Option<HexBytes<Vec<u8>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_ephemeral:     Option<HexBytes>,
+    resp_ephemeral:     Option<HexBytes<Vec<u8>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_remote_static: Option<HexBytes>,
+    resp_remote_static: Option<HexBytes<Vec<u8>>>,
 
     messages: Vec<TestMessage>,
 }
@@ -307,6 +308,13 @@ fn test_vectors_from_json(json: &str) {
     }
 }
 
+fn random_slice<const N: usize>() -> [u8; N] {
+    let mut v = [0u8; N];
+    let mut rng = rand::thread_rng();
+    rng.fill_bytes(&mut v);
+    v
+}
+
 fn random_vec(size: usize) -> Vec<u8> {
     let mut v = vec![0u8; size];
     let mut rng = rand::thread_rng();
@@ -340,8 +348,8 @@ fn generate_vector(params: NoiseParams) -> TestVector {
     re = resp_b.generate_keypair().unwrap();
 
     for _ in 0..get_psks_count(&params) {
-        let v = random_vec(32);
-        psks_hex.push(v.clone().into());
+        let v = random_slice::<32>();
+        psks_hex.push(v.into());
         psks.push(v);
     }
 

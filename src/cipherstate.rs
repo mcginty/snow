@@ -1,5 +1,5 @@
 use crate::{
-    constants::TAGLEN,
+    constants::{CIPHERKEYLEN, TAGLEN},
     error::{Error, InitStage, StateProblem},
     types::Cipher,
 };
@@ -19,7 +19,7 @@ impl CipherState {
         self.cipher.name()
     }
 
-    pub fn set(&mut self, key: &[u8], n: u64) {
+    pub fn set(&mut self, key: &[u8; CIPHERKEYLEN], n: u64) {
         self.cipher.set(key);
         self.n = n;
         self.has_key = true;
@@ -79,7 +79,7 @@ impl CipherState {
         self.cipher.rekey();
     }
 
-    pub fn rekey_manually(&mut self, key: &[u8]) {
+    pub fn rekey_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.cipher.set(key);
     }
 
@@ -107,7 +107,7 @@ impl CipherStates {
         self.0.rekey()
     }
 
-    pub fn rekey_initiator_manually(&mut self, key: &[u8]) {
+    pub fn rekey_initiator_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.0.rekey_manually(key)
     }
 
@@ -115,7 +115,7 @@ impl CipherStates {
         self.1.rekey()
     }
 
-    pub fn rekey_responder_manually(&mut self, key: &[u8]) {
+    pub fn rekey_responder_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.1.rekey_manually(key)
     }
 }
@@ -174,7 +174,7 @@ impl StatelessCipherState {
         self.cipher.rekey()
     }
 
-    pub fn rekey_manually(&mut self, key: &[u8]) {
+    pub fn rekey_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.cipher.set(key);
     }
 }
@@ -211,7 +211,7 @@ impl StatelessCipherStates {
         self.0.rekey()
     }
 
-    pub fn rekey_initiator_manually(&mut self, key: &[u8]) {
+    pub fn rekey_initiator_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.0.rekey_manually(key)
     }
 
@@ -219,7 +219,7 @@ impl StatelessCipherStates {
         self.1.rekey()
     }
 
-    pub fn rekey_responder_manually(&mut self, key: &[u8]) {
+    pub fn rekey_responder_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.1.rekey_manually(key)
     }
 }
