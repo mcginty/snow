@@ -24,7 +24,7 @@ lazy_static! {
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
     let server_mode =
-        std::env::args().next_back().map(|arg| arg == "-s" || arg == "--server").unwrap_or(true);
+        std::env::args().next_back().map_or(true, |arg| arg == "-s" || arg == "--server");
 
     if server_mode {
         run_server();

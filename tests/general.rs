@@ -18,6 +18,7 @@ type TestResult = Result<(), Box<dyn std::error::Error>>;
 struct CountingRng(u64);
 
 impl RngCore for CountingRng {
+    #[allow(clippy::cast_possible_truncation)]
     fn next_u32(&mut self) -> u32 {
         self.next_u64() as u32
     }
@@ -28,7 +29,7 @@ impl RngCore for CountingRng {
     }
 
     fn fill_bytes(&mut self, dest: &mut [u8]) {
-        impls::fill_bytes_via_next(self, dest)
+        impls::fill_bytes_via_next(self, dest);
     }
 
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
@@ -40,6 +41,7 @@ impl RngCore for CountingRng {
 impl CryptoRng for CountingRng {}
 impl Random for CountingRng {}
 
+#[allow(clippy::cast_possible_truncation)]
 fn get_inc_key(start: u8) -> [u8; 32] {
     let mut k = [0u8; 32];
     for i in 0..32 {
@@ -67,7 +69,7 @@ impl TestResolver {
 
 impl CryptoResolver for TestResolver {
     fn resolve_rng(&self) -> Option<Box<dyn Random>> {
-        let rng = CountingRng(self.next_byte as u64);
+        let rng = CountingRng(u64::from(self.next_byte));
         Some(Box::new(rng))
     }
 
@@ -94,14 +96,10 @@ fn test_protocol_name() -> TestResult {
     assert_eq!(protocol_spec.hash, HashChoice::Blake2s);
 
     let protocol_spec: Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly_FAKE2X".parse();
-    if protocol_spec.is_ok() {
-        panic!("invalid protocol was parsed inaccurately");
-    }
+    assert!(protocol_spec.is_err(), "invalid protocol was parsed inaccurately");
 
     let protocol_spec: Result<NoiseParams, _> = "Noise_NK_25519_ChaChaPoly".parse();
-    if protocol_spec.is_ok() {
-        panic!("invalid protocol was parsed inaccurately");
-    }
+    assert!(protocol_spec.is_err(), "invalid protocol was parsed inaccurately");
     Ok(())
 }
 
@@ -653,7 +651,7 @@ fn test_buffer_issues_encrypted_handshake() -> TestResult {
 }
 
 #[test]
-fn test_send_trait() -> TestResult {
+fn test_send_trait() {
     use std::{sync::mpsc::channel, thread};
 
     let (tx, rx) = channel();
@@ -664,7 +662,6 @@ fn test_send_trait() -> TestResult {
         tx.send(session).unwrap();
     });
     let _session = rx.recv().expect("failed to receive noise session");
-    Ok(())
 }
 
 #[test]

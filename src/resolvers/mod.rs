@@ -26,7 +26,7 @@ pub use self::libsodium::SodiumResolver;
 #[cfg(feature = "ring-resolver")]
 pub use self::ring::RingResolver;
 
-/// Boxed CryptoResolver
+/// Boxed `CryptoResolver`
 pub type BoxedCryptoResolver = Box<dyn CryptoResolver + Send>;
 
 /// An object that resolves the providers of Noise crypto choices
@@ -34,13 +34,13 @@ pub trait CryptoResolver {
     /// Provide an implementation of the Random trait or None if none available.
     fn resolve_rng(&self) -> Option<Box<dyn Random>>;
 
-    /// Provide an implementation of the Dh trait for the given DHChoice or None if unavailable.
+    /// Provide an implementation of the Dh trait for the given `DHChoice` or None if unavailable.
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>>;
 
-    /// Provide an implementation of the Hash trait for the given HashChoice or None if unavailable.
+    /// Provide an implementation of the Hash trait for the given `HashChoice` or None if unavailable.
     fn resolve_hash(&self, choice: &HashChoice) -> Option<Box<dyn Hash>>;
 
-    /// Provide an implementation of the Cipher trait for the given CipherChoice or None if unavailable.
+    /// Provide an implementation of the Cipher trait for the given `CipherChoice` or None if unavailable.
     fn resolve_cipher(&self, choice: &CipherChoice) -> Option<Box<dyn Cipher>>;
 
     /// Provide an implementation of the Kem trait for the given KemChoice or None if unavailable
@@ -60,7 +60,7 @@ pub struct FallbackResolver {
 
 impl FallbackResolver {
     /// Create a new `FallbackResolver` that holds the primary and secondary resolver.
-    pub fn new(preferred: BoxedCryptoResolver, fallback: BoxedCryptoResolver) -> Self {
+    #[must_use] pub fn new(preferred: BoxedCryptoResolver, fallback: BoxedCryptoResolver) -> Self {
         Self { preferred, fallback }
     }
 }

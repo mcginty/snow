@@ -6,7 +6,7 @@ fn main() {
         println!(
             "cargo:warning=Use of the sodiumoxide backend is deprecated, as it is no longer \
              maintained; please consider switching to another resolver."
-        )
+        );
     }
     if version_meta().unwrap().channel == Channel::Nightly {
         println!("cargo:rustc-cfg=feature=\"nightly\"");

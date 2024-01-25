@@ -13,6 +13,7 @@ use ring::{
 
 /// A resolver that chooses [ring](https://github.com/briansmith/ring)-backed
 /// primitives when available.
+#[allow(clippy::module_name_repetitions)]
 #[derive(Default)]
 pub struct RingResolver;
 
