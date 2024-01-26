@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 #[cfg(feature = "hfs")]
 use crate::params::HandshakeModifier;
 use crate::{
@@ -10,6 +12,9 @@ use crate::{
     utils::Toggle,
 };
 use subtle::ConstantTimeEq;
+
+/// The maximum number of PSKs we will allocate for.
+const MAX_PSKS: usize = 10;
 
 /// A keypair object returned by [`Builder::generate_keypair()`]
 ///
@@ -36,16 +41,18 @@ impl PartialEq for Keypair {
 /// # Examples
 ///
 /// ```
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// # use snow::Builder;
 /// # let my_long_term_key = [0u8; 32];
 /// # let their_pub_key = [0u8; 32];
 /// # #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
-/// let noise = Builder::new("Noise_XX_25519_ChaChaPoly_BLAKE2s".parse().unwrap())
-///     .local_private_key(&my_long_term_key)
-///     .remote_public_key(&their_pub_key)
-///     .prologue("noise is just swell".as_bytes())
-///     .build_initiator()
-///     .unwrap();
+/// let noise = Builder::new("Noise_XX_25519_ChaChaPoly_BLAKE2s".parse()?)
+///     .local_private_key(&my_long_term_key)?
+///     .remote_public_key(&their_pub_key)?
+///     .prologue("noise is just swell".as_bytes())?
+///     .build_initiator()?;
+/// # Ok(())
+/// # }
 /// ```
 pub struct Builder<'builder> {
     params:   NoiseParams,
@@ -53,8 +60,14 @@ pub struct Builder<'builder> {
     s:        Option<&'builder [u8]>,
     e_fixed:  Option<&'builder [u8]>,
     rs:       Option<&'builder [u8]>,
-    psks:     [Option<&'builder [u8]>; 10],
+    psks:     [Option<&'builder [u8]>; MAX_PSKS],
     plog:     Option<&'builder [u8]>,
+}
+
+impl<'builder> Debug for Builder<'builder> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Builder").field("params", &self.params.name).finish_non_exhaustive()
+    }
 }
 
 impl<'builder> Builder<'builder> {
@@ -97,17 +110,28 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Specify a PSK (only used with `NoisePSK` base parameter)
-    pub fn psk(mut self, location: u8, key: &'builder [u8]) -> Self {
-        self.psks[location as usize] = Some(key);
-        self
+    pub fn psk(mut self, location: u8, key: &'builder [u8]) -> Result<Self, Error> {
+        let location = location as usize;
+        if location >= MAX_PSKS {
+            Err(InitStage::ValidatePskPosition.into())
+        } else if self.psks[location].is_some() {
+            Err(InitStage::ParameterOverwrite.into())
+        } else {
+            self.psks[location] = Some(key);
+            Ok(self)
+        }
     }
 
     /// Your static private key (can be generated with [`generate_keypair()`]).
     ///
     /// [`generate_keypair()`]: #method.generate_keypair
-    pub fn local_private_key(mut self, key: &'builder [u8]) -> Self {
-        self.s = Some(key);
-        self
+    pub fn local_private_key(mut self, key: &'builder [u8]) -> Result<Self, Error> {
+        if self.s.is_some() {
+            Err(InitStage::ParameterOverwrite.into())
+        } else {
+            self.s = Some(key);
+            Ok(self)
+        }
     }
 
     #[doc(hidden)]
@@ -117,15 +141,25 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Arbitrary data to be hashed in to the handshake hash value.
-    pub fn prologue(mut self, key: &'builder [u8]) -> Self {
-        self.plog = Some(key);
-        self
+    ///
+    /// This may only be set once
+    pub fn prologue(mut self, key: &'builder [u8]) -> Result<Self, Error> {
+        if self.plog.is_some() {
+            Err(InitStage::ParameterOverwrite.into())
+        } else {
+            self.plog = Some(key);
+            Ok(self)
+        }
     }
 
     /// The responder's static public key.
-    pub fn remote_public_key(mut self, pub_key: &'builder [u8]) -> Self {
-        self.rs = Some(pub_key);
-        self
+    pub fn remote_public_key(mut self, pub_key: &'builder [u8]) -> Result<Self, Error> {
+        if self.rs.is_some() {
+            Err(InitStage::ParameterOverwrite.into())
+        } else {
+            self.rs = Some(pub_key);
+            Ok(self)
+        }
     }
 
     // TODO: performance issue w/ creating a new RNG and DH instance per call.
@@ -257,22 +291,24 @@ impl<'builder> Builder<'builder> {
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 mod tests {
     use super::*;
+    type TestResult = Result<(), Box<dyn std::error::Error>>;
 
     #[test]
-    fn test_builder() {
-        let _noise = Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap())
-            .prologue(&[2, 2, 2, 2, 2, 2, 2, 2])
-            .local_private_key(&[0u8; 32])
-            .build_initiator()
-            .unwrap();
+    fn test_builder() -> TestResult {
+        let _noise = Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse()?)
+            .prologue(&[2, 2, 2, 2, 2, 2, 2, 2])?
+            .local_private_key(&[0u8; 32])?
+            .build_initiator()?;
+        Ok(())
     }
 
     #[test]
-    fn test_builder_keygen() {
-        let builder = Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap());
+    fn test_builder_keygen() -> TestResult {
+        let builder = Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse()?);
         let key1 = builder.generate_keypair();
         let key2 = builder.generate_keypair();
-        assert!(key1.unwrap() != key2.unwrap());
+        assert!(key1? != key2?);
+        Ok(())
     }
 
     #[test]
@@ -286,15 +322,46 @@ mod tests {
     }
 
     #[test]
-    fn test_builder_missing_prereqs() {
-        let noise = Builder::new("Noise_NK_25519_ChaChaPoly_SHA256".parse().unwrap())
-            .prologue(&[2, 2, 2, 2, 2, 2, 2, 2])
-            .local_private_key(&[0u8; 32])
+    fn test_builder_missing_prereqs() -> TestResult {
+        let noise = Builder::new("Noise_NK_25519_ChaChaPoly_SHA256".parse()?)
+            .prologue(&[2, 2, 2, 2, 2, 2, 2, 2])?
+            .local_private_key(&[0u8; 32])?
             .build_initiator(); // missing remote key, should result in Err
 
         if noise.is_ok() {
             panic!("builder should have failed on build");
         }
+        Ok(())
+    }
+
+    #[test]
+    fn test_builder_param_overwrite() -> TestResult {
+        fn build_builder<'a>() -> Result<Builder<'a>, Error> {
+            Ok(Builder::new("Noise_NNpsk0_25519_ChaChaPoly_SHA256".parse()?)
+                .prologue(&[2u8; 10])?
+                .psk(0, &[0u8; 32])?
+                .local_private_key(&[0u8; 32])?
+                .remote_public_key(&[1u8; 32])?)
+        }
+
+        assert_eq!(
+            build_builder()?.prologue(&[1u8; 10]).unwrap_err(),
+            Error::Init(InitStage::ParameterOverwrite)
+        );
+        assert!(build_builder()?.psk(1, &[1u8; 32]).is_ok());
+        assert_eq!(
+            build_builder()?.psk(0, &[1u8; 32]).unwrap_err(),
+            Error::Init(InitStage::ParameterOverwrite)
+        );
+        assert_eq!(
+            build_builder()?.local_private_key(&[1u8; 32]).unwrap_err(),
+            Error::Init(InitStage::ParameterOverwrite)
+        );
+        assert_eq!(
+            build_builder()?.remote_public_key(&[1u8; 32]).unwrap_err(),
+            Error::Init(InitStage::ParameterOverwrite)
+        );
+        Ok(())
     }
 
     #[test]

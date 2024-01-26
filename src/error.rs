@@ -106,9 +106,11 @@ pub enum InitStage {
     #[cfg(feature = "hfs")]
     /// The KEM implementation couldn't be initialized.
     GetKemImpl,
-    /// The PSK position (specified in the pattern string) isn't valid for the given
-    /// handshake type.
+    /// The PSK position (specified in the pattern string) isn't valid for the given handshake type.
     ValidatePskPosition,
+    /// The Builder already has set a value for this parameter, and overwrites are not allowed as
+    /// they can introduce subtle security issues.
+    ParameterOverwrite,
 }
 
 impl From<InitStage> for Error {
