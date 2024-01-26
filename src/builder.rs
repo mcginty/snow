@@ -97,12 +97,22 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Specify a PSK (only used with `NoisePSK` base parameter)
+    ///
+    /// # Safety
+    /// This will overwrite the value provided in any previous call to this method. Please take care
+    /// to ensure this is not a security risk. In future versions, multiple calls to the same
+    /// builder method will be explicitly prohibited.
     pub fn psk(mut self, location: u8, key: &'builder [u8]) -> Self {
         self.psks[location as usize] = Some(key);
         self
     }
 
     /// Your static private key (can be generated with [`generate_keypair()`]).
+    ///
+    /// # Safety
+    /// This will overwrite the value provided in any previous call to this method. Please take care
+    /// to ensure this is not a security risk. In future versions, multiple calls to the same
+    /// builder method will be explicitly prohibited.
     ///
     /// [`generate_keypair()`]: #method.generate_keypair
     pub fn local_private_key(mut self, key: &'builder [u8]) -> Self {
@@ -117,12 +127,22 @@ impl<'builder> Builder<'builder> {
     }
 
     /// Arbitrary data to be hashed in to the handshake hash value.
+    ///
+    /// # Safety
+    /// This will overwrite the value provided in any previous call to this method. Please take care
+    /// to ensure this is not a security risk. In future versions, multiple calls to the same
+    /// builder method will be explicitly prohibited.
     pub fn prologue(mut self, key: &'builder [u8]) -> Self {
         self.plog = Some(key);
         self
     }
 
     /// The responder's static public key.
+    ///
+    /// # Safety
+    /// This will overwrite the value provided in any previous call to this method. Please take care
+    /// to ensure this is not a security risk. In future versions, multiple calls to the same
+    /// builder method will be explicitly prohibited.
     pub fn remote_public_key(mut self, pub_key: &'builder [u8]) -> Self {
         self.rs = Some(pub_key);
         self
