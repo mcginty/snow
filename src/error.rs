@@ -4,7 +4,7 @@ use std::fmt;
 
 /// All errors in snow will include an `ErrorKind`.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 #[non_exhaustive]
 pub enum Error {
     /// The noise pattern failed to parse.
@@ -36,7 +36,7 @@ pub enum Error {
 /// The various stages of initialization used to help identify
 /// the specific cause of an `Init` error.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum PatternProblem {
     TooFewParameters,
     UnsupportedHandshakeType,
@@ -59,7 +59,7 @@ impl From<PatternProblem> for Error {
 /// The various stages of initialization used to help identify
 /// the specific cause of an `Init` error.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum InitStage {
     ValidateKeyLengths,
     ValidatePskLengths,
@@ -81,7 +81,7 @@ impl From<InitStage> for Error {
 
 /// A prerequisite that may be missing.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Prerequisite {
     LocalPrivateKey,
     RemotePublicKey,
@@ -95,7 +95,7 @@ impl From<Prerequisite> for Error {
 
 /// Specific errors in the state machine.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum StateProblem {
     MissingKeyMaterial,
     MissingPsk,
