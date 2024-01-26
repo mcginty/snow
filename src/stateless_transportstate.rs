@@ -85,11 +85,14 @@ impl StatelessTransportState {
         payload: &[u8],
         message: &mut [u8],
     ) -> Result<usize, Error> {
-        if self.initiator && self.pattern.is_oneway() {
-            return Err(StateProblem::OneWay.into());
+        if payload.len() > MAXMSGLEN {
+            Err(Error::Input)
+        } else if self.initiator && self.pattern.is_oneway() {
+            Err(StateProblem::OneWay.into())
+        } else {
+            let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
+            cipher.decrypt(nonce, payload, message)
         }
-        let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
-        cipher.decrypt(nonce, payload, message)
     }
 
     /// Generates a new key for the egress symmetric cipher according to Section 4.2

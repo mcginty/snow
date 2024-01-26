@@ -5,7 +5,7 @@
 use hex::FromHex;
 use snow::{
     resolvers::{CryptoResolver, DefaultResolver},
-    Builder,
+    Builder, Error,
 };
 
 use rand_core::{impls, CryptoRng, RngCore};
@@ -507,6 +507,34 @@ fn test_handshake_message_undersized_output_buffer() {
 
     let mut buffer_out = [0u8; 200];
     assert!(h_i.write_message(&[0u8; 400], &mut buffer_out).is_err());
+}
+
+#[test]
+fn test_handshake_message_receive_oversized_message() {
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; 100_000];
+    let mut buffer_out = [0u8; 100_000];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    assert_eq!(Error::Input, h_r.read_message(&buffer_msg, &mut buffer_out).unwrap_err());
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let h_i = h_i.into_stateless_transport_mode().unwrap();
+    let mut h_r = h_r.into_transport_mode().unwrap();
+
+    let len = h_i.write_message(0, b"hack the planet", &mut buffer_msg).unwrap();
+    assert_eq!(Error::Input, h_r.read_message(&buffer_msg, &mut buffer_out).unwrap_err());
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"hack the planet", &mut buffer_msg).unwrap();
+    assert_eq!(Error::Input, h_i.read_message(0, &buffer_msg, &mut buffer_out).unwrap_err());
+    let len = h_i.read_message(0, &buffer_msg[..len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[..len], b"hack the planet");
 }
 
 #[test]
