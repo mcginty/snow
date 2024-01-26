@@ -283,6 +283,19 @@ mod tests {
     }
 
     #[test]
+    fn test_duplicate_psk_mod() {
+        assert!("Noise_XXfallback+psk1_25519_AESGCM_SHA256".parse::<NoiseParams>().is_ok());
+        assert_eq!(
+            Error::Pattern(PatternProblem::UnsupportedModifier),
+            "Noise_XXfallback+fallback_25519_AESGCM_SHA256".parse::<NoiseParams>().unwrap_err()
+        );
+        assert_eq!(
+            Error::Pattern(PatternProblem::UnsupportedModifier),
+            "Noise_XXpsk1+psk1_25519_AESGCM_SHA256".parse::<NoiseParams>().unwrap_err()
+        );
+    }
+
+    #[test]
     fn test_modified_psk_handshake() {
         let p: NoiseParams = "Noise_XXpsk0_25519_AESGCM_SHA256".parse().unwrap();
         let tokens = HandshakeTokens::try_from(&p.handshake).unwrap();
