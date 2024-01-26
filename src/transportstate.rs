@@ -40,7 +40,8 @@ impl TransportState {
     /// doesn't necessitate a remote static key, *or* if the remote
     /// static key is not yet known (as can be the case in the `XX`
     /// pattern, for example).
-    #[must_use] pub fn get_remote_static(&self) -> Option<&[u8]> {
+    #[must_use]
+    pub fn get_remote_static(&self) -> Option<&[u8]> {
         self.rs.get().map(|rs| &rs[..self.dh_len])
     }
 
@@ -70,19 +71,22 @@ impl TransportState {
     /// Returns the number of bytes written to `payload`.
     ///
     /// # Errors
+    /// Will result in `Error::Input` if the message is more than 65535 bytes.
     ///
     /// Will result in `Error::Decrypt` if the contents couldn't be decrypted and/or the
     /// authentication tag didn't verify.
     ///
     /// Will result in `StateProblem::Exhausted` if the max nonce overflows.
     pub fn read_message(&mut self, message: &[u8], payload: &mut [u8]) -> Result<usize, Error> {
-        if self.initiator && self.pattern.is_oneway() {
-            return Err(StateProblem::OneWay.into());
+        if message.len() > MAXMSGLEN {
+            Err(Error::Input)
+        } else if self.initiator && self.pattern.is_oneway() {
+            Err(StateProblem::OneWay.into())
+        } else {
+            let cipher =
+                if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
+            cipher.decrypt(message, payload)
         }
-        let cipher =
-            if self.initiator { &mut self.cipherstates.1 } else { &mut self.cipherstates.0 };
-
-        cipher.decrypt(message, payload)
     }
 
     /// Generate a new key for the egress symmetric cipher according to Section 4.2
@@ -147,7 +151,8 @@ impl TransportState {
     /// # Errors
     ///
     /// Will result in `Error::State` if not in transport mode.
-    #[must_use] pub fn receiving_nonce(&self) -> u64 {
+    #[must_use]
+    pub fn receiving_nonce(&self) -> u64 {
         if self.initiator {
             self.cipherstates.1.nonce()
         } else {
@@ -160,7 +165,8 @@ impl TransportState {
     /// # Errors
     ///
     /// Will result in `Error::State` if not in transport mode.
-    #[must_use] pub fn sending_nonce(&self) -> u64 {
+    #[must_use]
+    pub fn sending_nonce(&self) -> u64 {
         if self.initiator {
             self.cipherstates.0.nonce()
         } else {
@@ -169,7 +175,8 @@ impl TransportState {
     }
 
     /// Check if this session was started with the "initiator" role.
-    #[must_use] pub fn is_initiator(&self) -> bool {
+    #[must_use]
+    pub fn is_initiator(&self) -> bool {
         self.initiator
     }
 }
