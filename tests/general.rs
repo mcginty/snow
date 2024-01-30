@@ -60,7 +60,7 @@ struct TestResolver {
 #[allow(unused)]
 impl TestResolver {
     pub fn new(next_byte: u8) -> Self {
-        TestResolver { next_byte, parent: DefaultResolver }
+        TestResolver { next_byte, parent: DefaultResolver::default() }
     }
 
     pub fn next_byte(&mut self, next_byte: u8) {

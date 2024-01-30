@@ -27,6 +27,7 @@ use crate::{
 /// pure-Rust (or nearly pure-Rust) implementations.
 #[allow(clippy::module_name_repetitions)]
 #[derive(Default)]
+#[non_exhaustive]
 pub struct DefaultResolver;
 
 impl CryptoResolver for DefaultResolver {
@@ -167,6 +168,7 @@ impl Dh for Dh25519 {
     }
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error> {
+        assert!(pubkey.len() == 32, "pubkey expected to be 32 bytes");
         let mut pubkey_owned = [0_u8; CIPHERKEYLEN];
         copy_slices!(&pubkey[..32], pubkey_owned);
         let result = MontgomeryPoint(pubkey_owned).mul_clamped(self.privkey).to_bytes();
@@ -522,13 +524,15 @@ impl Kem for Kyber1024 {
 
 #[cfg(test)]
 mod tests {
+    use crate::symmetricstate::hmac;
+
     use super::*;
     use hex::FromHex;
 
     #[test]
     fn test_sha256() {
         let mut output = [0_u8; 32];
-        let mut hasher = HashSHA256::default();
+        let mut hasher = Box::new(HashSHA256::default());
         hasher.input(b"abc");
         hasher.result(&mut output);
         assert!(
@@ -545,16 +549,16 @@ mod tests {
         )
         .unwrap();
         let mut output1 = [0_u8; 32];
-        let mut hasher = HashSHA256::default();
-        hasher.hmac(&key, &data, &mut output1);
+        let mut hasher: Box<dyn Hash + 'static> = Box::new(HashSHA256::default());
+        hmac(&mut hasher, &key, &data, &mut output1);
         assert!(
             hex::encode(output1)
                 == "773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe"
         );
 
         let mut output2 = [0_u8; 64];
-        let mut hasher = HashSHA512::default();
-        hasher.hmac(&key, &data, &mut output2);
+        let mut hasher: Box<dyn Hash + 'static> = Box::new(HashSHA512::default());
+        hmac(&mut hasher, &key, &data, &mut output2);
         assert!(
             hex::encode(output2)
                 == "fa73b0089d56a284efb0f0756c890be9\
@@ -568,7 +572,7 @@ mod tests {
     fn test_blake2b() {
         // BLAKE2b test - draft-saarinen-blake2-06
         let mut output = [0_u8; 64];
-        let mut hasher = HashBLAKE2b::default();
+        let mut hasher: Box<dyn Hash + 'static> = Box::new(HashBLAKE2b::default());
         hasher.input(b"abc");
         hasher.result(&mut output);
         assert!(
@@ -584,7 +588,7 @@ mod tests {
     fn test_blake2s() {
         // BLAKE2s test - draft-saarinen-blake2-06
         let mut output = [0_u8; 32];
-        let mut hasher = HashBLAKE2s::default();
+        let mut hasher: Box<dyn Hash + 'static> = Box::new(HashBLAKE2s::default());
         hasher.input(b"abc");
         hasher.result(&mut output);
         assert!(
@@ -597,7 +601,7 @@ mod tests {
     #[test]
     fn test_curve25519() {
         // Curve25519 test - draft-curves-10
-        let mut keypair = Dh25519::default();
+        let mut keypair = Box::new(Dh25519::default());
         let scalar =
             Vec::<u8>::from_hex("a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4")
                 .unwrap();

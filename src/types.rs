@@ -1,9 +1,6 @@
 //! The traits for cryptographic implementations that can be used by Noise.
 
-use crate::{
-    constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN, TAGLEN},
-    Error,
-};
+use crate::{constants::CIPHERKEYLEN, Error};
 use rand_core::{CryptoRng, RngCore};
 
 /// CSPRNG operations
@@ -61,24 +58,6 @@ pub trait Cipher: Send + Sync {
         ciphertext: &[u8],
         out: &mut [u8],
     ) -> Result<usize, Error>;
-
-    /// Rekey according to Section 4.2 of the Noise Specification, with a default
-    /// implementation guaranteed to be secure for all ciphers.
-    fn rekey(&mut self) {
-        let mut ciphertext = [0; CIPHERKEYLEN + TAGLEN];
-        let ciphertext_len = self.encrypt(u64::MAX, &[], &[0; CIPHERKEYLEN], &mut ciphertext);
-        assert_eq!(
-            ciphertext_len,
-            ciphertext.len(),
-            "returned ciphertext length not expected size"
-        );
-
-        // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
-        let mut key = [0_u8; CIPHERKEYLEN];
-        key.copy_from_slice(&ciphertext[..CIPHERKEYLEN]);
-
-        self.set(&key);
-    }
 }
 
 /// Hashing operations
@@ -100,65 +79,6 @@ pub trait Hash: Send + Sync {
 
     /// Get the resulting hash
     fn result(&mut self, out: &mut [u8]);
-
-    /// Calculate HMAC, as specified in the Noise spec.
-    ///
-    /// NOTE: This method clobbers the existing internal state
-    fn hmac(&mut self, key: &[u8], data: &[u8], out: &mut [u8]) {
-        let key_len = key.len();
-        let block_len = self.block_len();
-        let hash_len = self.hash_len();
-        assert!(key.len() <= block_len, "key and block lengths differ");
-        let mut ipad = [0x36_u8; MAXBLOCKLEN];
-        let mut opad = [0x5c_u8; MAXBLOCKLEN];
-        for count in 0..key_len {
-            ipad[count] ^= key[count];
-            opad[count] ^= key[count];
-        }
-        self.reset();
-        self.input(&ipad[..block_len]);
-        self.input(data);
-        let mut inner_output = [0_u8; MAXHASHLEN];
-        self.result(&mut inner_output);
-        self.reset();
-        self.input(&opad[..block_len]);
-        self.input(&inner_output[..hash_len]);
-        self.result(out);
-    }
-
-    /// Derive keys as specified in the Noise spec.
-    ///
-    /// NOTE: This method clobbers the existing internal state
-    fn hkdf(
-        &mut self,
-        chaining_key: &[u8],
-        input_key_material: &[u8],
-        outputs: usize,
-        out1: &mut [u8],
-        out2: &mut [u8],
-        out3: &mut [u8],
-    ) {
-        let hash_len = self.hash_len();
-        let mut temp_key = [0_u8; MAXHASHLEN];
-        self.hmac(chaining_key, input_key_material, &mut temp_key);
-        self.hmac(&temp_key, &[1_u8], out1);
-        if outputs == 1 {
-            return;
-        }
-
-        let mut in2 = [0_u8; MAXHASHLEN + 1];
-        copy_slices!(out1[0..hash_len], &mut in2);
-        in2[hash_len] = 2;
-        self.hmac(&temp_key, &in2[..=hash_len], out2);
-        if outputs == 2 {
-            return;
-        }
-
-        let mut in3 = [0_u8; MAXHASHLEN + 1];
-        copy_slices!(out2[0..hash_len], &mut in3);
-        in3[hash_len] = 3;
-        self.hmac(&temp_key, &in3[..=hash_len], out3);
-    }
 }
 
 /// Kem operations.

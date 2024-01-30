@@ -172,7 +172,7 @@ impl HandshakeState {
         if !(dh.is_on() && key.is_on()) {
             return Err(StateProblem::MissingKeyMaterial.into());
         }
-        dh.dh(&**key, &mut dh_out)?;
+        dh.dh(&key[..dh.pub_len()], &mut dh_out)?;
         Ok(dh_out)
     }
 
@@ -257,7 +257,7 @@ impl HandshakeState {
                         .symmetricstate
                         .encrypt_and_mix_hash(self.s.pubkey(), &mut message[byte_index..])?;
                 },
-                Token::Psk(n) => match self.psks[n as usize] {
+                Token::Psk(n) => match self.psks[usize::from(n)] {
                     Some(psk) => {
                         self.symmetricstate.mix_key_and_hash(&psk);
                     },
@@ -391,7 +391,7 @@ impl HandshakeState {
                     self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len])?;
                     self.rs.enable();
                 },
-                Token::Psk(n) => match self.psks[n as usize] {
+                Token::Psk(n) => match self.psks[usize::from(n)] {
                     Some(psk) => {
                         self.symmetricstate.mix_key_and_hash(&psk);
                     },

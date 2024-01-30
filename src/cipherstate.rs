@@ -76,7 +76,7 @@ impl CipherState {
     }
 
     pub fn rekey(&mut self) {
-        self.cipher.rekey();
+        rekey(&mut self.cipher);
     }
 
     pub fn rekey_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
@@ -171,7 +171,7 @@ impl StatelessCipherState {
     }
 
     pub fn rekey(&mut self) {
-        self.cipher.rekey();
+        rekey(&mut self.cipher);
     }
 
     pub fn rekey_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
@@ -222,4 +222,18 @@ impl StatelessCipherStates {
     pub fn rekey_responder_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.1.rekey_manually(key);
     }
+}
+
+/// Rekey according to Section 4.2 of the Noise Specification, with a default
+/// implementation guaranteed to be secure for all ciphers.
+pub(crate) fn rekey(cipher: &mut Box<dyn Cipher>) {
+    let mut ciphertext = [0; CIPHERKEYLEN + TAGLEN];
+    let ciphertext_len = cipher.encrypt(u64::MAX, &[], &[0; CIPHERKEYLEN], &mut ciphertext);
+    assert_eq!(ciphertext_len, ciphertext.len(), "returned ciphertext length not expected size");
+
+    // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
+    let mut key = [0_u8; CIPHERKEYLEN];
+    key.copy_from_slice(&ciphertext[..CIPHERKEYLEN]);
+
+    cipher.set(&key);
 }

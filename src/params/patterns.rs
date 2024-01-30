@@ -193,6 +193,7 @@ impl FromStr for HandshakeModifier {
 
 /// Handshake modifiers that will be used during key exchange handshake.
 #[derive(Clone, PartialEq, Debug)]
+#[non_exhaustive]
 pub struct HandshakeModifierList {
     /// List of parsed modifiers.
     pub list: Vec<HandshakeModifier>,
