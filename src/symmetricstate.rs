@@ -166,6 +166,7 @@ impl SymmetricState {
 /// Calculate HMAC, as specified in the Noise spec.
 ///
 /// NOTE: This method clobbers the existing internal state
+#[allow(clippy::similar_names)]
 pub(crate) fn hmac(hasher: &mut Box<dyn Hash>, key: &[u8], data: &[u8], out: &mut [u8]) {
     let key_len = key.len();
     let block_len = hasher.block_len();
