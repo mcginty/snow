@@ -150,6 +150,24 @@ impl StatelessTransportState {
     pub fn is_initiator(&self) -> bool {
         self.initiator
     }
+
+    /// Gets the initiator's current symmetric key.
+    ///
+    /// This can be passed to `rekey_initiator_manually` to restore the state to
+    /// before a reykeying, in case you need to work with messages that have come in
+    /// before then.
+    pub fn initiator_key(&self) -> &[u8] {
+        self.cipherstates.0.key()
+    }
+
+    /// Gets the responder's current symmetric key.
+    ///
+    /// This can be passed to `rekey_responder_manually` to restore the state to
+    /// before a reykeying, in case you need to work with messages that have come in
+    /// before then.
+    pub fn responder_key(&self) -> &[u8] {
+        self.cipherstates.1.key()
+    }
 }
 
 impl fmt::Debug for StatelessTransportState {
