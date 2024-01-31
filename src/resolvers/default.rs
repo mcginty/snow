@@ -335,7 +335,7 @@ impl Cipher for CipherXChaChaPoly {
 
 impl Default for HashSHA256 {
     fn default() -> HashSHA256 {
-        HashSHA256 { hasher: Sha256::new() }
+        HashSHA256 { hasher: Sha256::default() }
     }
 }
 
@@ -353,7 +353,7 @@ impl Hash for HashSHA256 {
     }
 
     fn reset(&mut self) {
-        self.hasher = Sha256::new();
+        self.hasher = Sha256::default();
     }
 
     fn input(&mut self, data: &[u8]) {
@@ -368,7 +368,7 @@ impl Hash for HashSHA256 {
 
 impl Default for HashSHA512 {
     fn default() -> HashSHA512 {
-        HashSHA512 { hasher: Sha512::new() }
+        HashSHA512 { hasher: Sha512::default() }
     }
 }
 
@@ -386,7 +386,7 @@ impl Hash for HashSHA512 {
     }
 
     fn reset(&mut self) {
-        self.hasher = Sha512::new();
+        self.hasher = Sha512::default();
     }
 
     fn input(&mut self, data: &[u8]) {
