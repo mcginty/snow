@@ -5,8 +5,12 @@
 //! patterns/names)
 
 use crate::error::{Error, PatternProblem};
-use std::str::FromStr;
+use core::str::FromStr;
 mod patterns;
+
+#[cfg(not(feature = "std"))]
+use alloc::{string::String, borrow::ToOwned};
+
 
 pub use self::patterns::{
     HandshakeChoice, HandshakeModifier, HandshakeModifierList, HandshakePattern,

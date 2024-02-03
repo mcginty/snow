@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use core::fmt::Debug;
 
 #[cfg(feature = "hfs")]
 use crate::params::HandshakeModifier;
@@ -12,6 +12,9 @@ use crate::{
     utils::Toggle,
 };
 use subtle::ConstantTimeEq;
+
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, vec, vec::Vec};
 
 /// The maximum number of PSKs we will allocate for.
 const MAX_PSKS: usize = 10;
@@ -65,7 +68,7 @@ pub struct Builder<'builder> {
 }
 
 impl<'builder> Debug for Builder<'builder> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Builder").field("params", &self.params.name).finish_non_exhaustive()
     }
 }

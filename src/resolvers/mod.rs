@@ -26,6 +26,9 @@ pub use self::libsodium::SodiumResolver;
 #[cfg(feature = "ring-resolver")]
 pub use self::ring::RingResolver;
 
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 /// Boxed `CryptoResolver`
 pub type BoxedCryptoResolver = Box<dyn CryptoResolver + Send>;
 
