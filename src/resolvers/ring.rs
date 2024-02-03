@@ -11,6 +11,9 @@ use ring::{
     rand::{SecureRandom, SystemRandom},
 };
 
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 /// A resolver that chooses [ring](https://github.com/briansmith/ring)-backed
 /// primitives when available.
 #[allow(clippy::module_name_repetitions)]

@@ -22,6 +22,9 @@ use crate::{
     Error,
 };
 
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 /// The default resolver provided by snow. This resolver is designed to
 /// support as many of the Noise spec primitives as possible with
 /// pure-Rust (or nearly pure-Rust) implementations.

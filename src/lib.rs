@@ -53,7 +53,12 @@
 //!
 //! See `examples/simple.rs` for a more complete TCP client/server example with static keys.
 
+#![cfg_attr(not(feature = "std"), no_std)]
 #![warn(missing_docs)]
+
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
 
 macro_rules! copy_slices {
     ($inslice:expr, $outslice:expr) => {

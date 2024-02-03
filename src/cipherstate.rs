@@ -4,6 +4,9 @@ use crate::{
     types::Cipher,
 };
 
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 pub(crate) struct CipherState {
     cipher:  Box<dyn Cipher>,
     n:       u64,

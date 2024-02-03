@@ -1,6 +1,6 @@
 //! All error types used by Snow operations.
 
-use std::fmt;
+use core::fmt;
 
 /// `snow` provides decently detailed errors, exposed as the [`Error`] enum,
 /// to allow developers to react to errors in a more actionable way.
@@ -181,4 +181,5 @@ impl fmt::Display for Error {
     }
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for Error {}

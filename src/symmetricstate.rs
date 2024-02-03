@@ -5,6 +5,9 @@ use crate::{
     types::Hash,
 };
 
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 #[derive(Copy, Clone)]
 pub(crate) struct SymmetricStateData {
     h:       [u8; MAXHASHLEN],

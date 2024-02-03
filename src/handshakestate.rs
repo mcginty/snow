@@ -15,10 +15,14 @@ use crate::{
     types::{Dh, Hash, Random},
     utils::Toggle,
 };
-use std::{
+use core::{
     convert::{TryFrom, TryInto},
     fmt,
 };
+
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 
 /// A state machine encompassing the handshake phase of a Noise session.
 ///
