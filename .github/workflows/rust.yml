@@ -3,10 +3,10 @@ name: Build
 on:
   push:
     branches:
-      - '*'
+      - "*"
   pull_request:
     branches:
-      - '*'
+      - "*"
 
 env:
   CARGO_TERM_COLOR: always
@@ -20,15 +20,17 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Install LLVM and Clang
-      if: startsWith(matrix.os, 'windows')
-      uses: KyleMayes/install-llvm-action@v1
-      with:
-        version: "11.0"
-        directory: ${{ runner.temp }}/llvm
-    - name: Set LIBCLANG_PATH
-      if: startsWith(matrix.os, 'windows')
-      run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
-    - name: Run tests
-      run: bash ./ci-tests.sh
+      - uses: actions/checkout@v2
+      - name: Install LLVM and Clang
+        if: startsWith(matrix.os, 'windows')
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "11.0"
+          directory: ${{ runner.temp }}/llvm
+      - name: Set LIBCLANG_PATH
+        if: startsWith(matrix.os, 'windows')
+        run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
+      - name: Run tests
+        run: bash ./ci-tests.sh
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features

@@ -60,7 +60,8 @@ pub struct FallbackResolver {
 
 impl FallbackResolver {
     /// Create a new `FallbackResolver` that holds the primary and secondary resolver.
-    #[must_use] pub fn new(preferred: BoxedCryptoResolver, fallback: BoxedCryptoResolver) -> Self {
+    #[must_use]
+    pub fn new(preferred: BoxedCryptoResolver, fallback: BoxedCryptoResolver) -> Self {
         Self { preferred, fallback }
     }
 }

@@ -16,3 +16,4 @@ if ! rustc -vV | grep 'host: .*windows' &> /dev/null; then
 fi
 cargo test $TARGET --features "libsodium-resolver $COMMON_FEATURES"
 cargo test $TARGET --features "libsodium-accelerated $COMMON_FEATURES"
+
