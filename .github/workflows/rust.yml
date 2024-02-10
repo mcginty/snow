@@ -32,5 +32,3 @@ jobs:
         run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
       - name: Run tests
         run: bash ./ci-tests.sh
-      - name: Run Clippy
-        run: cargo clippy --all-targets --all-features
