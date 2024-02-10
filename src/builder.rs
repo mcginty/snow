@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use core::fmt::{self, Debug};
 
 #[cfg(feature = "hfs")]
 use crate::params::HandshakeModifier;
@@ -19,6 +19,7 @@ const MAX_PSKS: usize = 10;
 /// A keypair object returned by [`Builder::generate_keypair()`]
 ///
 /// [`generate_keypair()`]: #method.generate_keypair
+#[allow(clippy::exhaustive_structs)]
 pub struct Keypair {
     /// The private asymmetric key
     pub private: Vec<u8>,
@@ -26,6 +27,7 @@ pub struct Keypair {
     pub public:  Vec<u8>,
 }
 
+#[allow(clippy::missing_trait_methods)]
 impl PartialEq for Keypair {
     fn eq(&self, other: &Keypair) -> bool {
         let priv_eq = self.private.ct_eq(&other.private);
@@ -65,7 +67,7 @@ pub struct Builder<'builder> {
 }
 
 impl<'builder> Debug for Builder<'builder> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Builder").field("params", &self.params.name).finish_non_exhaustive()
     }
 }
@@ -118,13 +120,13 @@ impl<'builder> Builder<'builder> {
     ///   allowed.
     /// * `InitError(InitStage::ParameterOverwrite)` if this method has been called previously.
     pub fn psk(mut self, location: u8, key: &'builder [u8; PSKLEN]) -> Result<Self, Error> {
-        let location = location as usize;
-        if location >= MAX_PSKS {
+        let index = usize::from(location);
+        if index >= MAX_PSKS {
             Err(InitStage::ValidatePskPosition.into())
-        } else if self.psks[location].is_some() {
+        } else if self.psks[index].is_some() {
             Err(InitStage::ParameterOverwrite.into())
         } else {
-            self.psks[location] = Some(key);
+            self.psks[index] = Some(key);
             Ok(self)
         }
     }
@@ -188,8 +190,8 @@ impl<'builder> Builder<'builder> {
     pub fn generate_keypair(&self) -> Result<Keypair, Error> {
         let mut rng = self.resolver.resolve_rng().ok_or(InitStage::GetRngImpl)?;
         let mut dh = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
-        let mut private = vec![0u8; dh.priv_len()];
-        let mut public = vec![0u8; dh.pub_len()];
+        let mut private = vec![0_u8; dh.priv_len()];
+        let mut public = vec![0_u8; dh.pub_len()];
         dh.generate(&mut *rng);
 
         private.copy_from_slice(dh.privkey());
@@ -251,7 +253,7 @@ impl<'builder> Builder<'builder> {
         }
         let e = Toggle::off(e_dh);
 
-        let mut rs_buf = [0u8; MAXDHLEN];
+        let mut rs_buf = [0_u8; MAXDHLEN];
         let rs = match self.rs {
             Some(v) => {
                 rs_buf[..v.len()].copy_from_slice(v);
@@ -260,7 +262,7 @@ impl<'builder> Builder<'builder> {
             None => Toggle::off(rs_buf),
         };
 
-        let re = Toggle::off([0u8; MAXDHLEN]);
+        let re = Toggle::off([0_u8; MAXDHLEN]);
 
         let mut psks = [None::<[u8; PSKLEN]>; 10];
         for (i, psk) in self.psks.iter().enumerate() {
@@ -268,7 +270,7 @@ impl<'builder> Builder<'builder> {
                 if key.len() != PSKLEN {
                     return Err(InitStage::ValidatePskLengths.into());
                 }
-                let mut k = [0u8; PSKLEN];
+                let mut k = [0_u8; PSKLEN];
                 k.copy_from_slice(key);
                 psks[i] = Some(k);
             }
@@ -319,6 +321,7 @@ impl<'builder> Builder<'builder> {
 
 #[cfg(test)]
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
+#[allow(clippy::restriction)]
 mod tests {
     use super::*;
     type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -374,7 +377,7 @@ mod tests {
             build_builder()?.prologue(&[1u8; 10]).unwrap_err(),
             Error::Init(InitStage::ParameterOverwrite)
         );
-        assert!(build_builder()?.psk(1, &[1u8; 32]).is_ok());
+        build_builder()?.psk(1, &[1u8; 32]).unwrap();
         assert_eq!(
             build_builder()?.psk(0, &[1u8; 32]).unwrap_err(),
             Error::Init(InitStage::ParameterOverwrite)

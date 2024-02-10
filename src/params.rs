@@ -5,7 +5,7 @@
 //! patterns/names)
 
 use crate::error::{Error, PatternProblem};
-use std::str::FromStr;
+use core::str::FromStr;
 mod patterns;
 
 pub use self::patterns::{
@@ -17,6 +17,7 @@ pub(crate) use self::patterns::{DhToken, HandshakeTokens, MessagePatterns, Token
 
 /// I recommend you choose `Noise`.
 #[derive(PartialEq, Copy, Clone, Debug)]
+#[allow(clippy::exhaustive_enums)]
 pub enum BaseChoice {
     /// Ole' faithful.
     Noise,
@@ -36,6 +37,7 @@ impl FromStr for BaseChoice {
 
 /// Which Diffie-Hellman primitive to use. One of `25519` or `448`, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
+#[non_exhaustive]
 pub enum DHChoice {
     /// The Curve25519 ellpitic curve.
     Curve25519,
@@ -58,6 +60,7 @@ impl FromStr for DHChoice {
 
 /// One of `ChaChaPoly` or `AESGCM`, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
+#[non_exhaustive]
 pub enum CipherChoice {
     /// The ChaCha20Poly1305 AEAD.
     ChaChaPoly,
@@ -87,6 +90,7 @@ impl FromStr for CipherChoice {
 
 /// One of the supported SHA-family or BLAKE-family hash choices, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
+#[non_exhaustive]
 pub enum HashChoice {
     /// The SHA-256 hash function.
     SHA256,
@@ -117,6 +121,7 @@ impl FromStr for HashChoice {
 /// One of the supported Kems provided for unstable HFS extension.
 #[cfg(feature = "hfs")]
 #[derive(PartialEq, Copy, Clone, Debug)]
+#[non_exhaustive]
 pub enum KemChoice {
     /// The 1024-bit Kyber variant.
     Kyber1024,
@@ -150,6 +155,7 @@ impl FromStr for KemChoice {
 /// ```
 #[derive(PartialEq, Clone, Debug)]
 #[allow(clippy::module_name_repetitions)]
+#[non_exhaustive]
 pub struct NoiseParams {
     /// The full pattern string.
     pub name:      String,
@@ -203,6 +209,9 @@ impl FromStr for NoiseParams {
 
     #[cfg(not(feature = "hfs"))]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if !s.is_ascii() {
+            return Err(Error::Pattern(PatternProblem::NonAscii));
+        }
         let mut split = s.split('_');
         let params = NoiseParams::new(
             s.to_owned(),
@@ -220,6 +229,9 @@ impl FromStr for NoiseParams {
 
     #[cfg(feature = "hfs")]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if !s.is_ascii() {
+            return Err(Error::Pattern(PatternProblem::NonAscii));
+        }
         let mut split = s.split('_').peekable();
         let p = NoiseParams::new(
             s.to_owned(),
@@ -257,7 +269,7 @@ impl FromStr for NoiseParams {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::convert::TryFrom;
+    use core::convert::TryFrom;
 
     #[test]
     fn test_simple_handshake() {
@@ -311,7 +323,7 @@ mod tests {
 
     #[test]
     fn test_duplicate_psk_mod() {
-        assert!("Noise_XXfallback+psk1_25519_AESGCM_SHA256".parse::<NoiseParams>().is_ok());
+        "Noise_XXfallback+psk1_25519_AESGCM_SHA256".parse::<NoiseParams>().unwrap();
         assert_eq!(
             Error::Pattern(PatternProblem::DuplicateModifier),
             "Noise_XXfallback+fallback_25519_AESGCM_SHA256".parse::<NoiseParams>().unwrap_err()

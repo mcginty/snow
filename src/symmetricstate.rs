@@ -1,6 +1,6 @@
 use crate::{
     cipherstate::CipherState,
-    constants::{CIPHERKEYLEN, MAXHASHLEN},
+    constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN},
     error::Error,
     types::Hash,
 };
@@ -15,8 +15,8 @@ pub(crate) struct SymmetricStateData {
 impl Default for SymmetricStateData {
     fn default() -> Self {
         SymmetricStateData {
-            h:       [0u8; MAXHASHLEN],
-            ck:      [0u8; MAXHASHLEN],
+            h:       [0_u8; MAXHASHLEN],
+            ck:      [0_u8; MAXHASHLEN],
             has_key: false,
         }
     }
@@ -47,8 +47,9 @@ impl SymmetricState {
 
     pub fn mix_key(&mut self, data: &[u8]) {
         let hash_len = self.hasher.hash_len();
-        let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(
+        let mut hkdf_output = ([0_u8; MAXHASHLEN], [0_u8; MAXHASHLEN]);
+        hkdf(
+            &mut self.hasher,
             &self.inner.ck[..hash_len],
             data,
             2,
@@ -58,7 +59,7 @@ impl SymmetricState {
         );
 
         // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
-        let mut cipher_key = [0u8; CIPHERKEYLEN];
+        let mut cipher_key = [0_u8; CIPHERKEYLEN];
         cipher_key.copy_from_slice(&hkdf_output.1[..CIPHERKEYLEN]);
 
         self.inner.ck = hkdf_output.0;
@@ -76,8 +77,9 @@ impl SymmetricState {
 
     pub fn mix_key_and_hash(&mut self, data: &[u8]) {
         let hash_len = self.hasher.hash_len();
-        let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
-        self.hasher.hkdf(
+        let mut hkdf_output = ([0_u8; MAXHASHLEN], [0_u8; MAXHASHLEN], [0_u8; MAXHASHLEN]);
+        hkdf(
+            &mut self.hasher,
             &self.inner.ck[..hash_len],
             data,
             3,
@@ -89,7 +91,7 @@ impl SymmetricState {
         self.mix_hash(&hkdf_output.1[..hash_len]);
 
         // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
-        let mut cipher_key = [0u8; CIPHERKEYLEN];
+        let mut cipher_key = [0_u8; CIPHERKEYLEN];
         cipher_key.copy_from_slice(&hkdf_output.2[..CIPHERKEYLEN]);
         self.cipherstate.set(&cipher_key, 0);
     }
@@ -131,11 +133,11 @@ impl SymmetricState {
     }
 
     pub fn split(&mut self, child1: &mut CipherState, child2: &mut CipherState) {
-        let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
+        let mut hkdf_output = ([0_u8; MAXHASHLEN], [0_u8; MAXHASHLEN]);
         self.split_raw(&mut hkdf_output.0, &mut hkdf_output.1);
 
         // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
-        let mut cipher_keys = ([0u8; CIPHERKEYLEN], [0u8; CIPHERKEYLEN]);
+        let mut cipher_keys = ([0_u8; CIPHERKEYLEN], [0_u8; CIPHERKEYLEN]);
         cipher_keys.0.copy_from_slice(&hkdf_output.0[..CIPHERKEYLEN]);
         cipher_keys.1.copy_from_slice(&hkdf_output.1[..CIPHERKEYLEN]);
         child1.set(&cipher_keys.0, 0);
@@ -144,7 +146,7 @@ impl SymmetricState {
 
     pub fn split_raw(&mut self, out1: &mut [u8], out2: &mut [u8]) {
         let hash_len = self.hasher.hash_len();
-        self.hasher.hkdf(&self.inner.ck[..hash_len], &[0u8; 0], 2, out1, out2, &mut []);
+        hkdf(&mut self.hasher, &self.inner.ck[..hash_len], &[0_u8; 0], 2, out1, out2, &mut []);
     }
 
     pub(crate) fn checkpoint(&mut self) -> SymmetricStateData {
@@ -159,4 +161,64 @@ impl SymmetricState {
         let hash_len = self.hasher.hash_len();
         &self.inner.h[..hash_len]
     }
+}
+
+/// Calculate HMAC, as specified in the Noise spec.
+///
+/// NOTE: This method clobbers the existing internal state
+#[allow(clippy::similar_names)]
+pub(crate) fn hmac(hasher: &mut Box<dyn Hash>, key: &[u8], data: &[u8], out: &mut [u8]) {
+    let key_len = key.len();
+    let block_len = hasher.block_len();
+    let hash_len = hasher.hash_len();
+    assert!(key.len() <= block_len, "key and block lengths differ");
+    let mut ipad = [0x36_u8; MAXBLOCKLEN];
+    let mut opad = [0x5c_u8; MAXBLOCKLEN];
+    for count in 0..key_len {
+        ipad[count] ^= key[count];
+        opad[count] ^= key[count];
+    }
+    hasher.reset();
+    hasher.input(&ipad[..block_len]);
+    hasher.input(data);
+    let mut inner_output = [0_u8; MAXHASHLEN];
+    hasher.result(&mut inner_output);
+    hasher.reset();
+    hasher.input(&opad[..block_len]);
+    hasher.input(&inner_output[..hash_len]);
+    hasher.result(out);
+}
+
+/// Derive keys as specified in the Noise spec.
+///
+/// NOTE: This method clobbers the existing internal state
+pub(crate) fn hkdf(
+    hasher: &mut Box<dyn Hash>,
+    chaining_key: &[u8],
+    input_key_material: &[u8],
+    outputs: usize,
+    out1: &mut [u8],
+    out2: &mut [u8],
+    out3: &mut [u8],
+) {
+    let hash_len = hasher.hash_len();
+    let mut temp_key = [0_u8; MAXHASHLEN];
+    hmac(hasher, chaining_key, input_key_material, &mut temp_key);
+    hmac(hasher, &temp_key, &[1_u8], out1);
+    if outputs == 1 {
+        return;
+    }
+
+    let mut in2 = [0_u8; MAXHASHLEN + 1];
+    copy_slices!(out1[0..hash_len], &mut in2);
+    in2[hash_len] = 2;
+    hmac(hasher, &temp_key, &in2[..=hash_len], out2);
+    if outputs == 2 {
+        return;
+    }
+
+    let mut in3 = [0_u8; MAXHASHLEN + 1];
+    copy_slices!(out2[0..hash_len], &mut in3);
+    in3[hash_len] = 3;
+    hmac(hasher, &temp_key, &in3[..=hash_len], out3);
 }

@@ -27,6 +27,7 @@ use crate::{
 /// pure-Rust (or nearly pure-Rust) implementations.
 #[allow(clippy::module_name_repetitions)]
 #[derive(Default)]
+#[non_exhaustive]
 pub struct DefaultResolver;
 
 impl CryptoResolver for DefaultResolver {
@@ -145,14 +146,14 @@ impl Dh for Dh25519 {
     }
 
     fn set(&mut self, privkey: &[u8]) {
-        let mut bytes = [0u8; CIPHERKEYLEN];
+        let mut bytes = [0_u8; CIPHERKEYLEN];
         copy_slices!(privkey, bytes);
         self.privkey = bytes;
         self.derive_pubkey();
     }
 
     fn generate(&mut self, rng: &mut dyn Random) {
-        let mut bytes = [0u8; CIPHERKEYLEN];
+        let mut bytes = [0_u8; CIPHERKEYLEN];
         rng.fill_bytes(&mut bytes);
         self.privkey = bytes;
         self.derive_pubkey();
@@ -167,7 +168,8 @@ impl Dh for Dh25519 {
     }
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error> {
-        let mut pubkey_owned = [0u8; CIPHERKEYLEN];
+        assert!(pubkey.len() == 32, "pubkey expected to be 32 bytes");
+        let mut pubkey_owned = [0_u8; CIPHERKEYLEN];
         copy_slices!(&pubkey[..32], pubkey_owned);
         let result = MontgomeryPoint(pubkey_owned).mul_clamped(self.privkey).to_bytes();
         copy_slices!(result, out);
@@ -187,7 +189,7 @@ impl Cipher for CipherAesGcm {
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let aead = aes_gcm::Aes256Gcm::new(&self.key.into());
 
-        let mut nonce_bytes = [0u8; 12];
+        let mut nonce_bytes = [0_u8; 12];
         copy_slices!(nonce.to_be_bytes(), &mut nonce_bytes[4..]);
 
         copy_slices!(plaintext, out);
@@ -210,7 +212,7 @@ impl Cipher for CipherAesGcm {
     ) -> Result<usize, Error> {
         let aead = aes_gcm::Aes256Gcm::new(&self.key.into());
 
-        let mut nonce_bytes = [0u8; 12];
+        let mut nonce_bytes = [0_u8; 12];
         copy_slices!(nonce.to_be_bytes(), &mut nonce_bytes[4..]);
 
         let message_len = ciphertext.len() - TAGLEN;
@@ -238,7 +240,7 @@ impl Cipher for CipherChaChaPoly {
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
-        let mut nonce_bytes = [0u8; 12];
+        let mut nonce_bytes = [0_u8; 12];
         copy_slices!(nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
         copy_slices!(plaintext, out);
@@ -259,7 +261,7 @@ impl Cipher for CipherChaChaPoly {
         ciphertext: &[u8],
         out: &mut [u8],
     ) -> Result<usize, Error> {
-        let mut nonce_bytes = [0u8; 12];
+        let mut nonce_bytes = [0_u8; 12];
         copy_slices!(nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
         let message_len = ciphertext.len() - TAGLEN;
@@ -333,7 +335,7 @@ impl Cipher for CipherXChaChaPoly {
 
 impl Default for HashSHA256 {
     fn default() -> HashSHA256 {
-        HashSHA256 { hasher: Sha256::new() }
+        HashSHA256 { hasher: Sha256::default() }
     }
 }
 
@@ -351,7 +353,7 @@ impl Hash for HashSHA256 {
     }
 
     fn reset(&mut self) {
-        self.hasher = Sha256::new();
+        self.hasher = Sha256::default();
     }
 
     fn input(&mut self, data: &[u8]) {
@@ -366,7 +368,7 @@ impl Hash for HashSHA256 {
 
 impl Default for HashSHA512 {
     fn default() -> HashSHA512 {
-        HashSHA512 { hasher: Sha512::new() }
+        HashSHA512 { hasher: Sha512::default() }
     }
 }
 
@@ -384,7 +386,7 @@ impl Hash for HashSHA512 {
     }
 
     fn reset(&mut self) {
-        self.hasher = Sha512::new();
+        self.hasher = Sha512::default();
     }
 
     fn input(&mut self, data: &[u8]) {
@@ -522,13 +524,15 @@ impl Kem for Kyber1024 {
 
 #[cfg(test)]
 mod tests {
+    use crate::symmetricstate::hmac;
+
     use super::*;
     use hex::FromHex;
 
     #[test]
     fn test_sha256() {
-        let mut output = [0u8; 32];
-        let mut hasher = HashSHA256::default();
+        let mut output = [0_u8; 32];
+        let mut hasher = Box::new(HashSHA256::default());
         hasher.input(b"abc");
         hasher.result(&mut output);
         assert!(
@@ -544,17 +548,17 @@ mod tests {
             "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         )
         .unwrap();
-        let mut output1 = [0u8; 32];
-        let mut hasher = HashSHA256::default();
-        hasher.hmac(&key, &data, &mut output1);
+        let mut output1 = [0_u8; 32];
+        let mut hasher: Box<dyn Hash + 'static> = Box::new(HashSHA256::default());
+        hmac(&mut hasher, &key, &data, &mut output1);
         assert!(
             hex::encode(output1)
                 == "773ea91e36800e46854db8ebd09181a72959098b3ef8c122d9635514ced565fe"
         );
 
-        let mut output2 = [0u8; 64];
-        let mut hasher = HashSHA512::default();
-        hasher.hmac(&key, &data, &mut output2);
+        let mut output2 = [0_u8; 64];
+        let mut hasher: Box<dyn Hash + 'static> = Box::new(HashSHA512::default());
+        hmac(&mut hasher, &key, &data, &mut output2);
         assert!(
             hex::encode(output2)
                 == "fa73b0089d56a284efb0f0756c890be9\
@@ -567,8 +571,8 @@ mod tests {
     #[test]
     fn test_blake2b() {
         // BLAKE2b test - draft-saarinen-blake2-06
-        let mut output = [0u8; 64];
-        let mut hasher = HashBLAKE2b::default();
+        let mut output = [0_u8; 64];
+        let mut hasher: Box<dyn Hash + 'static> = Box::new(HashBLAKE2b::default());
         hasher.input(b"abc");
         hasher.result(&mut output);
         assert!(
@@ -583,8 +587,8 @@ mod tests {
     #[test]
     fn test_blake2s() {
         // BLAKE2s test - draft-saarinen-blake2-06
-        let mut output = [0u8; 32];
-        let mut hasher = HashBLAKE2s::default();
+        let mut output = [0_u8; 32];
+        let mut hasher: Box<dyn Hash + 'static> = Box::new(HashBLAKE2s::default());
         hasher.input(b"abc");
         hasher.result(&mut output);
         assert!(
@@ -597,7 +601,7 @@ mod tests {
     #[test]
     fn test_curve25519() {
         // Curve25519 test - draft-curves-10
-        let mut keypair = Dh25519::default();
+        let mut keypair = Box::new(Dh25519::default());
         let scalar =
             Vec::<u8>::from_hex("a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4")
                 .unwrap();
@@ -605,7 +609,7 @@ mod tests {
         let public =
             Vec::<u8>::from_hex("e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c")
                 .unwrap();
-        let mut output = [0u8; 32];
+        let mut output = [0_u8; 32];
         keypair.dh(&public, &mut output).unwrap();
         assert_eq!(
             hex::encode(output),
@@ -617,27 +621,27 @@ mod tests {
     fn test_aesgcm() {
         // AES256-GCM tests - gcm-spec.pdf
         // Test Case 13
-        let key = [0u8; 32];
-        let nonce = 0u64;
-        let plaintext = [0u8; 0];
-        let authtext = [0u8; 0];
-        let mut ciphertext = [0u8; 16];
+        let key = [0_u8; 32];
+        let nonce = 0_u64;
+        let plaintext = [0_u8; 0];
+        let authtext = [0_u8; 0];
+        let mut ciphertext = [0_u8; 16];
         let mut cipher1 = CipherAesGcm::default();
         cipher1.set(&key);
         cipher1.encrypt(nonce, &authtext, &plaintext, &mut ciphertext);
         assert!(hex::encode(ciphertext) == "530f8afbc74536b9a963b4f1c4cb738b");
 
-        let mut resulttext = [0u8; 1];
+        let mut resulttext = [0_u8; 1];
         let mut cipher2 = CipherAesGcm::default();
         cipher2.set(&key);
         cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
         assert!(resulttext[0] == 0);
         ciphertext[0] ^= 1;
-        assert!(cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).is_err());
+        cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap_err();
 
         // Test Case 14
-        let plaintext2 = [0u8; 16];
-        let mut ciphertext2 = [0u8; 32];
+        let plaintext2 = [0_u8; 16];
+        let mut ciphertext2 = [0_u8; 32];
         let mut cipher3 = CipherAesGcm::default();
         cipher3.set(&key);
         cipher3.encrypt(nonce, &authtext, &plaintext2, &mut ciphertext2);
@@ -646,49 +650,49 @@ mod tests {
                 == "cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919"
         );
 
-        let mut resulttext2 = [1u8; 16];
+        let mut resulttext2 = [1_u8; 16];
         let mut cipher4 = CipherAesGcm::default();
         cipher4.set(&key);
         cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).unwrap();
         assert!(plaintext2 == resulttext2);
         ciphertext2[0] ^= 1;
-        assert!(cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).is_err());
+        cipher4.decrypt(nonce, &authtext, &ciphertext2, &mut resulttext2).unwrap_err();
     }
 
     #[test]
     fn test_chachapoly_empty() {
         //ChaChaPoly round-trip test, empty plaintext
-        let key = [0u8; 32];
-        let nonce = 0u64;
-        let plaintext = [0u8; 0];
-        let authtext = [0u8; 0];
-        let mut ciphertext = [0u8; 16];
+        let key = [0_u8; 32];
+        let nonce = 0_u64;
+        let plaintext = [0_u8; 0];
+        let authtext = [0_u8; 0];
+        let mut ciphertext = [0_u8; 16];
         let mut cipher1 = CipherChaChaPoly::default();
         cipher1.set(&key);
         cipher1.encrypt(nonce, &authtext, &plaintext, &mut ciphertext);
 
-        let mut resulttext = [0u8; 1];
+        let mut resulttext = [0_u8; 1];
         let mut cipher2 = CipherChaChaPoly::default();
         cipher2.set(&key);
         cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
         assert!(resulttext[0] == 0);
         ciphertext[0] ^= 1;
-        assert!(cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).is_err());
+        cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap_err();
     }
 
     #[test]
     fn test_chachapoly_nonempty() {
         //ChaChaPoly round-trip test, non-empty plaintext
-        let key = [0u8; 32];
-        let nonce = 0u64;
-        let plaintext = [0x34u8; 117];
-        let authtext = [0u8; 0];
-        let mut ciphertext = [0u8; 133];
+        let key = [0_u8; 32];
+        let nonce = 0_u64;
+        let plaintext = [0x34_u8; 117];
+        let authtext = [0_u8; 0];
+        let mut ciphertext = [0_u8; 133];
         let mut cipher1 = CipherChaChaPoly::default();
         cipher1.set(&key);
         cipher1.encrypt(nonce, &authtext, &plaintext, &mut ciphertext);
 
-        let mut resulttext = [0u8; 117];
+        let mut resulttext = [0_u8; 117];
         let mut cipher2 = CipherChaChaPoly::default();
         cipher2.set(&key);
         cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
@@ -746,8 +750,8 @@ mod tests {
         .unwrap();
         let tag = Vec::<u8>::from_hex("eead9d67890cbb22392336fea1851f38").unwrap();
         let authtext = Vec::<u8>::from_hex("f33388860000000000004e91").unwrap();
-        let mut combined_text = [0u8; 1024];
-        let mut out = [0u8; 1024];
+        let mut combined_text = [0_u8; 1024];
+        let mut out = [0_u8; 1024];
         copy_slices!(&ciphertext, &mut combined_text);
         copy_slices!(&tag[0..TAGLEN], &mut combined_text[ciphertext.len()..]);
 

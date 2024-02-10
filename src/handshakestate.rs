@@ -15,7 +15,7 @@ use crate::{
     types::{Dh, Hash, Random},
     utils::Toggle,
 };
-use std::{
+use core::{
     convert::{TryFrom, TryInto},
     fmt,
 };
@@ -49,6 +49,7 @@ pub struct HandshakeState {
 
 impl HandshakeState {
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn new(
         rng: Box<dyn Random>,
         cipherstate: CipherState,
@@ -161,7 +162,7 @@ impl HandshakeState {
     }
 
     fn dh(&self, token: DhToken) -> Result<[u8; MAXDHLEN], Error> {
-        let mut dh_out = [0u8; MAXDHLEN];
+        let mut dh_out = [0_u8; MAXDHLEN];
         let (dh, key) = match (token, self.is_initiator()) {
             (DhToken::Ee, _) => (&self.e, &self.re),
             (DhToken::Ss, _) => (&self.s, &self.rs),
@@ -171,7 +172,7 @@ impl HandshakeState {
         if !(dh.is_on() && key.is_on()) {
             return Err(StateProblem::MissingKeyMaterial.into());
         }
-        dh.dh(&**key, &mut dh_out)?;
+        dh.dh(&key[..dh.pub_len()], &mut dh_out)?;
         Ok(dh_out)
     }
 
@@ -252,12 +253,11 @@ impl HandshakeState {
                     } else if byte_index + self.s.pub_len() > message.len() {
                         return Err(Error::Input);
                     }
-
                     byte_index += self
                         .symmetricstate
                         .encrypt_and_mix_hash(self.s.pubkey(), &mut message[byte_index..])?;
                 },
-                Token::Psk(n) => match self.psks[n as usize] {
+                Token::Psk(n) => match self.psks[usize::from(n)] {
                     Some(psk) => {
                         self.symmetricstate.mix_key_and_hash(&psk);
                     },
@@ -391,7 +391,7 @@ impl HandshakeState {
                     self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len])?;
                     self.rs.enable();
                 },
-                Token::Psk(n) => match self.psks[n as usize] {
+                Token::Psk(n) => match self.psks[usize::from(n)] {
                     Some(psk) => {
                         self.symmetricstate.mix_key_and_hash(&psk);
                     },
@@ -457,7 +457,7 @@ impl HandshakeState {
             return Err(Error::Input);
         }
 
-        let mut new_psk = [0u8; PSKLEN];
+        let mut new_psk = [0_u8; PSKLEN];
         new_psk.copy_from_slice(key);
         self.psks[location] = Some(new_psk);
 
