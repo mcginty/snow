@@ -77,6 +77,69 @@ crypto implementations when available.
 |    BLAKE2s |    ✔    |      |
 |    BLAKE2b |    ✔    |      |
 
+## `no_std` support and feature selection
+
+Snow can be used in `no_std` environments if `alloc` is provided.
+
+By default Snow uses the standard library, default cyprot resolver and a selected collection 
+of crypto primitives. To use Snow in `no_std` environments or make other kinds of customized 
+setups, use Snow with `default-features = false`. This way you will individually select 
+the components you wish to use. `default-resolver` is the only built-in resolver that 
+currently supports `no_std`.
+
+To use a custom setup with `default-resolver`, enable your desired selection of cryptographic primitives:
+
+| Primitive    | Feature flag           |
+| :----------- | ---------------------: |
+| **DH**                                |
+| 25519        | `use-curve25519-dalek` |
+| **Cipher**                            |
+| AESGCM       | `use-aes-gcm`          |
+| ChaChaPoly   | `use-chacha20poly1305` |
+| XChaChaPoly* | `use-xchacha20poly1305`|
+| **Hash**                              |
+| SHA256       | `use-sha2`             |
+| SHA512       | `use-sha2`             |
+| BLAKE2s      | `use-blake2`           |
+| BLAKE2b      | `use-blake2`           |
+
+\* *XChaChaPoly*, an extended nonce variant of *ChaChaPoly*, is not in the official specification of Noise!
+
+### Example configurations
+
+**25519 + AES-GCM + SHA** with standard library features.
+```toml
+default-features = false
+features = [
+    "use-curve25519-dalek",
+    "use-aes-gcm",
+    "use-sha2",
+    "std",
+]
+```
+
+**25519 + ChaChaPoly + BLAKE2** without standard library.
+```toml
+default-features = false
+features = [
+    "use-curve25519-dalek",
+    "use-chacha20poly1305",
+    "use-blake2",
+]
+```
+
+### `getrandom` support
+
+Most crypto implementations supported by `default-resolver` will require 
+[`getrandom`](getrandom).
+
+If your target platform is not directly supported 
+you might have to provide a custom implementation in your crate root. 
+Check out their [documentation](getrandom-custom) for details.
+
+[getrandom]: https://crates.io/crates/getrandom
+[getrandom-custom]: https://docs.rs/getrandom/0.2.15/getrandom/macro.register_custom_getrandom.html
+
 ## License
 
 Licensed under either of:

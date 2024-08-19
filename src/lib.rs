@@ -13,7 +13,7 @@
 //! ```
 //! # use snow::Error;
 //! #
-//! # #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
+//! # #[cfg(any(feature = "default-resolver-crypto", feature = "ring-accelerated"))]
 //! # fn try_main() -> Result<(), Error> {
 //! static PATTERN: &'static str = "Noise_NN_25519_ChaChaPoly_BLAKE2s";
 //!
@@ -43,7 +43,7 @@
 //! #     Ok(())
 //! # }
 //! #
-//! # #[cfg(not(any(feature = "default-resolver", feature = "ring-accelerated")))]
+//! # #[cfg(not(any(feature = "default-resolver-crypto", feature = "ring-accelerated")))]
 //! # fn try_main() -> Result<(), ()> { Ok(()) }
 //! #
 //! # fn main() {
@@ -54,6 +54,26 @@
 //! See `examples/simple.rs` for a more complete TCP client/server example with static keys.
 
 #![warn(missing_docs)]
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
+// Make sure the user is running a supported configuration.
+#[cfg(feature = "default-resolver")]
+#[cfg(any(
+    not(any(feature = "use-curve25519-dalek")),
+    not(any(
+        feature = "use-aes-gcm",
+        feature = "use-chacha20poly1305",
+        feature = "use-xchacha20poly1305"
+    )),
+    not(any(feature = "use-sha2", feature = "use-blake2"))
+))]
+compile_error!(
+    "Valid selection of crypto primitived must be enabled when using feature 'default-resolver'.
+    Enable at least one DH feature, one Cipher feature and one Hash feature. Check README.md for details."
+);
 
 macro_rules! copy_slices {
     ($inslice:expr, $outslice:expr) => {

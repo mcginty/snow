@@ -1,5 +1,8 @@
 //! The wrappers around the default collection of cryptography and entropy providers.
 
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 /// The default primitive resolver.
 #[cfg(feature = "default-resolver")]
 mod default;

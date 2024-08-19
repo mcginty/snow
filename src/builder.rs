@@ -1,4 +1,7 @@
-use std::fmt::Debug;
+use core::fmt::Debug;
+
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, vec, vec::Vec};
 
 #[cfg(feature = "hfs")]
 use crate::params::HandshakeModifier;
@@ -45,7 +48,7 @@ impl PartialEq for Keypair {
 /// # use snow::Builder;
 /// # let my_long_term_key = [0u8; 32];
 /// # let their_pub_key = [0u8; 32];
-/// # #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
+/// # #[cfg(any(feature = "default-resolver-crypto", feature = "ring-accelerated"))]
 /// let noise = Builder::new("Noise_XX_25519_ChaChaPoly_BLAKE2s".parse()?)
 ///     .local_private_key(&my_long_term_key)?
 ///     .remote_public_key(&their_pub_key)?
@@ -65,7 +68,7 @@ pub struct Builder<'builder> {
 }
 
 impl<'builder> Debug for Builder<'builder> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Builder").field("params", &self.params.name).finish_non_exhaustive()
     }
 }
@@ -317,8 +320,12 @@ impl<'builder> Builder<'builder> {
     }
 }
 
+
 #[cfg(test)]
-#[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
+#[cfg(all(
+    feature = "std",
+    any(feature = "default-resolver-crypto", feature = "ring-accelerated")
+))]
 mod tests {
     use super::*;
     type TestResult = Result<(), Box<dyn std::error::Error>>;
