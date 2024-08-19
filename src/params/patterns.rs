@@ -1,7 +1,10 @@
 #![allow(clippy::enum_glob_use)]
 
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
+
 use crate::error::{Error, PatternProblem};
-use std::{convert::TryFrom, str::FromStr};
+use core::{convert::TryFrom, str::FromStr};
 
 /// A small helper macro that behaves similar to the `vec![]` standard macro,
 /// except it allocates a bit extra to avoid resizing.

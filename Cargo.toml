@@ -15,31 +15,56 @@ edition = "2021"
 # This is slightly mumbo-jumboey, but in short:
 # Features with a -resolver suffix simply enables the existence of a specific resolver,
 # and -accelerated suffix means that this resolver will be the default used by the Builder.
+#
+# If default features are disabled and default-resolver is used, required crypto primitives
+# must be enabled individually.
 [features]
-default = ["default-resolver"]
-default-resolver = [
-    "aes-gcm",
-    "chacha20poly1305",
-    "blake2",
-    "sha2",
-    "curve25519-dalek",
+default = ["default-resolver", "default-resolver-crypto", "std"]
+default-resolver = []
+default-resolver-crypto = [
+    "use-aes-gcm",
+    "use-chacha20poly1305",
+    "use-blake2",
+    "use-sha2",
+    "use-curve25519-dalek",
 ]
 nightly = ["blake2/simd_opt", "subtle/nightly"]
-ring-resolver = ["ring"]
-ring-accelerated = ["ring-resolver", "default-resolver"]
-libsodium-resolver = ["sodiumoxide", "byteorder"]
-libsodium-accelerated = ["libsodium-resolver", "default-resolver"]
+ring-resolver = ["ring", "std"]
+ring-accelerated = ["ring-resolver", "default-resolver", "std"]
+libsodium-resolver = ["sodiumoxide", "byteorder", "std"]
+libsodium-accelerated = ["libsodium-resolver", "default-resolver", "std"]
 vector-tests = []
 hfs = []
-pqclean_kyber1024 = [
+risky-raw-split = []
+
+# Backwards-compatibility aliases
+pqclean_kyber1024 = ["use-pqcrypto-kyber1024"]
+xchachapoly = ["use-xchacha20poly1305"]
+
+# Enable std features on dependencies if possible.
+std = [
+    "rand_core/std",
+    "subtle/std",
+    "ring/std",
+    "blake2/std",
+    "sha2/std",
+    "byteorder/std",
+]
+
+# Crypto primitives for default-resolver.
+use-curve25519-dalek = ["curve25519-dalek", "default-resolver"]
+use-chacha20poly1305 = ["chacha20poly1305", "default-resolver"]
+use-xchacha20poly1305 = ["chacha20poly1305", "default-resolver"]
+use-blake2 = ["blake2", "default-resolver"]
+use-sha2 = ["sha2", "default-resolver"]
+use-aes-gcm = ["aes-gcm", "default-resolver"]
+use-pqcrypto-kyber1024 = [
     "pqcrypto-kyber",
     "pqcrypto-traits",
     "hfs",
     "default-resolver",
 ]
-xchachapoly = ["chacha20poly1305", "default-resolver"]
-p256 = ["dep:p256", "default-resolver"]
-risky-raw-split = []
+use-p256 = ["p256", "default-resolver"]
 
 [[bench]]
 name = "benches"
@@ -50,25 +75,29 @@ travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
 # TODO: Waiting on https://github.com/RustCrypto/traits/issues/1642
-rand_core = { version = "0.6", features = ["std", "getrandom"] }
-subtle = "2.4"
+rand_core = { version = "0.6", default-features = false, features = [
+    "getrandom",
+] }
+subtle = { version = "2.4", default-features = false }
 
 # default crypto provider
-aes-gcm = { version = "0.10", optional = true }
-chacha20poly1305 = { version = "0.10", optional = true }
-blake2 = { version = "0.10", optional = true }
-sha2 = { version = "0.10", optional = true }
-curve25519-dalek = { version = "4.1.3", optional = true }
+aes-gcm = { version = "0.10", optional = true, default-features = false, features = [
+    "aes",
+] }
+chacha20poly1305 = { version = "0.10", optional = true, default-features = false }
+blake2 = { version = "0.10", optional = true, default-features = false }
+sha2 = { version = "0.10", optional = true, default-features = false }
+curve25519-dalek = { version = "4", optional = true, default-features = false }
 p256 = { version = "0.13.2", features = ["ecdh"], optional = true }
 
 pqcrypto-kyber = { version = "0.8", optional = true }
 pqcrypto-traits = { version = "0.3", optional = true }
 
 # ring crypto provider
-ring = { version = "0.17", optional = true, features = ["std"] }
+ring = { version = "0.17", optional = true }
 # libsodium crypto provider
-sodiumoxide = { version = "0.2", optional = true }
-byteorder = { version = "1.4", optional = true }
+sodiumoxide = { version = "0.2", optional = true, default-features = false }
+byteorder = { version = "1.4", optional = true, default-features = false }
 
 [dev-dependencies]
 criterion = "0.5"

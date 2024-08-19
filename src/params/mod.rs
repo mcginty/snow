@@ -4,8 +4,11 @@
 //! All structures related to Noise parameter definitions (cryptographic primitive choices, protocol
 //! patterns/names)
 
+#[cfg(not(feature = "std"))]
+use alloc::{borrow::ToOwned, string::String};
+
 use crate::error::{Error, PatternProblem};
-use std::str::FromStr;
+use core::str::FromStr;
 mod patterns;
 
 pub use self::patterns::{
@@ -66,7 +69,7 @@ impl FromStr for DHChoice {
 pub enum CipherChoice {
     /// The ChaCha20Poly1305 AEAD.
     ChaChaPoly,
-    #[cfg(feature = "xchachapoly")]
+    #[cfg(feature = "use-xchacha20poly1305")]
     /// The XChaCha20Poly1305 AEAD, an extended nonce variant of ChaCha20Poly1305.
     /// This variant is hidden behind a feature flag to highlight that it is not in the
     /// official specification of the Noise Protocol.
@@ -82,7 +85,7 @@ impl FromStr for CipherChoice {
         use self::CipherChoice::*;
         match s {
             "ChaChaPoly" => Ok(ChaChaPoly),
-            #[cfg(feature = "xchachapoly")]
+            #[cfg(feature = "use-xchacha20poly1305")]
             "XChaChaPoly" => Ok(XChaChaPoly),
             "AESGCM" => Ok(AESGCM),
             _ => Err(PatternProblem::UnsupportedCipherType.into()),
@@ -262,7 +265,7 @@ impl FromStr for NoiseParams {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::convert::TryFrom;
+    use core::convert::TryFrom;
 
     #[test]
     fn test_simple_handshake() {

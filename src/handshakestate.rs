@@ -15,7 +15,9 @@ use crate::{
     types::{Dh, Hash, Random},
     utils::Toggle,
 };
-use std::{
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+use core::{
     convert::{TryFrom, TryInto},
     fmt,
 };

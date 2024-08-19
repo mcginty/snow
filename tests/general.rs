@@ -1,4 +1,5 @@
-#![cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
+#![cfg(feature = "std")]
+#![cfg(any(feature = "default-resolver-crypto", feature = "ring-accelerated"))]
 #![allow(clippy::needless_range_loop)]
 #![allow(non_snake_case)]
 
@@ -263,7 +264,7 @@ fn test_Xpsk0_expected_value() -> TestResult {
 
 #[test]
 #[cfg(feature = "hfs")]
-#[cfg(feature = "pqclean_kyber1024")]
+#[cfg(feature = "use-pqcrypto-kyber1024")]
 fn test_NNhfs_sanity_session() -> TestResult {
     // Due to how PQClean is implemented, we cannot do deterministic testing of the protocol.
     // Instead, we will see if the protocol runs smoothly.

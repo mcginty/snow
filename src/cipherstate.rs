@@ -1,3 +1,6 @@
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 use crate::{
     constants::{CIPHERKEYLEN, TAGLEN},
     error::{Error, InitStage, StateProblem},
