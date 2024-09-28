@@ -3,6 +3,11 @@ use blake2::{Blake2b, Blake2b512, Blake2s, Blake2s256};
 use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::{aead::AeadInPlace, ChaCha20Poly1305, KeyInit};
 use curve25519_dalek::montgomery::MontgomeryPoint;
+use p256::{
+    self,
+    elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint},
+    CompressedPoint, EncodedPoint, SecretKey,
+};
 #[cfg(feature = "pqclean_kyber1024")]
 use pqcrypto_kyber::kyber1024;
 #[cfg(feature = "pqclean_kyber1024")]
@@ -38,6 +43,8 @@ impl CryptoResolver for DefaultResolver {
         match *choice {
             DHChoice::Curve25519 => Some(Box::<Dh25519>::default()),
             DHChoice::Curve448 => None,
+            DHChoice::P256 => Some(Box::<P256>::default()),
+            _ => None,
         }
     }
 
@@ -72,6 +79,13 @@ impl CryptoResolver for DefaultResolver {
 struct Dh25519 {
     privkey: [u8; 32],
     pubkey:  [u8; 32],
+}
+
+/// Wraps p256
+#[derive(Default)]
+struct P256 {
+    privkey: [u8; 32],
+    pubkey:  EncodedPoint,
 }
 
 /// Wraps `aes-gcm`'s AES256-GCM implementation.
@@ -171,6 +185,61 @@ impl Dh for Dh25519 {
         copy_slices!(&pubkey[..32], pubkey_owned);
         let result = MontgomeryPoint(pubkey_owned).mul_clamped(self.privkey).to_bytes();
         copy_slices!(result, out);
+        Ok(())
+    }
+}
+
+impl P256 {
+    fn derive_pubkey(&mut self) {
+        let secret_key = p256::SecretKey::from_bytes(&self.privkey.into()).unwrap();
+        let public_key = secret_key.public_key();
+        let encoded_pub = public_key.to_encoded_point(false);
+        self.pubkey = encoded_pub;
+    }
+}
+
+impl Dh for P256 {
+    fn name(&self) -> &'static str {
+        "P256"
+    }
+
+    fn pub_len(&self) -> usize {
+        65 // Uncompressed SEC-1 encoding
+    }
+
+    fn priv_len(&self) -> usize {
+        32 // Scalar
+    }
+
+    fn set(&mut self, privkey: &[u8]) {
+        let mut bytes = [0u8; 32];
+        copy_slices!(privkey, bytes);
+        self.privkey = bytes;
+        self.derive_pubkey();
+    }
+
+    fn generate(&mut self, rng: &mut dyn Random) {
+        let mut bytes = [0u8; 32];
+        rng.fill_bytes(&mut bytes);
+        self.privkey = bytes;
+        self.derive_pubkey();
+    }
+
+    fn pubkey(&self) -> &[u8] {
+        self.pubkey.as_bytes()
+    }
+
+    fn privkey(&self) -> &[u8] {
+        &self.privkey
+    }
+
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error> {
+        let secret_key = p256::SecretKey::from_bytes(&self.privkey.into()).or(Err(Error::Dh))?;
+        let secret_key_scalar = secret_key.to_nonzero_scalar();
+        let pub_key: p256::elliptic_curve::PublicKey<p256::NistP256> =
+            p256::PublicKey::from_sec1_bytes(&pubkey).or(Err(Error::Dh))?;
+        let dh_output = p256::ecdh::diffie_hellman(secret_key_scalar, pub_key.as_affine());
+        copy_slices!(dh_output.raw_secret_bytes(), out);
         Ok(())
     }
 }

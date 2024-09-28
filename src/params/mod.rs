@@ -37,10 +37,12 @@ impl FromStr for BaseChoice {
 /// Which Diffie-Hellman primitive to use. One of `25519` or `448`, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum DHChoice {
-    /// The Curve25519 ellpitic curve.
+    /// The Curve25519 elliptic curve.
     Curve25519,
     /// The Curve448 elliptic curve.
     Curve448,
+    /// The P-256 elliptic curve.
+    P256,
 }
 
 impl FromStr for DHChoice {
@@ -51,6 +53,7 @@ impl FromStr for DHChoice {
         match s {
             "25519" => Ok(Curve25519),
             "448" => Ok(Curve448),
+            "P256" => Ok(P256),
             _ => Err(PatternProblem::UnsupportedDhType.into()),
         }
     }
@@ -268,6 +271,12 @@ mod tests {
     fn test_basic() {
         let p: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
         assert!(p.handshake.modifiers.list.is_empty());
+    }
+
+    #[test]
+    fn test_p256() {
+        let p: NoiseParams = "Noise_XX_P256_AESGCM_SHA256".parse().unwrap();
+        assert_eq!(p.dh, DHChoice::P256);
     }
 
     #[test]
