@@ -17,7 +17,7 @@ edition = "2021"
 # and -accelerated suffix means that this resolver will be the default used by the Builder.
 [features]
 default = ["default-resolver"]
-default-resolver = ["aes-gcm", "chacha20poly1305", "blake2", "sha2", "curve25519-dalek", "p256"]
+default-resolver = ["aes-gcm", "chacha20poly1305", "blake2", "sha2", "curve25519-dalek"]
 nightly = ["blake2/simd_opt", "subtle/nightly"]
 ring-resolver = ["ring"]
 ring-accelerated = ["ring-resolver", "default-resolver"]
@@ -27,6 +27,7 @@ vector-tests = []
 hfs = []
 pqclean_kyber1024 = ["pqcrypto-kyber", "pqcrypto-traits", "hfs", "default-resolver"]
 xchachapoly = ["chacha20poly1305", "default-resolver"]
+p256 = ["dep:p256", "default-resolver"]
 risky-raw-split = []
 
 [[bench]]

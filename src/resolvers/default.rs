@@ -3,11 +3,8 @@ use blake2::{Blake2b, Blake2b512, Blake2s, Blake2s256};
 use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::{aead::AeadInPlace, ChaCha20Poly1305, KeyInit};
 use curve25519_dalek::montgomery::MontgomeryPoint;
-use p256::{
-    self,
-    elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint},
-    CompressedPoint, EncodedPoint, SecretKey,
-};
+#[cfg(feature = "p256")]
+use p256::{self, elliptic_curve::sec1::ToEncodedPoint, EncodedPoint};
 #[cfg(feature = "pqclean_kyber1024")]
 use pqcrypto_kyber::kyber1024;
 #[cfg(feature = "pqclean_kyber1024")]
@@ -43,8 +40,8 @@ impl CryptoResolver for DefaultResolver {
         match *choice {
             DHChoice::Curve25519 => Some(Box::<Dh25519>::default()),
             DHChoice::Curve448 => None,
+            #[cfg(feature = "p256")]
             DHChoice::P256 => Some(Box::<P256>::default()),
-            _ => None,
         }
     }
 
@@ -82,6 +79,7 @@ struct Dh25519 {
 }
 
 /// Wraps p256
+#[cfg(feature = "p256")]
 #[derive(Default)]
 struct P256 {
     privkey: [u8; 32],
@@ -189,6 +187,7 @@ impl Dh for Dh25519 {
     }
 }
 
+#[cfg(feature = "p256")]
 impl P256 {
     fn derive_pubkey(&mut self) {
         let secret_key = p256::SecretKey::from_bytes(&self.privkey.into()).unwrap();
@@ -198,6 +197,7 @@ impl P256 {
     }
 }
 
+#[cfg(feature = "p256")]
 impl Dh for P256 {
     fn name(&self) -> &'static str {
         "P256"

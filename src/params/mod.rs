@@ -41,6 +41,7 @@ pub enum DHChoice {
     Curve25519,
     /// The Curve448 elliptic curve.
     Curve448,
+    #[cfg(feature = "p256")]
     /// The P-256 elliptic curve.
     P256,
 }
@@ -53,6 +54,7 @@ impl FromStr for DHChoice {
         match s {
             "25519" => Ok(Curve25519),
             "448" => Ok(Curve448),
+            #[cfg(feature = "p256")]
             "P256" => Ok(P256),
             _ => Err(PatternProblem::UnsupportedDhType.into()),
         }
@@ -274,6 +276,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "p256")]
     fn test_p256() {
         let p: NoiseParams = "Noise_XX_P256_AESGCM_SHA256".parse().unwrap();
         assert_eq!(p.dh, DHChoice::P256);
