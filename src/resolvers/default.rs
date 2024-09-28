@@ -683,6 +683,27 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "p256")]
+    fn test_p256() {
+        let mut keypair = P256::default();
+        let scalar =
+            Vec::<u8>::from_hex("58c77a30bb0fa177286346d18f59678ac1b8d3637ee65f1bd88a8f52e49ef189")
+                .unwrap();
+        keypair.set(&scalar);
+        let public = Vec::<u8>::from_hex(
+            "042009fddefeed3b342696b11683b423db8ede2ef5cd66af9b7db2772f7deaf3d\
+                                 f1a69a4648d990ae2a4e5928f156f32e15fa08ba4465df8cb17838dc2afb719d2",
+        )
+        .unwrap();
+        let mut output = [0u8; 32];
+        keypair.dh(&public, &mut output).unwrap();
+        assert_eq!(
+            hex::encode(output),
+            "07505b308650d07e6ead11dd36bbf6f24bf99fc6479649fadd3939faa33ddeb3"
+        );
+    }
+
+    #[test]
     fn test_aesgcm() {
         // AES256-GCM tests - gcm-spec.pdf
         // Test Case 13
