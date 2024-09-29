@@ -211,6 +211,10 @@ impl Dh for P256 {
         32 // Scalar
     }
 
+    fn dh_len(&self) -> usize {
+        32
+    }
+
     fn set(&mut self, privkey: &[u8]) {
         let mut bytes = [0u8; 32];
         copy_slices!(privkey, bytes);

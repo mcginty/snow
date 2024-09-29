@@ -37,6 +37,11 @@ pub trait Dh: Send + Sync {
     /// # Errors
     /// Returns `Error::Dh` in the event that the Diffie-Hellman failed.
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error>;
+
+    /// The lenght in bytes of of the DH key exchange. Defaults to the public key.
+    fn dh_len(&self) -> usize {
+        self.pub_len()
+    }
 }
 
 /// Cipher operations
