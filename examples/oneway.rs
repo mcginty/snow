@@ -65,9 +65,7 @@ fn run_server(private_key: &[u8], psk: &[u8; 32]) {
 
     // This is a oneway handshake - the server does not have to send anything
 
-    // The remote static key (of the initiator) is now known, and could be used
-    // for example to decide whether to limit the size/number/kind of messages
-    // the responder accepts from this initiator
+    // The remote static key (of the initiator) is now known
     let client = hex::encode(noise.get_remote_static().unwrap());
 
     // Transition the state machine into transport mode now that the handshake is complete.
