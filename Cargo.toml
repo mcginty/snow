@@ -37,7 +37,7 @@ harness = false
 travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
-rand_core = { version = "0.6", features = ["std", "getrandom"] }
+rand_core = { version = "0.9", features = ["std", "getrandom"] }
 subtle = "2.4"
 
 # default crypto provider
