@@ -689,21 +689,24 @@ mod tests {
     #[test]
     #[cfg(feature = "p256")]
     fn test_p256() {
+        // Test vector from RFC 5903, section 8.1
         let mut keypair = P256::default();
         let scalar =
-            Vec::<u8>::from_hex("58c77a30bb0fa177286346d18f59678ac1b8d3637ee65f1bd88a8f52e49ef189")
+            Vec::<u8>::from_hex("C88F01F510D9AC3F70A292DAA2316DE544E9AAB8AFE84049C62A9C57862D1433")
                 .unwrap();
         keypair.set(&scalar);
+        // Public key is prefixed with 0x04, to indicate uncompressed form, as per SEC1 encoding
         let public = Vec::<u8>::from_hex(
-            "042009fddefeed3b342696b11683b423db8ede2ef5cd66af9b7db2772f7deaf3d\
-                                 f1a69a4648d990ae2a4e5928f156f32e15fa08ba4465df8cb17838dc2afb719d2",
+            "04\
+                D12DFB5289C8D4F81208B70270398C342296970A0BCCB74C736FC7554494BF63\
+                56FBF3CA366CC23E8157854C13C58D6AAC23F046ADA30F8353E74F33039872AB",
         )
         .unwrap();
         let mut output = [0u8; 32];
         keypair.dh(&public, &mut output).unwrap();
         assert_eq!(
             hex::encode(output),
-            "07505b308650d07e6ead11dd36bbf6f24bf99fc6479649fadd3939faa33ddeb3"
+            "D6840F6B42F6EDAFD13116E0E12565202FEF8E9ECE7DCE03812464D04B9442DE".to_lowercase()
         );
     }
 
