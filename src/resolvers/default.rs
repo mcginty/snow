@@ -3,6 +3,8 @@ use blake2::{Blake2b, Blake2b512, Blake2s, Blake2s256};
 use chacha20poly1305::XChaCha20Poly1305;
 use chacha20poly1305::{aead::AeadInPlace, ChaCha20Poly1305, KeyInit};
 use curve25519_dalek::montgomery::MontgomeryPoint;
+#[cfg(feature = "p256")]
+use p256::{self, elliptic_curve::sec1::ToEncodedPoint, EncodedPoint};
 #[cfg(feature = "pqclean_kyber1024")]
 use pqcrypto_kyber::kyber1024;
 #[cfg(feature = "pqclean_kyber1024")]
@@ -38,6 +40,8 @@ impl CryptoResolver for DefaultResolver {
         match *choice {
             DHChoice::Curve25519 => Some(Box::<Dh25519>::default()),
             DHChoice::Curve448 => None,
+            #[cfg(feature = "p256")]
+            DHChoice::P256 => Some(Box::<P256>::default()),
         }
     }
 
@@ -72,6 +76,14 @@ impl CryptoResolver for DefaultResolver {
 struct Dh25519 {
     privkey: [u8; 32],
     pubkey:  [u8; 32],
+}
+
+/// Wraps p256
+#[cfg(feature = "p256")]
+#[derive(Default)]
+struct P256 {
+    privkey: [u8; 32],
+    pubkey:  EncodedPoint,
 }
 
 /// Wraps `aes-gcm`'s AES256-GCM implementation.
@@ -171,6 +183,67 @@ impl Dh for Dh25519 {
         copy_slices!(&pubkey[..32], pubkey_owned);
         let result = MontgomeryPoint(pubkey_owned).mul_clamped(self.privkey).to_bytes();
         copy_slices!(result, out);
+        Ok(())
+    }
+}
+
+#[cfg(feature = "p256")]
+impl P256 {
+    fn derive_pubkey(&mut self) {
+        let secret_key = p256::SecretKey::from_bytes(&self.privkey.into()).unwrap();
+        let public_key = secret_key.public_key();
+        let encoded_pub = public_key.to_encoded_point(false);
+        self.pubkey = encoded_pub;
+    }
+}
+
+#[cfg(feature = "p256")]
+impl Dh for P256 {
+    fn name(&self) -> &'static str {
+        "P256"
+    }
+
+    fn pub_len(&self) -> usize {
+        65 // Uncompressed SEC-1 encoding
+    }
+
+    fn priv_len(&self) -> usize {
+        32 // Scalar
+    }
+
+    fn dh_len(&self) -> usize {
+        32
+    }
+
+    fn set(&mut self, privkey: &[u8]) {
+        let mut bytes = [0u8; 32];
+        copy_slices!(privkey, bytes);
+        self.privkey = bytes;
+        self.derive_pubkey();
+    }
+
+    fn generate(&mut self, rng: &mut dyn Random) {
+        let mut bytes = [0u8; 32];
+        rng.fill_bytes(&mut bytes);
+        self.privkey = bytes;
+        self.derive_pubkey();
+    }
+
+    fn pubkey(&self) -> &[u8] {
+        self.pubkey.as_bytes()
+    }
+
+    fn privkey(&self) -> &[u8] {
+        &self.privkey
+    }
+
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error> {
+        let secret_key = p256::SecretKey::from_bytes(&self.privkey.into()).or(Err(Error::Dh))?;
+        let secret_key_scalar = secret_key.to_nonzero_scalar();
+        let pub_key: p256::elliptic_curve::PublicKey<p256::NistP256> =
+            p256::PublicKey::from_sec1_bytes(&pubkey).or(Err(Error::Dh))?;
+        let dh_output = p256::ecdh::diffie_hellman(secret_key_scalar, pub_key.as_affine());
+        copy_slices!(dh_output.raw_secret_bytes(), out);
         Ok(())
     }
 }
@@ -610,6 +683,30 @@ mod tests {
         assert_eq!(
             hex::encode(output),
             "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "p256")]
+    fn test_p256() {
+        // Test vector from RFC 5903, section 8.1
+        let mut keypair = P256::default();
+        let scalar =
+            Vec::<u8>::from_hex("C88F01F510D9AC3F70A292DAA2316DE544E9AAB8AFE84049C62A9C57862D1433")
+                .unwrap();
+        keypair.set(&scalar);
+        // Public key is prefixed with 0x04, to indicate uncompressed form, as per SEC1 encoding
+        let public = Vec::<u8>::from_hex(
+            "04\
+                D12DFB5289C8D4F81208B70270398C342296970A0BCCB74C736FC7554494BF63\
+                56FBF3CA366CC23E8157854C13C58D6AAC23F046ADA30F8353E74F33039872AB",
+        )
+        .unwrap();
+        let mut output = [0u8; 32];
+        keypair.dh(&public, &mut output).unwrap();
+        assert_eq!(
+            hex::encode(output),
+            "D6840F6B42F6EDAFD13116E0E12565202FEF8E9ECE7DCE03812464D04B9442DE".to_lowercase()
         );
     }
 

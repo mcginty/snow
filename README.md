@@ -70,6 +70,7 @@ crypto implementations when available.
 |     CSPRNG |    ✔    |  ✔   |
 |      25519 |    ✔    |  ✔   |
 |        448 |         |      |
+|      P-256 |    ✔    |      |
 |     AESGCM |    ✔    |  ✔   |
 | ChaChaPoly |    ✔    |  ✔   |
 |     SHA256 |    ✔    |  ✔   |

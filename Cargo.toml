@@ -27,6 +27,7 @@ vector-tests = []
 hfs = []
 pqclean_kyber1024 = ["pqcrypto-kyber", "pqcrypto-traits", "hfs", "default-resolver"]
 xchachapoly = ["chacha20poly1305", "default-resolver"]
+p256 = ["dep:p256", "default-resolver"]
 risky-raw-split = []
 
 [[bench]]
@@ -45,7 +46,8 @@ aes-gcm = { version = "0.10", optional = true }
 chacha20poly1305 = { version = "0.10", optional = true }
 blake2 = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
-curve25519-dalek = { version = "4", optional = true }
+curve25519-dalek = { version = "4.1.3", optional = true }
+p256 = { version = "0.13.2", features = ["ecdh"], optional = true }
 
 pqcrypto-kyber = { version = "0.8", optional = true }
 pqcrypto-traits = { version = "0.3", optional = true }

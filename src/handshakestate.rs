@@ -78,7 +78,7 @@ impl HandshakeState {
         symmetricstate.initialize(&params.name);
         symmetricstate.mix_hash(prologue);
 
-        let dh_len = s.pub_len();
+        let pub_len = s.pub_len();
         if initiator {
             for token in tokens.premsg_pattern_i {
                 symmetricstate.mix_hash(
@@ -100,7 +100,7 @@ impl HandshakeState {
                         _ => unreachable!(),
                     }
                     .get()
-                    .ok_or(StateProblem::MissingKeyMaterial)?[..dh_len],
+                    .ok_or(StateProblem::MissingKeyMaterial)?[..pub_len],
                 );
             }
         } else {
@@ -112,7 +112,7 @@ impl HandshakeState {
                         _ => unreachable!(),
                     }
                     .get()
-                    .ok_or(StateProblem::MissingKeyMaterial)?[..dh_len],
+                    .ok_or(StateProblem::MissingKeyMaterial)?[..pub_len],
                 );
             }
             for token in tokens.premsg_pattern_r {
@@ -152,7 +152,7 @@ impl HandshakeState {
     }
 
     pub(crate) fn dh_len(&self) -> usize {
-        self.s.pub_len()
+        self.s.dh_len()
     }
 
     #[cfg(feature = "hfs")]
@@ -356,39 +356,39 @@ impl HandshakeState {
         }
         let last = self.pattern_position == (self.message_patterns.len() - 1);
 
-        let dh_len = self.dh_len();
+        let pub_len = self.e.pub_len();
         let mut ptr = message;
         for token in &self.message_patterns[self.pattern_position] {
             match *token {
                 Token::E => {
-                    if ptr.len() < dh_len {
+                    if ptr.len() < pub_len {
                         return Err(Error::Input);
                     }
-                    self.re[..dh_len].copy_from_slice(&ptr[..dh_len]);
-                    ptr = &ptr[dh_len..];
-                    self.symmetricstate.mix_hash(&self.re[..dh_len]);
+                    self.re[..pub_len].copy_from_slice(&ptr[..pub_len]);
+                    ptr = &ptr[pub_len..];
+                    self.symmetricstate.mix_hash(&self.re[..pub_len]);
                     if self.params.handshake.is_psk() {
-                        self.symmetricstate.mix_key(&self.re[..dh_len]);
+                        self.symmetricstate.mix_key(&self.re[..pub_len]);
                     }
                     self.re.enable();
                 },
                 Token::S => {
                     let data = if self.symmetricstate.has_key() {
-                        if ptr.len() < dh_len + TAGLEN {
+                        if ptr.len() < pub_len + TAGLEN {
                             return Err(Error::Input);
                         }
-                        let temp = &ptr[..dh_len + TAGLEN];
-                        ptr = &ptr[dh_len + TAGLEN..];
+                        let temp = &ptr[..pub_len + TAGLEN];
+                        ptr = &ptr[pub_len + TAGLEN..];
                         temp
                     } else {
-                        if ptr.len() < dh_len {
+                        if ptr.len() < pub_len {
                             return Err(Error::Input);
                         }
-                        let temp = &ptr[..dh_len];
-                        ptr = &ptr[dh_len..];
+                        let temp = &ptr[..pub_len];
+                        ptr = &ptr[pub_len..];
                         temp
                     };
-                    self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..dh_len])?;
+                    self.symmetricstate.decrypt_and_mix_hash(data, &mut self.rs[..pub_len])?;
                     self.rs.enable();
                 },
                 Token::Psk(n) => match self.psks[n as usize] {
@@ -472,7 +472,7 @@ impl HandshakeState {
     /// pattern, for example).
     #[must_use]
     pub fn get_remote_static(&self) -> Option<&[u8]> {
-        self.rs.get().map(|rs| &rs[..self.dh_len()])
+        self.rs.get().map(|rs| &rs[..self.s.pub_len()])
     }
 
     /// Get the handshake hash.
