@@ -21,7 +21,13 @@ edition = "2021"
 [features]
 default = ["default-resolver", "default-resolver-crypto", "std"]
 default-resolver = []
-default-resolver-crypto = ["use-aes-gcm", "use-chacha20poly1305", "use-blake2", "use-sha2", "use-curve25519-dalek"]
+default-resolver-crypto = [
+    "use-aes-gcm",
+    "use-chacha20poly1305",
+    "use-blake2",
+    "use-sha2",
+    "use-curve25519-dalek",
+]
 nightly = ["blake2/simd_opt", "subtle/nightly"]
 ring-resolver = ["ring", "std"]
 ring-accelerated = ["ring-resolver", "default-resolver", "std"]
@@ -29,6 +35,7 @@ libsodium-resolver = ["sodiumoxide", "byteorder", "std"]
 libsodium-accelerated = ["libsodium-resolver", "default-resolver", "std"]
 vector-tests = []
 hfs = []
+p256 = ["dep:p256", "default-resolver"]
 risky-raw-split = []
 
 # Backwards-compatibility aliases
@@ -43,7 +50,7 @@ std = [
     "blake2/std",
     "sha2/std",
     "byteorder/std",
-    ]
+]
 
 # Crypto primitives for default-resolver.
 use-curve25519-dalek = ["curve25519-dalek", "default-resolver"]
@@ -52,7 +59,12 @@ use-xchacha20poly1305 = ["chacha20poly1305", "default-resolver"]
 use-blake2 = ["blake2", "default-resolver"]
 use-sha2 = ["sha2", "default-resolver"]
 use-aes-gcm = ["aes-gcm", "default-resolver"]
-use-pqcrypto-kyber1024 = ["pqcrypto-kyber", "pqcrypto-traits", "hfs", "default-resolver"]
+use-pqcrypto-kyber1024 = [
+    "pqcrypto-kyber",
+    "pqcrypto-traits",
+    "hfs",
+    "default-resolver",
+]
 
 [[bench]]
 name = "benches"
@@ -62,15 +74,20 @@ harness = false
 travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
-rand_core = { version = "0.6", default-features = false, features = ["getrandom"] }
+rand_core = { version = "0.6", default-features = false, features = [
+    "getrandom",
+] }
 subtle = { version = "2.4", default-features = false }
 
-# default crypto provider
-aes-gcm = { version = "0.10", optional = true, default-features = false, features = ["aes"] }
-chacha20poly1305 = { version = "0.10", optional = true, default-features = false }
+
+aes-gcm = { version = "0.10", optional = true, default-features = false, features = [
+    "aes",
+] } # default crypto provider
 blake2 = { version = "0.10", optional = true, default-features = false }
 sha2 = { version = "0.10", optional = true, default-features = false }
-curve25519-dalek = { version = "4", optional = true, default-features = false }
+curve25519-dalek = { version = "4.1.3", optional = true, default-features = false }
+chacha20poly1305 = { version = "0.10", optional = true }
+p256 = { version = "0.13.2", features = ["ecdh"], optional = true }
 
 pqcrypto-kyber = { version = "0.8", optional = true }
 pqcrypto-traits = { version = "0.3", optional = true }
@@ -95,6 +112,6 @@ rand = "0.8"
 rustc_version = "0.4"
 
 [package.metadata.docs.rs]
-features = [ "ring-resolver", "libsodium-resolver" ]
+features = ["ring-resolver", "libsodium-resolver"]
 all-features = false
 no-default-features = false

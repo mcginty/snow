@@ -14,7 +14,6 @@ use blake2::{Blake2b, Blake2b512, Blake2s, Blake2s256, Digest as BlakeDigest};
 // We will import those with different aliases to prevent name clashes.
 use sha2::{Digest as ShaDigest, Sha256, Sha512};
 
-
 // Ciphers
 #[cfg(feature = "use-chacha20poly1305")]
 use chacha20poly1305::ChaCha20Poly1305;
@@ -27,12 +26,13 @@ use chacha20poly1305::{aead::AeadInPlace, KeyInit};
 #[cfg(feature = "use-aes-gcm")]
 use aes_gcm::Aes256Gcm;
 
-
 // PQ
 #[cfg(feature = "use-pqcrypto-kyber1024")]
 use crate::params::KemChoice;
 #[cfg(feature = "use-pqcrypto-kyber1024")]
 use crate::types::Kem;
+#[cfg(feature = "p256")]
+use p256::{self, elliptic_curve::sec1::ToEncodedPoint, EncodedPoint};
 #[cfg(feature = "use-pqcrypto-kyber1024")]
 use pqcrypto_kyber::kyber1024;
 #[cfg(feature = "use-pqcrypto-kyber1024")]
@@ -63,7 +63,9 @@ impl CryptoResolver for DefaultResolver {
         match *choice {
             #[cfg(feature = "use-curve25519-dalek")]
             DHChoice::Curve25519 => Some(Box::<Dh25519>::default()),
-            _ => None,
+            DHChoice::Curve448 => None,
+            #[cfg(feature = "p256")]
+            DHChoice::P256 => Some(Box::<P256>::default()),
         }
     }
 
@@ -108,7 +110,15 @@ impl CryptoResolver for DefaultResolver {
 #[derive(Default)]
 struct Dh25519 {
     privkey: [u8; 32],
-    pubkey:  [u8; 32],
+    pubkey: [u8; 32],
+}
+
+/// Wraps p256
+#[cfg(feature = "p256")]
+#[derive(Default)]
+struct P256 {
+    privkey: [u8; 32],
+    pubkey: EncodedPoint,
 }
 
 /// Wraps `aes-gcm`'s AES256-GCM implementation.
@@ -162,7 +172,7 @@ struct HashBLAKE2s {
 #[cfg(feature = "use-pqcrypto-kyber1024")]
 struct Kyber1024 {
     privkey: kyber1024::SecretKey,
-    pubkey:  kyber1024::PublicKey,
+    pubkey: kyber1024::PublicKey,
 }
 
 impl Random for OsRng {}
@@ -216,6 +226,67 @@ impl Dh for Dh25519 {
         copy_slices!(&pubkey[..32], pubkey_owned);
         let result = MontgomeryPoint(pubkey_owned).mul_clamped(self.privkey).to_bytes();
         copy_slices!(result, out);
+        Ok(())
+    }
+}
+
+#[cfg(feature = "p256")]
+impl P256 {
+    fn derive_pubkey(&mut self) {
+        let secret_key = p256::SecretKey::from_bytes(&self.privkey.into()).unwrap();
+        let public_key = secret_key.public_key();
+        let encoded_pub = public_key.to_encoded_point(false);
+        self.pubkey = encoded_pub;
+    }
+}
+
+#[cfg(feature = "p256")]
+impl Dh for P256 {
+    fn name(&self) -> &'static str {
+        "P256"
+    }
+
+    fn pub_len(&self) -> usize {
+        65 // Uncompressed SEC-1 encoding
+    }
+
+    fn priv_len(&self) -> usize {
+        32 // Scalar
+    }
+
+    fn dh_len(&self) -> usize {
+        32
+    }
+
+    fn set(&mut self, privkey: &[u8]) {
+        let mut bytes = [0u8; 32];
+        copy_slices!(privkey, bytes);
+        self.privkey = bytes;
+        self.derive_pubkey();
+    }
+
+    fn generate(&mut self, rng: &mut dyn Random) {
+        let mut bytes = [0u8; 32];
+        rng.fill_bytes(&mut bytes);
+        self.privkey = bytes;
+        self.derive_pubkey();
+    }
+
+    fn pubkey(&self) -> &[u8] {
+        self.pubkey.as_bytes()
+    }
+
+    fn privkey(&self) -> &[u8] {
+        &self.privkey
+    }
+
+    fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error> {
+        let secret_key = p256::SecretKey::from_bytes(&self.privkey.into()).or(Err(Error::Dh))?;
+        let secret_key_scalar = secret_key.to_nonzero_scalar();
+        let pub_key: p256::elliptic_curve::PublicKey<p256::NistP256> =
+            p256::PublicKey::from_sec1_bytes(&pubkey).or(Err(Error::Dh))?;
+        let dh_output = p256::ecdh::diffie_hellman(secret_key_scalar, pub_key.as_affine());
+        copy_slices!(dh_output.raw_secret_bytes(), out);
         Ok(())
     }
 }
@@ -508,7 +579,7 @@ impl Hash for HashBLAKE2s {
 impl Default for Kyber1024 {
     fn default() -> Self {
         Kyber1024 {
-            pubkey:  kyber1024::PublicKey::from_bytes(&[0; kyber1024::public_key_bytes()]).unwrap(),
+            pubkey: kyber1024::PublicKey::from_bytes(&[0; kyber1024::public_key_bytes()]).unwrap(),
             privkey: kyber1024::SecretKey::from_bytes(&[0; kyber1024::secret_key_bytes()]).unwrap(),
         }
     }
@@ -672,6 +743,30 @@ mod tests {
         assert_eq!(
             hex::encode(output),
             "c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "p256")]
+    fn test_p256() {
+        // Test vector from RFC 5903, section 8.1
+        let mut keypair = P256::default();
+        let scalar =
+            Vec::<u8>::from_hex("C88F01F510D9AC3F70A292DAA2316DE544E9AAB8AFE84049C62A9C57862D1433")
+                .unwrap();
+        keypair.set(&scalar);
+        // Public key is prefixed with 0x04, to indicate uncompressed form, as per SEC1 encoding
+        let public = Vec::<u8>::from_hex(
+            "04\
+                D12DFB5289C8D4F81208B70270398C342296970A0BCCB74C736FC7554494BF63\
+                56FBF3CA366CC23E8157854C13C58D6AAC23F046ADA30F8353E74F33039872AB",
+        )
+        .unwrap();
+        let mut output = [0u8; 32];
+        keypair.dh(&public, &mut output).unwrap();
+        assert_eq!(
+            hex::encode(output),
+            "D6840F6B42F6EDAFD13116E0E12565202FEF8E9ECE7DCE03812464D04B9442DE".to_lowercase()
         );
     }
 
