@@ -17,7 +17,13 @@ edition = "2021"
 # and -accelerated suffix means that this resolver will be the default used by the Builder.
 [features]
 default = ["default-resolver"]
-default-resolver = ["aes-gcm", "chacha20poly1305", "blake2", "sha2", "curve25519-dalek"]
+default-resolver = [
+    "aes-gcm",
+    "chacha20poly1305",
+    "blake2",
+    "sha2",
+    "curve25519-dalek",
+]
 nightly = ["blake2/simd_opt", "subtle/nightly"]
 ring-resolver = ["ring"]
 ring-accelerated = ["ring-resolver", "default-resolver"]
@@ -25,7 +31,12 @@ libsodium-resolver = ["sodiumoxide", "byteorder"]
 libsodium-accelerated = ["libsodium-resolver", "default-resolver"]
 vector-tests = []
 hfs = []
-pqclean_kyber1024 = ["pqcrypto-kyber", "pqcrypto-traits", "hfs", "default-resolver"]
+pqclean_kyber1024 = [
+    "pqcrypto-kyber",
+    "pqcrypto-traits",
+    "hfs",
+    "default-resolver",
+]
 xchachapoly = ["chacha20poly1305", "default-resolver"]
 p256 = ["dep:p256", "default-resolver"]
 risky-raw-split = []
@@ -38,6 +49,7 @@ harness = false
 travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
+# TODO: Waiting on https://github.com/RustCrypto/traits/issues/1642
 rand_core = { version = "0.6", features = ["std", "getrandom"] }
 subtle = "2.4"
 
@@ -66,12 +78,13 @@ serde_derive = "1.0"
 hex = "0.4"
 lazy_static = "1.4"
 x25519-dalek = "2.0"
+# TODO: Waiting on https://github.com/RustCrypto/traits/issues/1642
 rand = "0.8"
 
 [build-dependencies]
 rustc_version = "0.4"
 
 [package.metadata.docs.rs]
-features = [ "ring-resolver", "libsodium-resolver" ]
+features = ["ring-resolver", "libsodium-resolver"]
 all-features = false
 no-default-features = false
