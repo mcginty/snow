@@ -2,7 +2,7 @@
 use alloc::boxed::Box;
 
 // DH
-#[cfg(feature = "use-curve25519-dalek")]
+#[cfg(feature = "use-curve25519")]
 use curve25519_dalek::montgomery::MontgomeryPoint;
 
 // Hashes
@@ -61,7 +61,7 @@ impl CryptoResolver for DefaultResolver {
 
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>> {
         match *choice {
-            #[cfg(feature = "use-curve25519-dalek")]
+            #[cfg(feature = "use-curve25519")]
             DHChoice::Curve25519 => Some(Box::<Dh25519>::default()),
             DHChoice::Curve448 => None,
             #[cfg(feature = "p256")]
@@ -106,7 +106,7 @@ impl CryptoResolver for DefaultResolver {
 }
 
 /// Wraps x25519-dalek.
-#[cfg(feature = "use-curve25519-dalek")]
+#[cfg(feature = "use-curve25519")]
 #[derive(Default)]
 struct Dh25519 {
     privkey: [u8; 32],
@@ -179,7 +179,7 @@ struct Kyber1024 {
 
 impl Random for OsRng {}
 
-#[cfg(feature = "use-curve25519-dalek")]
+#[cfg(feature = "use-curve25519")]
 impl Dh25519 {
     fn derive_pubkey(&mut self) {
         let point = MontgomeryPoint::mul_base_clamped(self.privkey);
@@ -187,7 +187,7 @@ impl Dh25519 {
     }
 }
 
-#[cfg(feature = "use-curve25519-dalek")]
+#[cfg(feature = "use-curve25519")]
 impl Dh for Dh25519 {
     fn name(&self) -> &'static str {
         "25519"
@@ -715,7 +715,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "use-curve25519-dalek")]
+    #[cfg(feature = "use-curve25519")]
     fn test_curve25519() {
         // Curve25519 test - draft-curves-10
         let mut keypair = Dh25519::default();

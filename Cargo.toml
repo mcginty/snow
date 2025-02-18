@@ -26,7 +26,7 @@ default-resolver-crypto = [
     "use-chacha20poly1305",
     "use-blake2",
     "use-sha2",
-    "use-curve25519-dalek",
+    "use-curve25519",
 ]
 nightly = ["blake2/simd_opt", "subtle/nightly"]
 ring-resolver = ["ring", "std"]
@@ -52,7 +52,7 @@ std = [
 ]
 
 # Crypto primitives for default-resolver.
-use-curve25519-dalek = ["curve25519-dalek", "default-resolver"]
+use-curve25519 = ["curve25519-dalek", "default-resolver"]
 use-chacha20poly1305 = ["chacha20poly1305", "default-resolver"]
 use-xchacha20poly1305 = ["chacha20poly1305", "default-resolver"]
 use-blake2 = ["blake2", "default-resolver"]

@@ -62,7 +62,7 @@ extern crate alloc;
 // Make sure the user is running a supported configuration.
 #[cfg(feature = "default-resolver")]
 #[cfg(any(
-    not(any(feature = "use-curve25519-dalek")),
+    not(any(feature = "use-curve25519")),
     not(any(
         feature = "use-aes-gcm",
         feature = "use-chacha20poly1305",
