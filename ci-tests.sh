@@ -2,7 +2,7 @@
 set -e
 TARGET="$([ -n "$1" ] && echo "--target $1" || echo "")"
 
-COMMON_FEATURES="xchachapoly vector-tests"
+COMMON_FEATURES="p256 xchachapoly vector-tests"
 
 set -x
 cargo check --benches
