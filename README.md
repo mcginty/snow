@@ -65,21 +65,22 @@ crypto implementations when available.
 
 ### Resolver primitives supported
 
-|              | default | ring |
-| ----------:  | :-----: | :--: |
-|     CSPRNG   |    ✔    |  ✔   |
-|      25519   |    ✔    |  ✔   |
-|        448   |         |      |
-|      P-256*  |    ✔    |      |
-|     AESGCM   |    ✔    |  ✔   |
-| ChaChaPoly   |    ✔    |  ✔   |
-| XChaChaPoly* |    ✔    |      |
-|     SHA256   |    ✔    |  ✔   |
-|     SHA512   |    ✔    |  ✔   |
-|    BLAKE2s   |    ✔    |      |
-|    BLAKE2b   |    ✔    |      |
+|                                        | default            | ring               |
+| -------------------------------------: | :----------------: | :----------------: |
+|     CSPRNG                             | :heavy_check_mark: | :heavy_check_mark: |
+|      25519                             | :heavy_check_mark: | :heavy_check_mark: |
+|        448                             |                    |                    |
+|      P-256<sup>:checkered_flag:</sup>  | :heavy_check_mark: |                    |
+|     AESGCM                             | :heavy_check_mark: | :heavy_check_mark: |
+| ChaChaPoly                             | :heavy_check_mark: | :heavy_check_mark: |
+| XChaChaPoly<sup>:checkered_flag:</sup> | :heavy_check_mark: |                    |
+|     SHA256                             | :heavy_check_mark: | :heavy_check_mark: |
+|     SHA512                             | :heavy_check_mark: | :heavy_check_mark: |
+|    BLAKE2s                             | :heavy_check_mark: |                    |
+|    BLAKE2b                             | :heavy_check_mark: |                    |
 
-\* P-256 and XChaChaPoly are not in the official specification of Noise, and thus need to be enabled
+> [!Note]
+> :checkered_flag: P-256 and XChaChaPoly are not in the official specification of Noise, and thus need to be enabled
 via the feature flags `use-p256` and `use-xchacha20poly1305`, respectively.
 
 ## `no_std` support and feature selection
@@ -94,24 +95,25 @@ currently supports `no_std`.
 
 To use a custom setup with `default-resolver`, enable your desired selection of cryptographic primitives:
 
-|             | Primitive    | Feature flag           |
-| ---------:  | :----------- | :--------------------- |
-| **DHs**     | Curve25519   | `use-curve25519`       |
-|             | P-256*       | `use-p256`             |
-| **Ciphers** | AESGCM       | `use-aes-gcm`          |
-|             | ChaChaPoly   | `use-chacha20poly1305` |
-|             | XChaChaPoly* | `use-xchacha20poly1305`|
-| **Hashes**  | SHA256       | `use-sha2`             |
-|             | SHA512       | `use-sha2`             |
-|             | BLAKE2s      | `use-blake2`           |
-|             | BLAKE2b      | `use-blake2`           |
+|             | Primitive                              | Feature flag           |
+| ----------: | :------------------------------------- | :--------------------- |
+| **DHs**     | Curve25519                             | `use-curve25519`       |
+|             | P-256<sup>:checkered_flag:</sup>       | `use-p256`             |
+| **Ciphers** | AES-GCM                                | `use-aes-gcm`          |
+|             | ChaChaPoly                             | `use-chacha20poly1305` |
+|             | XChaChaPoly<sup>:checkered_flag:</sup> | `use-xchacha20poly1305`|
+| **Hashes**  | SHA-256                                | `use-sha2`             |
+|             | SHA-512                                | `use-sha2`             |
+|             | BLAKE2s                                | `use-blake2`           |
+|             | BLAKE2b                                | `use-blake2`           |
 
-\* XChaChaPoly and P-256 are not in the official specification of Noise, but they are supported
+> [!Note]
+> :checkered_flag: XChaChaPoly and P-256 are not in the official specification of Noise, but they are supported
 by Snow.
 
 ### Example configurations
 
-**25519 + AES-GCM + SHA** with standard library features.
+**Curve25519 + AES-GCM + SHA-2** with standard library features.
 ```toml
 default-features = false
 features = [
@@ -122,7 +124,7 @@ features = [
 ]
 ```
 
-**25519 + ChaChaPoly + BLAKE2** without standard library.
+**Curve25519 + ChaChaPoly + BLAKE2** without standard library.
 ```toml
 default-features = false
 features = [
