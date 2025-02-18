@@ -82,7 +82,7 @@ crypto implementations when available.
 
 Snow can be used in `no_std` environments if `alloc` is provided.
 
-By default Snow uses the standard library, default cyprot resolver and a selected collection 
+By default, Snow uses the standard library, default crypto resolver and a selected collection 
 of crypto primitives. To use Snow in `no_std` environments or make other kinds of customized 
 setups, use Snow with `default-features = false`. This way you will individually select 
 the components you wish to use. `default-resolver` is the only built-in resolver that 

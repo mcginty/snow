@@ -144,12 +144,14 @@ struct CipherXChaChaPoly {
 
 /// Wraps `RustCrypto`'s SHA-256 implementation.
 #[cfg(feature = "use-sha2")]
+#[derive(Default)]
 struct HashSHA256 {
     hasher: Sha256,
 }
 
 /// Wraps `RustCrypto`'s SHA-512 implementation.
 #[cfg(feature = "use-sha2")]
+#[derive(Default)]
 struct HashSHA512 {
     hasher: Sha512,
 }
@@ -450,13 +452,6 @@ impl Cipher for CipherXChaChaPoly {
 }
 
 #[cfg(feature = "use-sha2")]
-impl Default for HashSHA256 {
-    fn default() -> HashSHA256 {
-        HashSHA256 { hasher: Sha256::new() }
-    }
-}
-
-#[cfg(feature = "use-sha2")]
 impl Hash for HashSHA256 {
     fn block_len(&self) -> usize {
         64
@@ -471,7 +466,7 @@ impl Hash for HashSHA256 {
     }
 
     fn reset(&mut self) {
-        self.hasher = Sha256::new();
+        self.hasher = Sha256::default();
     }
 
     fn input(&mut self, data: &[u8]) {
@@ -481,13 +476,6 @@ impl Hash for HashSHA256 {
     fn result(&mut self, out: &mut [u8]) {
         let hash = self.hasher.finalize_reset();
         copy_slices!(hash.as_slice(), out);
-    }
-}
-
-#[cfg(feature = "use-sha2")]
-impl Default for HashSHA512 {
-    fn default() -> HashSHA512 {
-        HashSHA512 { hasher: Sha512::new() }
     }
 }
 
@@ -506,7 +494,7 @@ impl Hash for HashSHA512 {
     }
 
     fn reset(&mut self) {
-        self.hasher = Sha512::new();
+        self.hasher = Sha512::default();
     }
 
     fn input(&mut self, data: &[u8]) {
