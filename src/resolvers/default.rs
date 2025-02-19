@@ -937,7 +937,7 @@ mod tests {
         kem_1.generate(&mut rng);
         let (ss1_len, ct_len) =
             kem_2.encapsulate(kem_1.pubkey(), &mut shared_secret_1, &mut ciphertext).unwrap();
-        let ss2_len = kem_1.decapsulate(&mut ciphertext, &mut shared_secret_2).unwrap();
+        let ss2_len = kem_1.decapsulate(&ciphertext, &mut shared_secret_2).unwrap();
 
         assert_eq!(shared_secret_1, shared_secret_2);
         assert_eq!(ss1_len, shared_secret_1.len());
@@ -961,7 +961,7 @@ mod tests {
         kem_1.generate(&mut rng);
         let (ss1_len, ct_len) =
             kem_2.encapsulate(kem_1.pubkey(), &mut shared_secret_1, &mut ciphertext).unwrap();
-        let ss2_len = kem_1.decapsulate(&mut bad_ciphertext, &mut shared_secret_2).unwrap();
+        let ss2_len = kem_1.decapsulate(&bad_ciphertext, &mut shared_secret_2).unwrap();
 
         assert_ne!(shared_secret_1, shared_secret_2);
         assert_eq!(ss1_len, shared_secret_1.len());

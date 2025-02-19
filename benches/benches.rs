@@ -1,3 +1,4 @@
+#![allow(clippy::shadow_reuse)]
 #[macro_use]
 extern crate criterion;
 
@@ -76,7 +77,7 @@ fn benchmarks(c: &mut Criterion) {
     handshake_group.finish();
 
     let mut transport_group = c.benchmark_group("transport");
-    transport_group.throughput(Throughput::Bytes(MSG_SIZE as u64 * 2));
+    transport_group.throughput(Throughput::Bytes(u64::try_from(MSG_SIZE * 2).unwrap()));
     if cfg!(feature = "ring-accelerated") {
         transport_group.bench_function("AESGCM_SHA256 throughput", |b| {
             static PATTERN: &str = "Noise_NN_25519_AESGCM_SHA256";

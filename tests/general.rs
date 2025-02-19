@@ -1,6 +1,7 @@
 #![cfg(feature = "std")]
 #![cfg(any(feature = "default-resolver-crypto", feature = "ring-accelerated"))]
 #![allow(clippy::needless_range_loop)]
+#![allow(clippy::shadow_reuse)]
 #![allow(non_snake_case)]
 
 use hex::FromHex;
@@ -19,9 +20,8 @@ type TestResult = Result<(), Box<dyn core::error::Error>>;
 struct CountingRng(u64);
 
 impl RngCore for CountingRng {
-    #[allow(clippy::cast_possible_truncation)]
     fn next_u32(&mut self) -> u32 {
-        self.next_u64() as u32
+        u32::try_from(self.next_u64()).expect("u32 should be plenty")
     }
 
     fn next_u64(&mut self) -> u64 {
@@ -45,8 +45,8 @@ impl Random for CountingRng {}
 #[allow(clippy::cast_possible_truncation)]
 fn get_inc_key(start: u8) -> [u8; 32] {
     let mut k = [0_u8; 32];
-    for i in 0..32 {
-        k[i] = start + i as u8;
+    for i in 0_u8..32 {
+        k[usize::from(i)] = start + i;
     }
     k
 }
@@ -54,7 +54,7 @@ fn get_inc_key(start: u8) -> [u8; 32] {
 #[allow(unused)]
 struct TestResolver {
     next_byte: u8,
-    parent:    DefaultResolver,
+    parent: DefaultResolver,
 }
 
 #[allow(unused)]
@@ -500,8 +500,8 @@ fn test_handshake_message_exceeds_max_len() -> TestResult {
     let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse()?;
     let mut h_i = Builder::new(params).build_initiator()?;
 
-    let mut buffer_out = [0_u8; 65535 * 2];
-    assert!(h_i.write_message(&[0_u8; 65530], &mut buffer_out).is_err());
+    let mut buffer_out = vec![0_u8; 65535 * 2].into_boxed_slice();
+    assert!(h_i.write_message(&vec![0_u8; 65530].into_boxed_slice(), &mut buffer_out).is_err());
     Ok(())
 }
 
@@ -521,8 +521,8 @@ fn test_handshake_message_receive_oversized_message() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0_u8; 100_000];
-    let mut buffer_out = [0_u8; 100_000];
+    let mut buffer_msg = vec![0_u8; 100_000].into_boxed_slice();
+    let mut buffer_out = vec![0_u8; 100_000].into_boxed_slice();
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     assert_eq!(Error::Input, h_r.read_message(&buffer_msg, &mut buffer_out).unwrap_err());
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
@@ -550,10 +550,10 @@ fn test_transport_message_exceeds_max_len() -> TestResult {
     let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse()?;
     let mut noise = Builder::new(params).remote_public_key(&[1_u8; 32])?.build_initiator()?;
 
-    let mut buffer_out = [0_u8; 65535 * 2];
+    let mut buffer_out = vec![0_u8; 65535 * 2].into_boxed_slice();
     noise.write_message(&[0_u8; 0], &mut buffer_out)?;
     let mut noise = noise.into_transport_mode()?;
-    assert!(noise.write_message(&[0_u8; 65534], &mut buffer_out).is_err());
+    assert!(noise.write_message(&vec![0_u8; 65534].into_boxed_slice(), &mut buffer_out).is_err());
     Ok(())
 }
 
@@ -590,8 +590,8 @@ fn test_oneway_responder_enforcements() -> TestResult {
     let mut resp = resp_builder.local_private_key(&rpk.private)?.build_responder()?;
     let mut init = Builder::new(params).remote_public_key(&rpk.public)?.build_initiator()?;
 
-    let mut buffer_resp = [0_u8; 65535];
-    let mut buffer_init = [0_u8; 65535];
+    let mut buffer_resp = vec![0_u8; 65535].into_boxed_slice();
+    let mut buffer_init = vec![0_u8; 65535].into_boxed_slice();
     let len = init.write_message(&[0_u8; 0], &mut buffer_init)?;
     resp.read_message(&buffer_init[..len], &mut buffer_resp)?;
     let mut init = init.into_transport_mode()?;
@@ -632,8 +632,8 @@ fn test_read_buffer_issues() -> TestResult {
         .remote_public_key(&keypair_r.public)?
         .build_initiator()?;
 
-    let mut buffer_msg = [0_u8; 65535];
-    let mut buffer_out = [0_u8; 65535];
+    let mut buffer_msg = vec![0_u8; 65535].into_boxed_slice();
+    let mut buffer_out = vec![0_u8; 65535].into_boxed_slice();
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     let res = h_r.read_message(&buffer_msg[..len], &mut buffer_out);
 

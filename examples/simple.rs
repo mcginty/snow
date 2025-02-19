@@ -64,10 +64,10 @@ fn run_server() {
     noise.read_message(&recv(&mut stream).unwrap(), &mut buf).unwrap();
 
     // Transition the state machine into transport mode now that the handshake is complete.
-    let mut noise = noise.into_transport_mode().unwrap();
+    let mut transport = noise.into_transport_mode().unwrap();
 
     while let Ok(msg) = recv(&mut stream) {
-        let len = noise.read_message(&msg, &mut buf).unwrap();
+        let len = transport.read_message(&msg, &mut buf).unwrap();
         println!("client said: {}", String::from_utf8_lossy(&buf[..len]));
     }
     println!("connection closed.");
@@ -103,12 +103,12 @@ fn run_client() {
     let len = noise.write_message(&[], &mut buf).unwrap();
     send(&mut stream, &buf[..len]);
 
-    let mut noise = noise.into_transport_mode().unwrap();
+    let mut transport = noise.into_transport_mode().unwrap();
     println!("session established...");
 
     // Get to the important business of sending secured data.
     for _ in 0..10 {
-        let len = noise.write_message(b"HACK THE PLANET", &mut buf).unwrap();
+        let len = transport.write_message(b"HACK THE PLANET", &mut buf).unwrap();
         send(&mut stream, &buf[..len]);
     }
     println!("notified server of intent to hack planet.");
