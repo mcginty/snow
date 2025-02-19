@@ -31,8 +31,6 @@ default-resolver-crypto = [
 nightly = ["blake2/simd_opt", "subtle/nightly"]
 ring-resolver = ["ring", "std"]
 ring-accelerated = ["ring-resolver", "default-resolver", "std"]
-libsodium-resolver = ["sodiumoxide", "byteorder", "std"]
-libsodium-accelerated = ["libsodium-resolver", "default-resolver", "std"]
 vector-tests = []
 hfs = []
 risky-raw-split = []
@@ -95,8 +93,6 @@ pqcrypto-traits = { version = "0.3", optional = true }
 
 # ring crypto provider
 ring = { version = "0.17", optional = true }
-# libsodium crypto provider
-sodiumoxide = { version = "0.2", optional = true, default-features = false }
 byteorder = { version = "1.4", optional = true, default-features = false }
 
 [dev-dependencies]
@@ -114,7 +110,7 @@ rand = "0.8"
 rustc_version = "0.4"
 
 [package.metadata.docs.rs]
-features = ["ring-resolver", "libsodium-resolver"]
+features = ["ring-resolver"]
 all-features = false
 no-default-features = false
 

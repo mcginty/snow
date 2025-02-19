@@ -6,9 +6,6 @@ use alloc::boxed::Box;
 /// The default primitive resolver.
 #[cfg(feature = "default-resolver")]
 mod default;
-/// A libsodium primitive resolver.
-#[cfg(feature = "libsodium-resolver")]
-mod libsodium;
 /// A ring primitive resolver.
 #[cfg(feature = "ring-resolver")]
 mod ring;
@@ -24,8 +21,6 @@ use crate::{
 
 #[cfg(feature = "default-resolver")]
 pub use self::default::DefaultResolver;
-#[cfg(feature = "libsodium-resolver")]
-pub use self::libsodium::SodiumResolver;
 #[cfg(feature = "ring-resolver")]
 pub use self::ring::RingResolver;
 
@@ -58,12 +53,13 @@ pub trait CryptoResolver {
 /// a given primitive.
 pub struct FallbackResolver {
     preferred: BoxedCryptoResolver,
-    fallback:  BoxedCryptoResolver,
+    fallback: BoxedCryptoResolver,
 }
 
 impl FallbackResolver {
     /// Create a new `FallbackResolver` that holds the primary and secondary resolver.
-    #[must_use] pub fn new(preferred: BoxedCryptoResolver, fallback: BoxedCryptoResolver) -> Self {
+    #[must_use]
+    pub fn new(preferred: BoxedCryptoResolver, fallback: BoxedCryptoResolver) -> Self {
         Self { preferred, fallback }
     }
 }

@@ -17,5 +17,3 @@ cargo test $TARGET --no-default-features --features "default-resolver use-curve2
 cargo test $TARGET --no-default-features --features "default-resolver use-curve25519 use-sha2 use-chacha20poly1305"
 cargo test $TARGET --features "ring-resolver $COMMON_FEATURES"
 cargo test $TARGET --features "ring-accelerated $COMMON_FEATURES"
-cargo test $TARGET --features "libsodium-resolver $COMMON_FEATURES"
-cargo test $TARGET --features "libsodium-accelerated $COMMON_FEATURES"
