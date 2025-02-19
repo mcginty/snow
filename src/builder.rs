@@ -26,7 +26,7 @@ pub struct Keypair {
     /// The private asymmetric key
     pub private: Vec<u8>,
     /// The public asymmetric key
-    pub public:  Vec<u8>,
+    pub public: Vec<u8>,
 }
 
 impl PartialEq for Keypair {
@@ -58,13 +58,13 @@ impl PartialEq for Keypair {
 /// # }
 /// ```
 pub struct Builder<'builder> {
-    params:   NoiseParams,
+    params: NoiseParams,
     resolver: BoxedCryptoResolver,
-    s:        Option<&'builder [u8]>,
-    e_fixed:  Option<&'builder [u8]>,
-    rs:       Option<&'builder [u8]>,
-    psks:     [Option<&'builder [u8; 32]>; MAX_PSKS],
-    plog:     Option<&'builder [u8]>,
+    s: Option<&'builder [u8]>,
+    e_fixed: Option<&'builder [u8]>,
+    rs: Option<&'builder [u8]>,
+    psks: [Option<&'builder [u8; 32]>; MAX_PSKS],
+    plog: Option<&'builder [u8]>,
 }
 
 impl Debug for Builder<'_> {
@@ -121,7 +121,7 @@ impl<'builder> Builder<'builder> {
     ///   allowed.
     /// * `InitError(InitStage::ParameterOverwrite)` if this method has been called previously.
     pub fn psk(mut self, location: u8, key: &'builder [u8; PSKLEN]) -> Result<Self, Error> {
-        let location = location as usize;
+        let location = usize::from(location);
         if location >= MAX_PSKS {
             Err(InitStage::ValidatePskPosition.into())
         } else if self.psks[location].is_some() {
@@ -319,7 +319,6 @@ impl<'builder> Builder<'builder> {
         Ok(())
     }
 }
-
 
 #[cfg(test)]
 #[cfg(all(

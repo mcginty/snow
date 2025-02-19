@@ -124,3 +124,4 @@ unsafe_code = "forbid"
 [lints.clippy]
 unseparated_literal_suffix = "warn"
 std_instead_of_core = "warn"
+as_conversions = "warn"

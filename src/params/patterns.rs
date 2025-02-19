@@ -289,7 +289,7 @@ pub(crate) type MessagePatterns = Vec<Vec<Token>>;
 pub(crate) struct HandshakeTokens {
     pub premsg_pattern_i: PremessagePatterns,
     pub premsg_pattern_r: PremessagePatterns,
-    pub msg_patterns:     MessagePatterns,
+    pub msg_patterns: MessagePatterns,
 }
 
 use self::{DhToken::*, HandshakePattern::*, Token::*};
@@ -514,7 +514,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
         Ok(HandshakeTokens {
             premsg_pattern_i: patterns.0,
             premsg_pattern_r: patterns.1,
-            msg_patterns:     patterns.2,
+            msg_patterns: patterns.2,
         })
     }
 }
@@ -536,7 +536,7 @@ fn check_hfs_and_oneway_conflict(handshake: &HandshakeChoice) -> Result<(), Erro
 fn apply_psk_modifier(patterns: &mut Patterns, n: u8) -> Result<(), Error> {
     let tokens = patterns
         .2
-        .get_mut((n as usize).saturating_sub(1))
+        .get_mut(usize::from(n).saturating_sub(1))
         .ok_or(Error::Pattern(PatternProblem::InvalidPsk))?;
     if n == 0 {
         tokens.insert(0, Token::Psk(n));
