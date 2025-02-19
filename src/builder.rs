@@ -121,13 +121,13 @@ impl<'builder> Builder<'builder> {
     ///   allowed.
     /// * `InitError(InitStage::ParameterOverwrite)` if this method has been called previously.
     pub fn psk(mut self, location: u8, key: &'builder [u8; PSKLEN]) -> Result<Self, Error> {
-        let location = usize::from(location);
-        if location >= MAX_PSKS {
+        let index = usize::from(location);
+        if index >= MAX_PSKS {
             Err(InitStage::ValidatePskPosition.into())
-        } else if self.psks[location].is_some() {
+        } else if self.psks[index].is_some() {
             Err(InitStage::ParameterOverwrite.into())
         } else {
-            self.psks[location] = Some(key);
+            self.psks[index] = Some(key);
             Ok(self)
         }
     }
