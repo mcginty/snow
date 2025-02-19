@@ -262,14 +262,14 @@ impl Dh for P256 {
     }
 
     fn set(&mut self, privkey: &[u8]) {
-        let mut bytes = [0u8; 32];
+        let mut bytes = [0_u8; 32];
         copy_slices!(privkey, bytes);
         self.privkey = bytes;
         self.derive_pubkey();
     }
 
     fn generate(&mut self, rng: &mut dyn Random) {
-        let mut bytes = [0u8; 32];
+        let mut bytes = [0_u8; 32];
         rng.fill_bytes(&mut bytes);
         self.privkey = bytes;
         self.derive_pubkey();
@@ -286,9 +286,9 @@ impl Dh for P256 {
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error> {
         let secret_key = p256::SecretKey::from_bytes(&self.privkey.into()).or(Err(Error::Dh))?;
         let secret_key_scalar = secret_key.to_nonzero_scalar();
-        let pub_key: p256::elliptic_curve::PublicKey<p256::NistP256> =
-            p256::PublicKey::from_sec1_bytes(&pubkey).or(Err(Error::Dh))?;
-        let dh_output = p256::ecdh::diffie_hellman(secret_key_scalar, pub_key.as_affine());
+        let public_key: p256::elliptic_curve::PublicKey<p256::NistP256> =
+            p256::PublicKey::from_sec1_bytes(pubkey).or(Err(Error::Dh))?;
+        let dh_output = p256::ecdh::diffie_hellman(secret_key_scalar, public_key.as_affine());
         copy_slices!(dh_output.raw_secret_bytes(), out);
         Ok(())
     }
@@ -411,7 +411,7 @@ impl Cipher for CipherXChaChaPoly {
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
-        let mut nonce_bytes = [0u8; 24];
+        let mut nonce_bytes = [0_u8; 24];
         copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[16..]);
 
         copy_slices!(plaintext, out);
@@ -432,7 +432,7 @@ impl Cipher for CipherXChaChaPoly {
         ciphertext: &[u8],
         out: &mut [u8],
     ) -> Result<usize, Error> {
-        let mut nonce_bytes = [0u8; 24];
+        let mut nonce_bytes = [0_u8; 24];
         copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[16..]);
 
         let message_len = ciphertext.len() - TAGLEN;
@@ -751,7 +751,7 @@ mod tests {
                 56FBF3CA366CC23E8157854C13C58D6AAC23F046ADA30F8353E74F33039872AB",
         )
         .unwrap();
-        let mut output = [0u8; 32];
+        let mut output = [0_u8; 32];
         keypair.dh(&public, &mut output).unwrap();
         assert_eq!(
             hex::encode(output),
@@ -848,20 +848,20 @@ mod tests {
     #[cfg(feature = "use-xchacha20poly1305")]
     fn test_xchachapoly_nonempty() {
         //XChaChaPoly round-trip test, non-empty plaintext
-        let key = [0u8; 32];
-        let nonce = 0u64;
-        let plaintext = [0x34u8; 117];
-        let authtext = [0u8; 0];
-        let mut ciphertext = [0u8; 133];
+        let key = [0_u8; 32];
+        let nonce = 0_u64;
+        let plaintext = [0x34_u8; 117];
+        let authtext = [0_u8; 0];
+        let mut ciphertext = [0_u8; 133];
         let mut cipher1 = CipherXChaChaPoly::default();
         cipher1.set(&key);
         cipher1.encrypt(nonce, &authtext, &plaintext, &mut ciphertext);
 
-        let mut resulttext = [0u8; 117];
+        let mut resulttext = [0_u8; 117];
         let mut cipher2 = CipherXChaChaPoly::default();
         cipher2.set(&key);
         cipher2.decrypt(nonce, &authtext, &ciphertext, &mut resulttext).unwrap();
-        assert!(hex::encode(resulttext.to_vec()) == hex::encode(plaintext.to_vec()));
+        assert!(hex::encode(resulttext) == hex::encode(plaintext));
     }
 
     #[test]
