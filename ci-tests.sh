@@ -6,6 +6,7 @@ COMMON_FEATURES="p256 xchachapoly vector-tests"
 
 set -x
 cargo check --benches --tests --examples
+cargo clippy --features "$COMMON_FEATURES"
 cargo test $TARGET --no-default-features
 # Custom set of crypto without std
 cargo test $TARGET --no-default-features --features "default-resolver use-curve25519 use-blake2 use-chacha20poly1305"

@@ -183,15 +183,21 @@ pub trait Kem: Send + Sync {
     fn pubkey(&self) -> &[u8];
 
     /// Generate a shared secret and encapsulate it using this Kem.
-    #[must_use]
+    ///
+    /// # Errors
+    /// Returns `Error::Kem` if the public key is invalid.
+    #[must_use = "returned value includes needed length values for output slices"]
     fn encapsulate(
         &self,
         pubkey: &[u8],
         shared_secret_out: &mut [u8],
         ciphertext_out: &mut [u8],
-    ) -> Result<(usize, usize), ()>;
+    ) -> Result<(usize, usize), Error>;
 
     /// Decapsulate a ciphertext producing a shared secret.
-    #[must_use]
-    fn decapsulate(&self, ciphertext: &[u8], shared_secret_out: &mut [u8]) -> Result<usize, ()>;
+    ///
+    /// # Errors
+    /// Returns `Error::Kem` if the ciphertext is invalid.
+    #[must_use = "returned value includes needed length value for output slice"]
+    fn decapsulate(&self, ciphertext: &[u8], shared_secret_out: &mut [u8]) -> Result<usize, Error>;
 }

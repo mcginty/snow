@@ -193,7 +193,7 @@ impl NoiseParams {
 
     #[cfg(feature = "hfs")]
     /// Construct a new NoiseParams via specifying enums directly.
-    pub fn new(
+    #[must_use] pub fn new(
         name: String,
         base: BaseChoice,
         handshake: HandshakeChoice,
@@ -235,17 +235,14 @@ impl FromStr for NoiseParams {
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
             split
                 .peek()
-                .ok_or(PatternProblem::TooFewParameters)?
-                .splitn(2, '+')
+                .ok_or(PatternProblem::TooFewParameters)?.split('+')
                 .nth(0)
                 .ok_or(PatternProblem::TooFewParameters)?
                 .parse()?,
             split
                 .next()
-                .ok_or(PatternProblem::TooFewParameters)?
-                .splitn(2, '+')
-                .nth(1)
-                .map(|s| s.parse())
+                .ok_or(PatternProblem::TooFewParameters)?.split_once('+').map(|x| x.1)
+                .map(str::parse)
                 .transpose()?,
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,

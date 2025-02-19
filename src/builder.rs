@@ -298,12 +298,14 @@ impl<'builder> Builder<'builder> {
 
     #[cfg(not(feature = "hfs"))]
     #[allow(clippy::unnecessary_wraps)]
+    #[allow(clippy::needless_pass_by_value)]
     fn resolve_kem(_: Box<dyn CryptoResolver>, _: &mut HandshakeState) -> Result<(), Error> {
         // HFS is disabled, return nothing
         Ok(())
     }
 
     #[cfg(feature = "hfs")]
+    #[allow(clippy::needless_pass_by_value)]
     fn resolve_kem(
         resolver: Box<dyn CryptoResolver>,
         hs: &mut HandshakeState,

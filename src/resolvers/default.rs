@@ -580,22 +580,18 @@ impl Kem for Kyber1024 {
         "Kyber1024"
     }
 
-    /// The length in bytes of a public key for this primitive.
     fn pub_len(&self) -> usize {
         kyber1024::public_key_bytes()
     }
 
-    /// The length in bytes the Kem cipherthext for this primitive.
     fn ciphertext_len(&self) -> usize {
         kyber1024::ciphertext_bytes()
     }
 
-    /// Shared secret length in bytes that this Kem encapsulates.
     fn shared_secret_len(&self) -> usize {
         kyber1024::shared_secret_bytes()
     }
 
-    /// Generate a new private key.
     fn generate(&mut self, _rng: &mut dyn Random) {
         // PQClean uses their own random generator
         let (pk, sk) = kyber1024::keypair();
@@ -603,31 +599,27 @@ impl Kem for Kyber1024 {
         self.privkey = sk;
     }
 
-    /// Get the public key.
     fn pubkey(&self) -> &[u8] {
         self.pubkey.as_bytes()
     }
 
-    /// Generate a shared secret and encapsulate it using this Kem.
-    #[must_use]
     fn encapsulate(
         &self,
         pubkey: &[u8],
         shared_secret_out: &mut [u8],
         ciphertext_out: &mut [u8],
-    ) -> Result<(usize, usize), ()> {
-        let pubkey = kyber1024::PublicKey::from_bytes(pubkey).map_err(|_| ())?;
-        let (shared_secret, ciphertext) = kyber1024::encapsulate(&pubkey);
+    ) -> Result<(usize, usize), Error> {
+        let public_key = kyber1024::PublicKey::from_bytes(pubkey).map_err(|_| Error::Kem)?;
+        let (shared_secret, ciphertext) = kyber1024::encapsulate(&public_key);
         shared_secret_out.copy_from_slice(shared_secret.as_bytes());
         ciphertext_out.copy_from_slice(ciphertext.as_bytes());
         Ok((shared_secret.as_bytes().len(), ciphertext.as_bytes().len()))
     }
 
-    /// Decapsulate a ciphertext producing a shared secret.
-    #[must_use]
-    fn decapsulate(&self, ciphertext: &[u8], shared_secret_out: &mut [u8]) -> Result<usize, ()> {
-        let ciphertext = kyber1024::Ciphertext::from_bytes(ciphertext).map_err(|_| ())?;
-        let shared_secret = kyber1024::decapsulate(&ciphertext, &self.privkey);
+    fn decapsulate(&self, ciphertext: &[u8], shared_secret_out: &mut [u8]) -> Result<usize, Error> {
+        let kyber_ciphertext =
+            kyber1024::Ciphertext::from_bytes(ciphertext).map_err(|_| Error::Kem)?;
+        let shared_secret = kyber1024::decapsulate(&kyber_ciphertext, &self.privkey);
         shared_secret_out.copy_from_slice(shared_secret.as_bytes());
         Ok(shared_secret.as_bytes().len())
     }
@@ -934,7 +926,7 @@ mod tests {
     #[test]
     #[cfg(feature = "use-pqcrypto-kyber1024")]
     fn test_kyber1024() {
-        let mut rng = OsRng::default();
+        let mut rng = OsRng;
         let mut kem_1 = Kyber1024::default();
         let kem_2 = Kyber1024::default();
 
@@ -957,7 +949,7 @@ mod tests {
     #[test]
     #[cfg(feature = "use-pqcrypto-kyber1024")]
     fn test_kyber1024_fail() {
-        let mut rng = OsRng::default();
+        let mut rng = OsRng;
         let mut kem_1 = Kyber1024::default();
         let kem_2 = Kyber1024::default();
 

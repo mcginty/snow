@@ -432,7 +432,7 @@ impl HandshakeState {
                     self.symmetricstate.decrypt_and_mix_hash(&ptr[..read_len], ciphertext)?;
                     let mut kem_output_buf = [0; MAXKEMSSLEN];
                     let kem_output = &mut kem_output_buf[..kem.shared_secret_len()];
-                    kem.decapsulate(ciphertext, kem_output).map_err(|_| Error::Kem)?;
+                    kem.decapsulate(ciphertext, kem_output)?;
                     self.symmetricstate.mix_key(&kem_output[..kem.shared_secret_len()]);
                     ptr = &ptr[read_len..];
                 },

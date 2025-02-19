@@ -102,11 +102,8 @@ pub(crate) enum Token {
 
 #[cfg(feature = "hfs")]
 impl Token {
-    fn is_dh(&self) -> bool {
-        match *self {
-            Dh(_) => true,
-            _ => false,
-        }
+    fn is_dh(self) -> bool {
+        matches!(self, Dh(_))
     }
 }
 
@@ -250,6 +247,7 @@ impl HandshakeChoice {
 
     /// Whether the handshake choice includes the hfs modifier.
     #[cfg(feature = "hfs")]
+    #[must_use]
     pub fn is_hfs(&self) -> bool {
         self.modifiers.list.contains(&HandshakeModifier::Hfs)
     }
@@ -526,7 +524,7 @@ impl<'a> TryFrom<&'a HandshakeChoice> for HandshakeTokens {
 /// if `handshake` is invalid because of this. Otherwise it will return `()`.
 fn check_hfs_and_oneway_conflict(handshake: &HandshakeChoice) -> Result<(), Error> {
     if handshake.is_hfs() && handshake.pattern.is_oneway() {
-        return Err(PatternProblem::UnsupportedModifier.into());
+        Err(PatternProblem::UnsupportedModifier.into())
     } else {
         Ok(())
     }
@@ -560,9 +558,9 @@ fn apply_hfs_modifier(patterns: &mut Patterns) {
 
     // Add the e1 token
     let mut e1_insert_idx = None;
-    for msg in patterns.2.iter_mut() {
+    for msg in &mut patterns.2 {
         if let Some(e_idx) = msg.iter().position(|x| *x == Token::E) {
-            if let Some(dh_idx) = msg.iter().position(|x| x.is_dh()) {
+            if let Some(dh_idx) = msg.iter().copied().position(Token::is_dh) {
                 e1_insert_idx = Some(dh_idx + 1);
             } else {
                 e1_insert_idx = Some(e_idx + 1);
@@ -575,12 +573,12 @@ fn apply_hfs_modifier(patterns: &mut Patterns) {
     }
 
     // Add the ekem1 token
-    let mut ee_insert_idx = None;
-    for msg in patterns.2.iter_mut() {
+    let mut ekem1_insert_idx = None;
+    for msg in &mut patterns.2 {
         if let Some(ee_idx) = msg.iter().position(|x| *x == Token::Dh(Ee)) {
-            ee_insert_idx = Some(ee_idx + 1)
+            ekem1_insert_idx = Some(ee_idx + 1);
         }
-        if let Some(idx) = ee_insert_idx {
+        if let Some(idx) = ekem1_insert_idx {
             msg.insert(idx, Token::Ekem1);
             break;
         }
@@ -589,7 +587,7 @@ fn apply_hfs_modifier(patterns: &mut Patterns) {
     // This should not be possible, because the caller verified that the
     // HandshakePattern is not one-way.
     assert!(
-        !(e1_insert_idx.is_some() ^ ee_insert_idx.is_some()),
+        !(e1_insert_idx.is_some() ^ ekem1_insert_idx.is_some()),
         "handshake messages contain one of the ['e1', 'ekem1'] tokens, but not the other",
     );
 }

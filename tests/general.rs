@@ -272,8 +272,8 @@ fn test_NNhfs_sanity_session() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 4096];
-    let mut buffer_out = [0u8; 4096];
+    let mut buffer_msg = [0_u8; 4096];
+    let mut buffer_out = [0_u8; 4096];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
