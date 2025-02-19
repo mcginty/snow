@@ -128,3 +128,7 @@ as_conversions = "warn"
 shadow_reuse = "warn"
 missing_asserts_for_indexing = "warn"
 missing_assert_message = "warn"
+
+pedantic = { level = "warn", priority = -1 }
+doc_markdown = "allow"
+used_underscore_items = "allow"
