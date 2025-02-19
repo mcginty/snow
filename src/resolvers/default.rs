@@ -225,6 +225,7 @@ impl Dh for Dh25519 {
 
     fn dh(&self, pubkey: &[u8], out: &mut [u8]) -> Result<(), Error> {
         let mut pubkey_owned = [0_u8; CIPHERKEYLEN];
+        assert!(pubkey.len() >= 32, "invalid public key length passed into dh function");
         copy_slices!(&pubkey[..32], pubkey_owned);
         let result = MontgomeryPoint(pubkey_owned).mul_clamped(self.privkey).to_bytes();
         copy_slices!(result, out);

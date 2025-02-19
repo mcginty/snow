@@ -72,7 +72,7 @@ pub trait Cipher: Send + Sync {
     fn rekey(&mut self) {
         let mut ciphertext = [0; CIPHERKEYLEN + TAGLEN];
         let ciphertext_len = self.encrypt(u64::MAX, &[], &[0; CIPHERKEYLEN], &mut ciphertext);
-        assert_eq!(ciphertext_len, ciphertext.len());
+        assert_eq!(ciphertext_len, ciphertext.len(), "unexpected ciphertext length for rekey");
 
         // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
         let mut key = [0_u8; CIPHERKEYLEN];
@@ -106,7 +106,7 @@ pub trait Hash: Send + Sync {
     ///
     /// NOTE: This method clobbers the existing internal state
     fn hmac(&mut self, key: &[u8], data: &[u8], out: &mut [u8]) {
-        assert!(key.len() <= self.block_len());
+        assert!(key.len() <= self.block_len(), "unexpectedly large key length for hmac");
         let block_len = self.block_len();
         let hash_len = self.hash_len();
         let mut ipad = [0x36_u8; MAXBLOCKLEN];
