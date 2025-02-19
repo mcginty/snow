@@ -117,3 +117,9 @@ rustc_version = "0.4"
 features = ["ring-resolver", "libsodium-resolver"]
 all-features = false
 no-default-features = false
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unseparated_literal_suffix = "warn"

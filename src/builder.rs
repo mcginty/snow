@@ -67,7 +67,7 @@ pub struct Builder<'builder> {
     plog:     Option<&'builder [u8]>,
 }
 
-impl<'builder> Debug for Builder<'builder> {
+impl Debug for Builder<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Builder").field("params", &self.params.name).finish_non_exhaustive()
     }
@@ -191,8 +191,8 @@ impl<'builder> Builder<'builder> {
     pub fn generate_keypair(&self) -> Result<Keypair, Error> {
         let mut rng = self.resolver.resolve_rng().ok_or(InitStage::GetRngImpl)?;
         let mut dh = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
-        let mut private = vec![0u8; dh.priv_len()];
-        let mut public = vec![0u8; dh.pub_len()];
+        let mut private = vec![0_u8; dh.priv_len()];
+        let mut public = vec![0_u8; dh.pub_len()];
         dh.generate(&mut *rng);
 
         private.copy_from_slice(dh.privkey());
@@ -254,7 +254,7 @@ impl<'builder> Builder<'builder> {
         }
         let e = Toggle::off(e_dh);
 
-        let mut rs_buf = [0u8; MAXDHLEN];
+        let mut rs_buf = [0_u8; MAXDHLEN];
         let rs = match self.rs {
             Some(v) => {
                 rs_buf[..v.len()].copy_from_slice(v);
@@ -263,7 +263,7 @@ impl<'builder> Builder<'builder> {
             None => Toggle::off(rs_buf),
         };
 
-        let re = Toggle::off([0u8; MAXDHLEN]);
+        let re = Toggle::off([0_u8; MAXDHLEN]);
 
         let mut psks = [None::<[u8; PSKLEN]>; 10];
         for (i, psk) in self.psks.iter().enumerate() {
@@ -271,7 +271,7 @@ impl<'builder> Builder<'builder> {
                 if key.len() != PSKLEN {
                     return Err(InitStage::ValidatePskLengths.into());
                 }
-                let mut k = [0u8; PSKLEN];
+                let mut k = [0_u8; PSKLEN];
                 k.copy_from_slice(key);
                 psks[i] = Some(k);
             }
@@ -334,7 +334,7 @@ mod tests {
     fn test_builder() -> TestResult {
         let _noise = Builder::new("Noise_NN_25519_ChaChaPoly_SHA256".parse()?)
             .prologue(&[2, 2, 2, 2, 2, 2, 2, 2])?
-            .local_private_key(&[0u8; 32])?
+            .local_private_key(&[0_u8; 32])?
             .build_initiator()?;
         Ok(())
     }
@@ -360,7 +360,7 @@ mod tests {
     fn test_builder_missing_prereqs() -> TestResult {
         let noise = Builder::new("Noise_NK_25519_ChaChaPoly_SHA256".parse()?)
             .prologue(&[2, 2, 2, 2, 2, 2, 2, 2])?
-            .local_private_key(&[0u8; 32])?
+            .local_private_key(&[0_u8; 32])?
             .build_initiator(); // missing remote key, should result in Err
 
         assert!(noise.is_err(), "builder should have failed on build");
@@ -371,27 +371,27 @@ mod tests {
     fn test_builder_param_overwrite() -> TestResult {
         fn build_builder<'a>() -> Result<Builder<'a>, Error> {
             Builder::new("Noise_NNpsk0_25519_ChaChaPoly_SHA256".parse()?)
-                .prologue(&[2u8; 10])?
-                .psk(0, &[0u8; 32])?
-                .local_private_key(&[0u8; 32])?
-                .remote_public_key(&[1u8; 32])
+                .prologue(&[2_u8; 10])?
+                .psk(0, &[0_u8; 32])?
+                .local_private_key(&[0_u8; 32])?
+                .remote_public_key(&[1_u8; 32])
         }
 
         assert_eq!(
-            build_builder()?.prologue(&[1u8; 10]).unwrap_err(),
+            build_builder()?.prologue(&[1_u8; 10]).unwrap_err(),
             Error::Init(InitStage::ParameterOverwrite)
         );
-        assert!(build_builder()?.psk(1, &[1u8; 32]).is_ok());
+        assert!(build_builder()?.psk(1, &[1_u8; 32]).is_ok());
         assert_eq!(
-            build_builder()?.psk(0, &[1u8; 32]).unwrap_err(),
-            Error::Init(InitStage::ParameterOverwrite)
-        );
-        assert_eq!(
-            build_builder()?.local_private_key(&[1u8; 32]).unwrap_err(),
+            build_builder()?.psk(0, &[1_u8; 32]).unwrap_err(),
             Error::Init(InitStage::ParameterOverwrite)
         );
         assert_eq!(
-            build_builder()?.remote_public_key(&[1u8; 32]).unwrap_err(),
+            build_builder()?.local_private_key(&[1_u8; 32]).unwrap_err(),
+            Error::Init(InitStage::ParameterOverwrite)
+        );
+        assert_eq!(
+            build_builder()?.remote_public_key(&[1_u8; 32]).unwrap_err(),
             Error::Init(InitStage::ParameterOverwrite)
         );
         Ok(())

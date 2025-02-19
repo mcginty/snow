@@ -44,7 +44,7 @@ impl Random for CountingRng {}
 
 #[allow(clippy::cast_possible_truncation)]
 fn get_inc_key(start: u8) -> [u8; 32] {
-    let mut k = [0u8; 32];
+    let mut k = [0_u8; 32];
     for i in 0..32 {
         k[i] = start + i as u8;
     }
@@ -110,8 +110,8 @@ fn test_noise_state_change() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
@@ -131,8 +131,8 @@ fn test_sanity_chachapoly_session() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
@@ -154,8 +154,8 @@ fn test_sanity_aesgcm_session() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
@@ -180,7 +180,7 @@ fn test_Npsk0_chachapoly_expected_value() -> TestResult {
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator()?;
 
-    let mut buf = [0u8; 200];
+    let mut buf = [0_u8; 200];
     let len = h_i.write_message(&[], &mut buf)?;
     assert_eq!(len, 48);
 
@@ -203,7 +203,7 @@ fn test_Npsk0_aesgcm_expected_value() -> TestResult {
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator()?;
 
-    let mut buf = [0u8; 200];
+    let mut buf = [0_u8; 200];
     let len = h_i.write_message(&[], &mut buf)?;
     assert_eq!(len, 48);
 
@@ -226,7 +226,7 @@ fn test_Npsk0_expected_value() -> TestResult {
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator()?;
 
-    let mut buf = [0u8; 200];
+    let mut buf = [0_u8; 200];
     let len = h_i.write_message(&[], &mut buf)?;
     assert_eq!(len, 48);
 
@@ -250,7 +250,7 @@ fn test_Xpsk0_expected_value() -> TestResult {
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(64))
         .build_initiator()?;
 
-    let mut buf = [0u8; 200];
+    let mut buf = [0_u8; 200];
     let len = h_i.write_message(&[], &mut buf)?;
     assert_eq!(len, 96);
 
@@ -295,20 +295,20 @@ fn test_XXpsk0_expected_value() -> TestResult {
     let mut h_i = Builder::new(params.clone())
         .local_private_key(&get_inc_key(0))?
         .remote_public_key(&x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES))?
-        .prologue(&[1u8, 2, 3])?
+        .prologue(&[1_u8, 2, 3])?
         .psk(0, &get_inc_key(4))?
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(32))
         .build_initiator()?;
     let mut h_r = Builder::new(params)
         .local_private_key(&get_inc_key(1))?
         .remote_public_key(&x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES))?
-        .prologue(&[1u8, 2, 3])?
+        .prologue(&[1_u8, 2, 3])?
         .psk(0, &get_inc_key(4))?
         .fixed_ephemeral_key_for_testing_only(&get_inc_key(33))
         .build_responder()?;
 
-    let mut buf = [0u8; 1024];
-    let mut buf2 = [0u8; 1024];
+    let mut buf = [0_u8; 1024];
+    let mut buf2 = [0_u8; 1024];
 
     let len = h_i.write_message(b"abc", &mut buf)?;
     assert_eq!(len, 51);
@@ -335,11 +335,11 @@ fn test_XXpsk0_expected_value() -> TestResult {
 #[test]
 fn test_NNpsk0_sanity_session() -> TestResult {
     let params: NoiseParams = "Noise_NNpsk0_25519_ChaChaPoly_SHA256".parse()?;
-    let mut h_i = Builder::new(params.clone()).psk(0, &[32u8; 32])?.build_initiator()?;
-    let mut h_r = Builder::new(params).psk(0, &[32u8; 32])?.build_responder()?;
+    let mut h_i = Builder::new(params.clone()).psk(0, &[32_u8; 32])?.build_initiator()?;
+    let mut h_r = Builder::new(params).psk(0, &[32_u8; 32])?.build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
@@ -363,18 +363,18 @@ fn test_XXpsk3_sanity_session() -> TestResult {
     let static_i = b_i.generate_keypair()?;
     let static_r = b_r.generate_keypair()?;
     let mut h_i = b_i
-        .psk(3, &[32u8; 32])?
+        .psk(3, &[32_u8; 32])?
         .local_private_key(&static_i.private)?
         .remote_public_key(&static_r.public)?
         .build_initiator()?;
     let mut h_r = b_r
-        .psk(3, &[32u8; 32])?
+        .psk(3, &[32_u8; 32])?
         .local_private_key(&static_r.private)?
         .remote_public_key(&static_i.public)?
         .build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
@@ -399,8 +399,8 @@ fn test_rekey() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
@@ -447,8 +447,8 @@ fn test_rekey_manually() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
 
     // Do a handshake, and transition to stateful transport mode.
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
@@ -467,13 +467,13 @@ fn test_rekey_manually() -> TestResult {
     // expecting a decryption failure.
     //
     // The message *should* have failed to read, so we also force nonce re-sync.
-    h_i.rekey_manually(Some(&[1u8; 32]), None);
+    h_i.rekey_manually(Some(&[1_u8; 32]), None);
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg)?;
     assert!(h_r.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
     h_r.set_receiving_nonce(h_i.sending_nonce());
 
     // rekey responder-side responder key to K1, expecting a successful decryption.
-    h_r.rekey_manually(Some(&[1u8; 32]), None);
+    h_r.rekey_manually(Some(&[1_u8; 32]), None);
     let len = h_i.write_message(b"hack the planet", &mut buffer_msg)?;
     let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
     assert_eq!(&buffer_out[..len], b"hack the planet");
@@ -482,13 +482,13 @@ fn test_rekey_manually() -> TestResult {
     // expecting a decryption failure.
     //
     // The message *should* have failed to read, so we also force nonce re-sync.
-    h_r.rekey_manually(None, Some(&[1u8; 32]));
+    h_r.rekey_manually(None, Some(&[1_u8; 32]));
     let len = h_r.write_message(b"hack the planet", &mut buffer_msg)?;
     assert!(h_i.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
     h_i.set_receiving_nonce(h_r.sending_nonce());
 
     // rekey intiator-side responder key to K1, expecting a successful decryption.
-    h_i.rekey_manually(None, Some(&[1u8; 32]));
+    h_i.rekey_manually(None, Some(&[1_u8; 32]));
     let len = h_r.write_message(b"hack the planet", &mut buffer_msg)?;
     let len = h_i.read_message(&buffer_msg[..len], &mut buffer_out)?;
     assert_eq!(&buffer_out[..len], b"hack the planet");
@@ -500,8 +500,8 @@ fn test_handshake_message_exceeds_max_len() -> TestResult {
     let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse()?;
     let mut h_i = Builder::new(params).build_initiator()?;
 
-    let mut buffer_out = [0u8; 65535 * 2];
-    assert!(h_i.write_message(&[0u8; 65530], &mut buffer_out).is_err());
+    let mut buffer_out = [0_u8; 65535 * 2];
+    assert!(h_i.write_message(&[0_u8; 65530], &mut buffer_out).is_err());
     Ok(())
 }
 
@@ -510,8 +510,8 @@ fn test_handshake_message_undersized_output_buffer() -> TestResult {
     let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse()?;
     let mut h_i = Builder::new(params).build_initiator()?;
 
-    let mut buffer_out = [0u8; 200];
-    assert!(h_i.write_message(&[0u8; 400], &mut buffer_out).is_err());
+    let mut buffer_out = [0_u8; 200];
+    assert!(h_i.write_message(&[0_u8; 400], &mut buffer_out).is_err());
     Ok(())
 }
 
@@ -521,8 +521,8 @@ fn test_handshake_message_receive_oversized_message() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 100_000];
-    let mut buffer_out = [0u8; 100_000];
+    let mut buffer_msg = [0_u8; 100_000];
+    let mut buffer_out = [0_u8; 100_000];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     assert_eq!(Error::Input, h_r.read_message(&buffer_msg, &mut buffer_out).unwrap_err());
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
@@ -548,36 +548,36 @@ fn test_handshake_message_receive_oversized_message() -> TestResult {
 #[test]
 fn test_transport_message_exceeds_max_len() -> TestResult {
     let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse()?;
-    let mut noise = Builder::new(params).remote_public_key(&[1u8; 32])?.build_initiator()?;
+    let mut noise = Builder::new(params).remote_public_key(&[1_u8; 32])?.build_initiator()?;
 
-    let mut buffer_out = [0u8; 65535 * 2];
-    noise.write_message(&[0u8; 0], &mut buffer_out)?;
+    let mut buffer_out = [0_u8; 65535 * 2];
+    noise.write_message(&[0_u8; 0], &mut buffer_out)?;
     let mut noise = noise.into_transport_mode()?;
-    assert!(noise.write_message(&[0u8; 65534], &mut buffer_out).is_err());
+    assert!(noise.write_message(&[0_u8; 65534], &mut buffer_out).is_err());
     Ok(())
 }
 
 #[test]
 fn test_transport_message_undersized_output_buffer() -> TestResult {
     let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse()?;
-    let mut noise = Builder::new(params).remote_public_key(&[1u8; 32])?.build_initiator()?;
+    let mut noise = Builder::new(params).remote_public_key(&[1_u8; 32])?.build_initiator()?;
 
-    let mut buffer_out = [0u8; 200];
-    noise.write_message(&[0u8; 0], &mut buffer_out)?;
+    let mut buffer_out = [0_u8; 200];
+    noise.write_message(&[0_u8; 0], &mut buffer_out)?;
     let mut noise = noise.into_transport_mode()?;
-    assert!(noise.write_message(&[0u8; 300], &mut buffer_out).is_err());
+    assert!(noise.write_message(&[0_u8; 300], &mut buffer_out).is_err());
     Ok(())
 }
 
 #[test]
 fn test_oneway_initiator_enforcements() -> TestResult {
     let params: NoiseParams = "Noise_N_25519_ChaChaPoly_SHA256".parse()?;
-    let mut noise = Builder::new(params).remote_public_key(&[1u8; 32])?.build_initiator()?;
+    let mut noise = Builder::new(params).remote_public_key(&[1_u8; 32])?.build_initiator()?;
 
-    let mut buffer_out = [0u8; 1024];
-    noise.write_message(&[0u8; 0], &mut buffer_out)?;
+    let mut buffer_out = [0_u8; 1024];
+    noise.write_message(&[0_u8; 0], &mut buffer_out)?;
     let mut noise = noise.into_transport_mode()?;
-    assert!(noise.read_message(&[0u8; 1024], &mut buffer_out).is_err());
+    assert!(noise.read_message(&[0_u8; 1024], &mut buffer_out).is_err());
     Ok(())
 }
 
@@ -590,15 +590,15 @@ fn test_oneway_responder_enforcements() -> TestResult {
     let mut resp = resp_builder.local_private_key(&rpk.private)?.build_responder()?;
     let mut init = Builder::new(params).remote_public_key(&rpk.public)?.build_initiator()?;
 
-    let mut buffer_resp = [0u8; 65535];
-    let mut buffer_init = [0u8; 65535];
-    let len = init.write_message(&[0u8; 0], &mut buffer_init)?;
+    let mut buffer_resp = [0_u8; 65535];
+    let mut buffer_init = [0_u8; 65535];
+    let len = init.write_message(&[0_u8; 0], &mut buffer_init)?;
     resp.read_message(&buffer_init[..len], &mut buffer_resp)?;
     let mut init = init.into_transport_mode()?;
     let mut resp = resp.into_transport_mode()?;
 
-    assert!(init.read_message(&[0u8; 1024], &mut buffer_init).is_err());
-    assert!(resp.write_message(&[0u8; 1024], &mut buffer_resp).is_err());
+    assert!(init.read_message(&[0_u8; 1024], &mut buffer_init).is_err());
+    assert!(resp.write_message(&[0_u8; 1024], &mut buffer_resp).is_err());
     Ok(())
 }
 
@@ -608,8 +608,8 @@ fn test_buffer_issues() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 2];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 2];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     let res = h_r.read_message(&buffer_msg[..len], &mut buffer_out);
 
@@ -632,8 +632,8 @@ fn test_read_buffer_issues() -> TestResult {
         .remote_public_key(&keypair_r.public)?
         .build_initiator()?;
 
-    let mut buffer_msg = [0u8; 65535];
-    let mut buffer_out = [0u8; 65535];
+    let mut buffer_msg = [0_u8; 65535];
+    let mut buffer_out = [0_u8; 65535];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     let res = h_r.read_message(&buffer_msg[..len], &mut buffer_out);
 
@@ -662,18 +662,18 @@ fn test_buffer_issues_encrypted_handshake() -> TestResult {
     let static_r = b_r.generate_keypair()?;
 
     let mut h_i = b_i
-        .psk(2, &[32u8; 32])?
+        .psk(2, &[32_u8; 32])?
         .local_private_key(&static_i.private)?
         .remote_public_key(&static_r.public)?
         .build_initiator()?;
     let mut h_r = b_r
-        .psk(2, &[32u8; 32])?
+        .psk(2, &[32_u8; 32])?
         .local_private_key(&static_r.private)?
         .remote_public_key(&static_i.public)?
         .build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 2];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 2];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     let res = h_r.read_message(&buffer_msg[..len], &mut buffer_out);
 
@@ -706,18 +706,18 @@ fn test_checkpointing() -> TestResult {
     let static_r = b_r.generate_keypair()?;
 
     let mut h_i = b_i
-        .psk(2, &[32u8; 32])?
+        .psk(2, &[32_u8; 32])?
         .local_private_key(&static_i.private)?
         .remote_public_key(&static_r.public)?
         .build_initiator()?;
     let mut h_r = b_r
-        .psk(2, &[32u8; 32])?
+        .psk(2, &[32_u8; 32])?
         .local_private_key(&static_r.private)?
         .remote_public_key(&static_i.public)?
         .build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_bad = [0u8; 48];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_bad = [0_u8; 48];
 
     let res = h_i.write_message(b"abc", &mut buffer_bad);
     assert!(res.is_err(), "write_message() should have failed for insufficiently-sized buffer");
@@ -726,8 +726,8 @@ fn test_checkpointing() -> TestResult {
         .write_message(b"abc", &mut buffer_msg)
         .expect("write_message() should have succeeded for correctly-sized buffer");
 
-    let mut buffer_bad = [0u8; 2];
-    let mut buffer_ok = [0u8; 200];
+    let mut buffer_bad = [0_u8; 2];
+    let mut buffer_ok = [0_u8; 200];
     let res = h_r.read_message(&buffer_msg[..len], &mut buffer_bad);
     assert!(res.is_err(), "read_message() should have failed for insufficiently-sized buffer");
 
@@ -744,8 +744,8 @@ fn test_get_remote_static() -> TestResult {
         Builder::new(params.clone()).local_private_key(&get_inc_key(0))?.build_initiator()?;
     let mut h_r = Builder::new(params).local_private_key(&get_inc_key(1))?.build_responder()?;
 
-    let mut buf = [0u8; 1024];
-    let mut buf2 = [0u8; 1024];
+    let mut buf = [0_u8; 1024];
+    let mut buf2 = [0_u8; 1024];
 
     // XX(s, rs):
     assert!(h_i.get_remote_static().is_none());
@@ -790,8 +790,8 @@ fn test_set_psk() -> TestResult {
         Builder::new(params.clone()).local_private_key(&get_inc_key(0))?.build_initiator()?;
     let mut h_r = Builder::new(params).local_private_key(&get_inc_key(1))?.build_responder()?;
 
-    let mut buf = [0u8; 1024];
-    let mut buf2 = [0u8; 1024];
+    let mut buf = [0_u8; 1024];
+    let mut buf2 = [0_u8; 1024];
 
     let psk = get_inc_key(3);
 
@@ -819,8 +819,8 @@ fn test_stateless_sanity_session() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
@@ -842,8 +842,8 @@ fn test_handshake_read_oob_error() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
@@ -861,8 +861,8 @@ fn test_stateful_nonce_maxiumum_behavior() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
@@ -899,8 +899,8 @@ fn test_stateless_nonce_maximum_behavior() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 
@@ -930,8 +930,8 @@ fn test_stateful_nonce_increment_behavior() -> TestResult {
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
-    let mut buffer_msg = [0u8; 200];
-    let mut buffer_out = [0u8; 200];
+    let mut buffer_msg = [0_u8; 200];
+    let mut buffer_out = [0_u8; 200];
     let len = h_i.write_message(b"abc", &mut buffer_msg)?;
     h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
 

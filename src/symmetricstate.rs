@@ -18,8 +18,8 @@ pub(crate) struct SymmetricStateData {
 impl Default for SymmetricStateData {
     fn default() -> Self {
         SymmetricStateData {
-            h:       [0u8; MAXHASHLEN],
-            ck:      [0u8; MAXHASHLEN],
+            h:       [0_u8; MAXHASHLEN],
+            ck:      [0_u8; MAXHASHLEN],
             has_key: false,
         }
     }
@@ -50,7 +50,7 @@ impl SymmetricState {
 
     pub fn mix_key(&mut self, data: &[u8]) {
         let hash_len = self.hasher.hash_len();
-        let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
+        let mut hkdf_output = ([0_u8; MAXHASHLEN], [0_u8; MAXHASHLEN]);
         self.hasher.hkdf(
             &self.inner.ck[..hash_len],
             data,
@@ -61,7 +61,7 @@ impl SymmetricState {
         );
 
         // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
-        let mut cipher_key = [0u8; CIPHERKEYLEN];
+        let mut cipher_key = [0_u8; CIPHERKEYLEN];
         cipher_key.copy_from_slice(&hkdf_output.1[..CIPHERKEYLEN]);
 
         self.inner.ck = hkdf_output.0;
@@ -79,7 +79,7 @@ impl SymmetricState {
 
     pub fn mix_key_and_hash(&mut self, data: &[u8]) {
         let hash_len = self.hasher.hash_len();
-        let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
+        let mut hkdf_output = ([0_u8; MAXHASHLEN], [0_u8; MAXHASHLEN], [0_u8; MAXHASHLEN]);
         self.hasher.hkdf(
             &self.inner.ck[..hash_len],
             data,
@@ -92,7 +92,7 @@ impl SymmetricState {
         self.mix_hash(&hkdf_output.1[..hash_len]);
 
         // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
-        let mut cipher_key = [0u8; CIPHERKEYLEN];
+        let mut cipher_key = [0_u8; CIPHERKEYLEN];
         cipher_key.copy_from_slice(&hkdf_output.2[..CIPHERKEYLEN]);
         self.cipherstate.set(&cipher_key, 0);
     }
@@ -134,11 +134,11 @@ impl SymmetricState {
     }
 
     pub fn split(&mut self, child1: &mut CipherState, child2: &mut CipherState) {
-        let mut hkdf_output = ([0u8; MAXHASHLEN], [0u8; MAXHASHLEN]);
+        let mut hkdf_output = ([0_u8; MAXHASHLEN], [0_u8; MAXHASHLEN]);
         self.split_raw(&mut hkdf_output.0, &mut hkdf_output.1);
 
         // TODO(mcginty): use `split_array_ref` once stable to avoid memory inefficiency
-        let mut cipher_keys = ([0u8; CIPHERKEYLEN], [0u8; CIPHERKEYLEN]);
+        let mut cipher_keys = ([0_u8; CIPHERKEYLEN], [0_u8; CIPHERKEYLEN]);
         cipher_keys.0.copy_from_slice(&hkdf_output.0[..CIPHERKEYLEN]);
         cipher_keys.1.copy_from_slice(&hkdf_output.1[..CIPHERKEYLEN]);
         child1.set(&cipher_keys.0, 0);
@@ -147,7 +147,7 @@ impl SymmetricState {
 
     pub fn split_raw(&mut self, out1: &mut [u8], out2: &mut [u8]) {
         let hash_len = self.hasher.hash_len();
-        self.hasher.hkdf(&self.inner.ck[..hash_len], &[0u8; 0], 2, out1, out2, &mut []);
+        self.hasher.hkdf(&self.inner.ck[..hash_len], &[0_u8; 0], 2, out1, out2, &mut []);
     }
 
     pub(crate) fn checkpoint(&mut self) -> SymmetricStateData {

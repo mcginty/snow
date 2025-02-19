@@ -163,7 +163,7 @@ impl HandshakeState {
     }
 
     fn dh(&self, token: DhToken) -> Result<[u8; MAXDHLEN], Error> {
-        let mut dh_out = [0u8; MAXDHLEN];
+        let mut dh_out = [0_u8; MAXDHLEN];
         let (dh, key) = match (token, self.is_initiator()) {
             (DhToken::Ee, _) => (&self.e, &self.re),
             (DhToken::Ss, _) => (&self.s, &self.rs),
@@ -459,7 +459,7 @@ impl HandshakeState {
             return Err(Error::Input);
         }
 
-        let mut new_psk = [0u8; PSKLEN];
+        let mut new_psk = [0_u8; PSKLEN];
         new_psk.copy_from_slice(key);
         self.psks[location] = Some(new_psk);
 

@@ -20,7 +20,7 @@ fn benchmarks(c: &mut Criterion) {
     builder_group.bench_function("withkey", |b| {
         b.iter(move || {
             Builder::new("Noise_XX_25519_ChaChaPoly_SHA256".parse().unwrap())
-                .local_private_key(&[1u8; 32])
+                .local_private_key(&[1_u8; 32])
                 .unwrap()
                 .build_initiator()
                 .unwrap();
@@ -34,25 +34,25 @@ fn benchmarks(c: &mut Criterion) {
         b.iter(move || {
             let pattern: NoiseParams = "Noise_XX_25519_ChaChaPoly_BLAKE2b".parse().unwrap();
             let mut h_i = Builder::new(pattern.clone())
-                .local_private_key(&[1u8; 32])
+                .local_private_key(&[1_u8; 32])
                 .unwrap()
                 .build_initiator()
                 .unwrap();
             let mut h_r = Builder::new(pattern)
-                .local_private_key(&[2u8; 32])
+                .local_private_key(&[2_u8; 32])
                 .unwrap()
                 .build_responder()
                 .unwrap();
 
-            let mut buffer_msg = [0u8; MSG_SIZE * 2];
-            let mut buffer_out = [0u8; MSG_SIZE * 2];
+            let mut buffer_msg = [0_u8; MSG_SIZE * 2];
+            let mut buffer_out = [0_u8; MSG_SIZE * 2];
 
             // get the handshaking out of the way for even testing
-            let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+            let len = h_i.write_message(&[0_u8; 0], &mut buffer_msg).unwrap();
             h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-            let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+            let len = h_r.write_message(&[0_u8; 0], &mut buffer_msg).unwrap();
             h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-            let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+            let len = h_i.write_message(&[0_u8; 0], &mut buffer_msg).unwrap();
             h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
         });
     });
@@ -63,13 +63,13 @@ fn benchmarks(c: &mut Criterion) {
             let mut h_i = Builder::new(pattern.parse().unwrap()).build_initiator().unwrap();
             let mut h_r = Builder::new(pattern.parse().unwrap()).build_responder().unwrap();
 
-            let mut buffer_msg = [0u8; MSG_SIZE * 2];
-            let mut buffer_out = [0u8; MSG_SIZE * 2];
+            let mut buffer_msg = [0_u8; MSG_SIZE * 2];
+            let mut buffer_out = [0_u8; MSG_SIZE * 2];
 
             // get the handshaking out of the way for even testing
-            let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+            let len = h_i.write_message(&[0_u8; 0], &mut buffer_msg).unwrap();
             h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-            let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+            let len = h_r.write_message(&[0_u8; 0], &mut buffer_msg).unwrap();
             h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
         });
     });
@@ -84,13 +84,13 @@ fn benchmarks(c: &mut Criterion) {
             let mut h_i = Builder::new(PATTERN.parse().unwrap()).build_initiator().unwrap();
             let mut h_r = Builder::new(PATTERN.parse().unwrap()).build_responder().unwrap();
 
-            let mut buffer_msg = [0u8; MSG_SIZE * 2];
-            let mut buffer_out = [0u8; MSG_SIZE * 2];
+            let mut buffer_msg = [0_u8; MSG_SIZE * 2];
+            let mut buffer_out = [0_u8; MSG_SIZE * 2];
 
             // get the handshaking out of the way for even testing
-            let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+            let len = h_i.write_message(&[0_u8; 0], &mut buffer_msg).unwrap();
             h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-            let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+            let len = h_r.write_message(&[0_u8; 0], &mut buffer_msg).unwrap();
             h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
             let mut h_i = h_i.into_transport_mode().unwrap();
@@ -109,13 +109,13 @@ fn benchmarks(c: &mut Criterion) {
         let mut h_i = Builder::new(PATTERN.parse().unwrap()).build_initiator().unwrap();
         let mut h_r = Builder::new(PATTERN.parse().unwrap()).build_responder().unwrap();
 
-        let mut buffer_msg = [0u8; MSG_SIZE * 2];
-        let mut buffer_out = [0u8; MSG_SIZE * 2];
+        let mut buffer_msg = [0_u8; MSG_SIZE * 2];
+        let mut buffer_out = [0_u8; MSG_SIZE * 2];
 
         // get the handshaking out of the way for even testing
-        let len = h_i.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+        let len = h_i.write_message(&[0_u8; 0], &mut buffer_msg).unwrap();
         h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
-        let len = h_r.write_message(&[0u8; 0], &mut buffer_msg).unwrap();
+        let len = h_r.write_message(&[0_u8; 0], &mut buffer_msg).unwrap();
         h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
 
         let mut h_i = h_i.into_transport_mode().unwrap();
