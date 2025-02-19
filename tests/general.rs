@@ -13,7 +13,7 @@ use rand_core::{impls, CryptoRng, RngCore};
 use snow::{params::*, types::*};
 use x25519_dalek as x25519;
 
-type TestResult = Result<(), Box<dyn std::error::Error>>;
+type TestResult = Result<(), Box<dyn core::error::Error>>;
 
 #[derive(Default)]
 struct CountingRng(u64);

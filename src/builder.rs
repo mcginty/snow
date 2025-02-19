@@ -328,7 +328,7 @@ impl<'builder> Builder<'builder> {
 ))]
 mod tests {
     use super::*;
-    type TestResult = Result<(), Box<dyn std::error::Error>>;
+    type TestResult = Result<(), Box<dyn core::error::Error>>;
 
     #[test]
     fn test_builder() -> TestResult {
@@ -350,7 +350,7 @@ mod tests {
 
     #[test]
     fn test_builder_bad_spec() {
-        let params: ::std::result::Result<NoiseParams, _> =
+        let params: ::core::result::Result<NoiseParams, _> =
             "Noise_NK_25519_ChaChaPoly_BLAH256".parse();
 
         assert!(params.is_err(), "NoiseParams should have failed");
