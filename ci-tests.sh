@@ -2,7 +2,7 @@
 set -e
 TARGET="$([ -n "$1" ] && echo "--target $1" || echo "")"
 MSRV="$(cargo metadata --no-deps | jq -r .packages[0].rust_version)"
-RUSTC_VERSION="$(rustc --version | cut -w -f2)"
+RUSTC_VERSION="$(rustc --version | cut -d' ' -f2)"
 
 COMMON_FEATURES="use-p256 use-xchacha20poly1305 vector-tests"
 if ! rustc -vV | grep 'host: .*windows' &> /dev/null; then
