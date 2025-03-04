@@ -12,6 +12,7 @@ use serde::{
 use snow::{params::*, Builder, HandshakeState};
 use std::{
     fmt,
+    fmt::Write as _,
     fs::{File, OpenOptions},
     io::Read,
     marker::PhantomData,
@@ -21,7 +22,7 @@ use std::{
 #[derive(Clone)]
 struct HexBytes<T> {
     original: String,
-    payload: T,
+    payload:  T,
 }
 
 impl<T: AsRef<[u8]>> From<T> for HexBytes<T> {
@@ -82,7 +83,7 @@ impl<T: AsRef<[u8]>> Serialize for HexBytes<T> {
 
 #[derive(Serialize, Deserialize)]
 struct TestMessage {
-    payload: HexBytes<Vec<u8>>,
+    payload:    HexBytes<Vec<u8>>,
     ciphertext: HexBytes<Vec<u8>>,
 }
 
@@ -125,13 +126,13 @@ struct TestVector {
     #[serde(skip_serializing_if = "Option::is_none")]
     init_remote_static: Option<HexBytes<Vec<u8>>>,
 
-    resp_prologue: HexBytes<Vec<u8>>,
+    resp_prologue:      HexBytes<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_psks: Option<Vec<HexBytes<[u8; 32]>>>,
+    resp_psks:          Option<Vec<HexBytes<[u8; 32]>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_static: Option<HexBytes<Vec<u8>>>,
+    resp_static:        Option<HexBytes<Vec<u8>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_ephemeral: Option<HexBytes<Vec<u8>>>,
+    resp_ephemeral:     Option<HexBytes<Vec<u8>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     resp_remote_static: Option<HexBytes<Vec<u8>>>,
 
@@ -218,10 +219,10 @@ fn confirm_message_vectors(
             .map_err(|_| format!("read_message failed on message {i}"))?;
         if sendbuf[..len] != (*message.ciphertext)[..] || *message.payload != recvbuf[..recv_len] {
             let mut s = String::new();
-            s.push_str(&format!("message {i}"));
-            s.push_str(&format!("plaintext: {}\n", hex::encode(&*message.payload)));
-            s.push_str(&format!("expected:  {}\n", hex::encode(&*message.ciphertext)));
-            s.push_str(&format!("actual:    {}", hex::encode(&sendbuf[..len])));
+            writeln!(&mut s, "message {i}").unwrap();
+            writeln!(&mut s, "plaintext: {}", hex::encode(&*message.payload)).unwrap();
+            writeln!(&mut s, "expected:  {}", hex::encode(&*message.ciphertext)).unwrap();
+            writeln!(&mut s, "actual:    {}", hex::encode(&sendbuf[..len])).unwrap();
             return Err(s);
         }
     }
@@ -236,14 +237,16 @@ fn confirm_message_vectors(
         let recv_len = recv.read_message(&sendbuf[..len], &mut recvbuf).unwrap();
         if sendbuf[..len] != (*message.ciphertext)[..] || *message.payload != recvbuf[..recv_len] {
             let mut s = String::new();
-            s.push_str(&format!("message {i}"));
-            s.push_str(&format!("plaintext          : {}\n", hex::encode(&*message.payload)));
-            s.push_str(&format!("expected ciphertext: {}\n", hex::encode(&*message.ciphertext)));
-            s.push_str(&format!(
-                "actual ciphertext  : {}\n",
+            writeln!(&mut s, "message {i}").unwrap();
+            writeln!(&mut s, "plaintext          : {}", hex::encode(&*message.payload)).unwrap();
+            writeln!(&mut s, "expected ciphertext: {}", hex::encode(&*message.ciphertext)).unwrap();
+            writeln!(
+                &mut s,
+                "actual ciphertext  : {}",
                 hex::encode(&sendbuf[..message.ciphertext.len()])
-            ));
-            s.push_str(&format!("actual plaintext   : {}", hex::encode(&recvbuf[..recv_len])));
+            )
+            .unwrap();
+            writeln!(&mut s, "actual plaintext   : {}", hex::encode(&recvbuf[..recv_len])).unwrap();
             return Err(s);
         }
     }
@@ -375,7 +378,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = init.write_message(&payload, &mut ibuf).unwrap();
         messages.push(TestMessage {
-            payload: payload.clone().into(),
+            payload:    payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
         let _ = resp.read_message(&ibuf[..len], &mut obuf).unwrap();
@@ -387,7 +390,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = resp.write_message(&payload, &mut ibuf).unwrap();
         messages.push(TestMessage {
-            payload: payload.clone().into(),
+            payload:    payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
         let _ = init.read_message(&ibuf[..len], &mut obuf).unwrap();

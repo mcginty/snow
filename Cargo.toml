@@ -102,7 +102,6 @@ serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
 hex = "0.4"
-lazy_static = "1.4"
 x25519-dalek = "2.0"
 # TODO: Waiting on https://github.com/RustCrypto/traits/issues/1642
 rand = "0.8"

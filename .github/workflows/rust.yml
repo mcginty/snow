@@ -26,6 +26,7 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: clippy
+      - uses: Swatinem/rust-cache@v2
       - name: Install LLVM and Clang
         if: startsWith(matrix.os, 'windows')
         uses: KyleMayes/install-llvm-action@v2
