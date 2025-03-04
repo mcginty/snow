@@ -54,7 +54,7 @@ fn get_inc_key(start: u8) -> [u8; 32] {
 #[allow(unused)]
 struct TestResolver {
     next_byte: u8,
-    parent: DefaultResolver,
+    parent:    DefaultResolver,
 }
 
 #[allow(unused)]
@@ -887,7 +887,7 @@ fn test_stateful_nonce_maxiumum_behavior() -> TestResult {
     // This should fail because we've simulated exhausting the nonce space, as the spec says 2^64-1 is reserved
     // and may not be used in the `CipherState` object.
     assert!(matches!(
-        dbg!(h_r.read_message(&buffer_msg[..len], &mut buffer_out)),
+        h_r.read_message(&buffer_msg[..len], &mut buffer_out),
         Err(snow::Error::State(snow::error::StateProblem::Exhausted))
     ));
     Ok(())

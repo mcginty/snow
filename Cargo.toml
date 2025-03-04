@@ -109,6 +109,9 @@ rand = "0.8"
 [build-dependencies]
 rustc_version = "0.4"
 
+[profile.test]
+opt-level = 1
+
 [package.metadata.docs.rs]
 features = ["ring-resolver"]
 all-features = false

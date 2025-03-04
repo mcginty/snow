@@ -261,8 +261,10 @@ fn test_vectors_from_json(json: &str) {
     let mut ignored = 0;
 
     for vector in test_vectors.vectors {
-        let params: NoiseParams = vector.protocol_name.parse().unwrap();
-
+        let Ok(params) = vector.protocol_name.parse::<NoiseParams>() else {
+            ignored += 1;
+            continue;
+        };
         if params.dh == DHChoice::Curve448 {
             ignored += 1;
             continue;
@@ -326,6 +328,7 @@ fn get_psks_count(params: &NoiseParams) -> usize {
         .count()
 }
 
+#[allow(clippy::too_many_lines)]
 fn generate_vector(params: NoiseParams) -> TestVector {
     let prologue = b"There is no right and wrong. There's only fun and boring.".to_vec();
     let (mut psks, mut psks_hex) = (vec![], vec![]);
@@ -374,6 +377,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
     let (mut ibuf, mut obuf) =
         (vec![0_u8; 65535].into_boxed_slice(), vec![0_u8; 65535].into_boxed_slice());
     let mut messages = vec![];
+    let mut i = 0;
     while !(init.is_handshake_finished() && resp.is_handshake_finished()) {
         let payload = random_vec(32);
         let len = init.write_message(&payload, &mut ibuf).unwrap();
@@ -381,6 +385,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
             payload:    payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
+        i += 1;
         let _ = resp.read_message(&ibuf[..len], &mut obuf).unwrap();
 
         if init.is_handshake_finished() && resp.is_handshake_finished() {
@@ -393,8 +398,35 @@ fn generate_vector(params: NoiseParams) -> TestVector {
             payload:    payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
+        i += 1;
         let _ = init.read_message(&ibuf[..len], &mut obuf).unwrap();
     }
+
+    let (mut init_tr, mut resp_tr) =
+        (init.into_transport_mode().unwrap(), resp.into_transport_mode().unwrap());
+
+    let (init, resp) = if params.handshake.pattern.is_oneway() || i % 2 == 0 {
+        (&mut init_tr, &mut resp_tr)
+    } else {
+        (&mut resp_tr, &mut init_tr)
+    };
+
+    let payload = random_vec(32);
+    let len = init.write_message(&payload, &mut ibuf).unwrap();
+    messages.push(TestMessage {
+        payload:    payload.clone().into(),
+        ciphertext: ibuf[..len].to_vec().into(),
+    });
+
+    if !params.handshake.pattern.is_oneway() {
+        let payload = random_vec(32);
+        let len = resp.write_message(&payload, &mut obuf).unwrap();
+        messages.push(TestMessage {
+            payload:    payload.clone().into(),
+            ciphertext: obuf[..len].to_vec().into(),
+        });
+    }
+
     let init_static = if params.handshake.pattern.needs_local_static_key(true) {
         Some(is.private.clone().into())
     } else {
@@ -437,7 +469,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
     }
 }
 
-fn generate_vector_set() -> TestVectors {
+fn generate_vector_set(official: bool) -> TestVectors {
     let mut handshakes =
         SUPPORTED_HANDSHAKE_PATTERNS.iter().map(|p| p.as_str()).collect::<Vec<&'static str>>();
     handshakes.extend_from_slice(&[
@@ -455,17 +487,20 @@ fn generate_vector_set() -> TestVectors {
         "XXpsk0+psk3",
         "XXpsk0+psk1+psk2+psk3",
     ]);
-    let ciphers = vec!["ChaChaPoly", "AESGCM"];
+    let dhs = if official { vec!["25519"] } else { vec!["P256"] };
+    let ciphers = if official { vec!["ChaChaPoly", "AESGCM"] } else { vec!["XChaChaPoly"] };
     let hashes = vec!["BLAKE2s", "BLAKE2b", "SHA256", "SHA512"];
 
     let mut vectors = vec![];
 
     for handshake in &handshakes {
-        for cipher in &ciphers {
-            for hash in &hashes {
-                let protocol_name = format!("Noise_{handshake}_25519_{cipher}_{hash}");
-                let protocol = protocol_name.parse().unwrap();
-                vectors.push(generate_vector(protocol));
+        for dh in &dhs {
+            for cipher in &ciphers {
+                for hash in &hashes {
+                    let protocol_name = format!("Noise_{handshake}_{dh}_{cipher}_{hash}");
+                    let protocol = protocol_name.parse().unwrap();
+                    vectors.push(generate_vector(protocol));
+                }
             }
         }
     }
@@ -477,13 +512,28 @@ fn test_vectors_cacophony() {
     test_vectors_from_json(include_str!("vectors/cacophony.txt"));
 }
 
+/// These are the test vectors for all the official "spec 34" features.
 #[test]
 fn test_vectors_snow() {
     let file_res = OpenOptions::new().write(true).create_new(true).open("tests/vectors/snow.txt");
     if let Ok(mut file) = file_res {
-        serde_json::to_writer_pretty(&mut file, &generate_vector_set()).unwrap();
+        serde_json::to_writer_pretty(&mut file, &generate_vector_set(true)).unwrap();
     }
     let mut file = File::open("tests/vectors/snow.txt").unwrap();
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).unwrap();
+    test_vectors_from_json(&contents);
+}
+
+/// These are the test vectors for non-standard features.
+#[test]
+fn test_vectors_snow_extended() {
+    let file_res =
+        OpenOptions::new().write(true).create_new(true).open("tests/vectors/snow-extended.txt");
+    if let Ok(mut file) = file_res {
+        serde_json::to_writer_pretty(&mut file, &generate_vector_set(false)).unwrap();
+    }
+    let mut file = File::open("tests/vectors/snow-extended.txt").unwrap();
     let mut contents = String::new();
     file.read_to_string(&mut contents).unwrap();
     test_vectors_from_json(&contents);
