@@ -1,4 +1,4 @@
-name: Build
+name: CI Tests
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  ci-tests:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
