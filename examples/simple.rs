@@ -9,22 +9,21 @@
 //! Run the server a-like-a-so `cargo run --example simple -- -s`, then run the client
 //! as `cargo run --example simple` to see the magic happen.
 
-use lazy_static::lazy_static;
 use snow::{params::NoiseParams, Builder};
 use std::{
     io::{self, Read, Write},
     net::{TcpListener, TcpStream},
+    sync::LazyLock,
 };
 
 static SECRET: &[u8; 32] = b"i don't care for fidget spinners";
-lazy_static! {
-    static ref PARAMS: NoiseParams = "Noise_XXpsk3_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
-}
+static PARAMS: LazyLock<NoiseParams> =
+    LazyLock::new(|| "Noise_XXpsk3_25519_ChaChaPoly_BLAKE2s".parse().unwrap());
 
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
     let server_mode =
-        std::env::args().next_back().is_none_or(|arg| arg == "-s" || arg == "--server");
+        std::env::args().next_back().map_or(true, |arg| arg == "-s" || arg == "--server");
 
     if server_mode {
         run_server();

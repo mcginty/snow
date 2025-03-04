@@ -10,29 +10,30 @@
 //! as `cargo run --example oneway` to see the magic happen.
 
 use hex::FromHex;
-use lazy_static::lazy_static;
 use snow::{params::NoiseParams, Builder, Keypair};
 use std::{
     io::{self, Read, Write},
     net::{TcpListener, TcpStream},
+    sync::LazyLock,
 };
 
 static SECRET: &[u8; 32] = b"i don't care for fidget spinners";
-lazy_static! {
-    static ref PARAMS: NoiseParams = "Noise_Xpsk1_25519_ChaChaPoly_BLAKE2s".parse().unwrap();
-    // The responder key is static in this example because the X pattern means
-    // the initiator has pre-handshake knowledge of the responder's public key
-    // (and of course both share the same psk `SECRET`)
-    static ref RESPONDER: Keypair = Keypair {
-        private: Vec::from_hex("52fbe3721d1adbe312d270ca2db5ce5bd39ddc206075f3a8f06d422619c8eb5d").expect("valid hex"),
-        public: Vec::from_hex("435ce8a8415ccd44de5e207581ac7207b416683028bcaecc9eb38d944e6f900c").expect("valid hex"),
-    };
-}
+static PARAMS: LazyLock<NoiseParams> =
+    LazyLock::new(|| "Noise_Xpsk1_25519_ChaChaPoly_BLAKE2s".parse().unwrap());
+// The responder key is static in this example because the X pattern means
+// the initiator has pre-handshake knowledge of the responder's public key
+// (and of course both share the same psk `SECRET`)
+static RESPONDER: LazyLock<Keypair> = LazyLock::new(|| Keypair {
+    private: Vec::from_hex("52fbe3721d1adbe312d270ca2db5ce5bd39ddc206075f3a8f06d422619c8eb5d")
+        .expect("valid hex"),
+    public:  Vec::from_hex("435ce8a8415ccd44de5e207581ac7207b416683028bcaecc9eb38d944e6f900c")
+        .expect("valid hex"),
+});
 
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
     let server_mode =
-        std::env::args().next_back().is_none_or(|arg| arg == "-s" || arg == "--server");
+        std::env::args().next_back().map_or(true, |arg| arg == "-s" || arg == "--server");
 
     if server_mode {
         run_server(&RESPONDER.private, SECRET);
