@@ -957,3 +957,44 @@ fn test_stateful_nonce_increment_behavior() -> TestResult {
     assert!(h_r.read_message(&buffer_msg[..len], &mut buffer_out).is_err());
     Ok(())
 }
+
+#[test]
+fn test_stateless_get_set_key() {
+    let params: NoiseParams = "Noise_NN_25519_ChaChaPoly_SHA256".parse().unwrap();
+    let mut h_i = Builder::new(params.clone()).build_initiator().unwrap();
+    let mut h_r = Builder::new(params).build_responder().unwrap();
+
+    let mut buffer_msg = [0u8; 200];
+    let mut buffer_out = [0u8; 200];
+    let mut buffer_pre_rekey = [0u8; 200];
+    let mut buffer_post_rekey = [0u8; 200];
+    let len = h_i.write_message(b"abc", &mut buffer_msg).unwrap();
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg).unwrap();
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out).unwrap();
+
+    let mut h_i = h_i.into_stateless_transport_mode().unwrap();
+    let mut h_r = h_r.into_stateless_transport_mode().unwrap();
+
+    let pre_len = h_i.write_message(0, b"hello world", &mut buffer_pre_rekey).unwrap();
+    let pre_key = Vec::from(h_r.initiator_key());
+
+    h_i.rekey_outgoing();
+    h_r.rekey_incoming();
+
+    let post_len = h_i.write_message(1, b"goodbye world", &mut buffer_post_rekey).unwrap();
+    let post_key = Vec::from(h_r.initiator_key());
+
+    assert_ne!(pre_key, post_key);
+
+    assert!(h_r.read_message(0, &buffer_pre_rekey[0..pre_len], &mut buffer_out).is_err());
+    let len = h_r.read_message(1, &buffer_post_rekey[0..post_len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[0..len], b"goodbye world");
+
+    h_r.rekey_initiator_manually(&pre_key);
+
+    assert!(h_r.read_message(1, &buffer_post_rekey[0..post_len], &mut buffer_out).is_err());
+    let len = h_r.read_message(0, &buffer_pre_rekey[0..pre_len], &mut buffer_out).unwrap();
+    assert_eq!(&buffer_out[0..len], b"hello world");
+}

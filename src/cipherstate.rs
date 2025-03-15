@@ -180,6 +180,10 @@ impl StatelessCipherState {
     pub fn rekey_manually(&mut self, key: &[u8; CIPHERKEYLEN]) {
         self.cipher.set(key);
     }
+
+    pub fn key(&self) -> &[u8] {
+        self.cipher.get()
+    }
 }
 
 /// Validates that a nonce value has not exceeded the maximum

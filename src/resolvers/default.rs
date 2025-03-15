@@ -304,6 +304,10 @@ impl Cipher for CipherAesGcm {
         copy_slices!(key, &mut self.key);
     }
 
+    fn get(&self) -> &[u8] {
+        &self.key
+    }
+
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
         let aead = Aes256Gcm::new(&self.key.into());
 
@@ -356,6 +360,10 @@ impl Cipher for CipherChaChaPoly {
 
     fn set(&mut self, key: &[u8; CIPHERKEYLEN]) {
         copy_slices!(key, &mut self.key);
+    }
+
+    fn get(&self) -> &[u8] {
+        &self.key
     }
 
     fn encrypt(&self, nonce: u64, authtext: &[u8], plaintext: &[u8], out: &mut [u8]) -> usize {
