@@ -42,7 +42,7 @@ xchachapoly = ["use-xchacha20poly1305"]
 
 # Enable std features on dependencies if possible.
 std = [
-    "rand_core/std",
+    "getrandom/std",
     "subtle/std",
     "ring/std",
     "blake2/std",
@@ -73,8 +73,7 @@ harness = false
 travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
-# TODO: Waiting on https://github.com/RustCrypto/traits/issues/1642
-rand_core = { version = "0.9", default-features = false, features = ["os_rng"] }
+getrandom = { version = "0.3" }
 subtle = { version = "2.4", default-features = false }
 
 # default crypto provider
@@ -101,8 +100,7 @@ serde_json = "1.0"
 serde_derive = "1.0"
 hex = "0.4"
 x25519-dalek = "2.0"
-# TODO: Waiting on https://github.com/RustCrypto/traits/issues/1642
-rand = "0.9"
+rand_core = { version = "0.9", default-features = false }
 
 [build-dependencies]
 rustc_version = "0.4"
