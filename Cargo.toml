@@ -10,8 +10,8 @@ license = "Apache-2.0 OR MIT"
 categories = ["cryptography"]
 readme = "README.md"
 keywords = ["noise", "protocol", "crypto"]
-edition = "2021"
-rust-version = "1.81.0"
+edition = "2024"
+rust-version = "1.85"
 
 # This is slightly mumbo-jumboey, but in short:
 # Features with a -resolver suffix simply enables the existence of a specific resolver,
