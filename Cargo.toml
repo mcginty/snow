@@ -84,14 +84,14 @@ aes-gcm = { version = "0.10", optional = true, default-features = false, feature
 chacha20poly1305 = { version = "0.10", optional = true, default-features = false }
 blake2 = { version = "0.10", optional = true, default-features = false }
 sha2 = { version = "0.10", optional = true, default-features = false }
-curve25519-dalek = { version = "4", optional = true, default-features = false }
+curve25519-dalek = { version = "4.1.3", optional = true, default-features = false }
 p256 = { version = "0.13.2", features = ["ecdh"], optional = true }
 
 pqcrypto-kyber = { version = "0.8", optional = true }
 pqcrypto-traits = { version = "0.3", optional = true }
 
 # ring crypto provider
-ring = { version = "0.17", optional = true }
+ring = { version = "0.17.12", optional = true }
 byteorder = { version = "1.4", optional = true, default-features = false }
 
 [dev-dependencies]
