@@ -45,6 +45,8 @@ impl CryptoResolver for RingResolver {
     }
 }
 
+// NB: Intentionally private so RNG details aren't leaked into
+// the public API.
 struct RingRng {
     rng: SystemRandom,
 }

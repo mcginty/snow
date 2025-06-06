@@ -45,7 +45,16 @@ use crate::{
     types::{Cipher, Dh, Hash, Random},
     Error,
 };
-use rand_core::OsRng;
+
+// NB: Intentionally private so RNG details aren't leaked into
+// the public API.
+struct OsRng;
+
+impl Random for OsRng {
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
+        getrandom::fill(dest).map_err(|_| Error::Rng)
+    }
+}
 
 /// The default resolver provided by snow. This resolver is designed to
 /// support as many of the Noise spec primitives as possible with
@@ -175,12 +184,6 @@ struct HashBLAKE2s {
 struct Kyber1024 {
     privkey: kyber1024::SecretKey,
     pubkey: kyber1024::PublicKey,
-}
-
-impl Random for OsRng {
-    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
-        <Self as rand_core::TryRngCore>::try_fill_bytes(self, dest).map_err(|_| Error::Rng)
-    }
 }
 
 #[cfg(feature = "use-curve25519")]

@@ -4,7 +4,6 @@
 extern crate serde_derive;
 
 use hex::FromHex;
-use rand::RngCore;
 use serde::{
     de::{self, Deserialize, Deserializer, Unexpected, Visitor},
     ser::{Serialize, Serializer},
@@ -306,15 +305,13 @@ fn test_vectors_from_json(json: &str) {
 
 fn random_slice<const N: usize>() -> [u8; N] {
     let mut v = [0_u8; N];
-    let mut rng = rand::rng();
-    rng.fill_bytes(&mut v);
+    getrandom::fill(&mut v).unwrap();
     v
 }
 
 fn random_vec(size: usize) -> Vec<u8> {
     let mut v = vec![0_u8; size];
-    let mut rng = rand::rng();
-    rng.fill_bytes(&mut v);
+    getrandom::fill(&mut v).unwrap();
     v
 }
 
