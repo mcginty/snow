@@ -55,27 +55,11 @@ impl Default for RingRng {
     }
 }
 
-impl rand_core::RngCore for RingRng {
-    fn next_u32(&mut self) -> u32 {
-        rand_core::impls::next_u32_via_fill(self)
-    }
-
-    fn next_u64(&mut self) -> u64 {
-        rand_core::impls::next_u64_via_fill(self)
-    }
-
-    fn fill_bytes(&mut self, dest: &mut [u8]) {
-        self.try_fill_bytes(dest).unwrap();
-    }
-
-    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
-        self.rng.fill(dest).map_err(|e| rand_core::Error::new(e))
+impl Random for RingRng {
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
+        self.rng.fill(dest).map_err(|_| Error::Rng)
     }
 }
-
-impl rand_core::CryptoRng for RingRng {}
-
-impl Random for RingRng {}
 
 struct CipherAESGCM {
     // NOTE: LessSafeKey is chosen here because nonce atomicity is handled outside of this structure.
@@ -310,7 +294,6 @@ impl Hash for HashSHA512 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand_core::RngCore;
 
     #[test]
     fn test_randomness_sanity() {
@@ -320,7 +303,7 @@ mod tests {
         let mut rng = RingRng::default();
         for _ in 0..100_000 {
             let mut buf = vec![0u8; 128];
-            rng.fill_bytes(&mut buf);
+            rng.try_fill_bytes(&mut buf).unwrap();
             assert!(samples.insert(buf));
         }
     }

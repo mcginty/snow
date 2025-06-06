@@ -179,7 +179,7 @@ impl<'builder> Builder<'builder> {
         let mut dh = self.resolver.resolve_dh(&self.params.dh).ok_or(InitStage::GetDhImpl)?;
         let mut private = vec![0_u8; dh.priv_len()];
         let mut public = vec![0_u8; dh.pub_len()];
-        dh.generate(&mut *rng);
+        dh.generate(&mut *rng)?;
 
         private.copy_from_slice(dh.privkey());
         public.copy_from_slice(dh.pubkey());

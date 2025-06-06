@@ -39,6 +39,9 @@ pub enum Error {
     /// Decryption failed.
     Decrypt,
 
+    /// RNG failed.
+    Rng,
+
     /// Key-encapsulation failed
     #[cfg(feature = "hfs")]
     Kem,
@@ -175,6 +178,7 @@ impl fmt::Display for Error {
             Error::Input => write!(f, "input error"),
             Error::Dh => write!(f, "diffie-hellman error"),
             Error::Decrypt => write!(f, "decrypt error"),
+            Error::Rng => write!(f, "RNG error"),
             #[cfg(feature = "hfs")]
             Error::Kem => write!(f, "kem error"),
         }

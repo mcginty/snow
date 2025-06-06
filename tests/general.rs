@@ -10,7 +10,7 @@ use snow::{
     Builder, Error,
 };
 
-use rand_core::{impls, CryptoRng, RngCore};
+use rand_core::{impls, RngCore};
 use snow::{params::*, types::*};
 use x25519_dalek as x25519;
 
@@ -32,15 +32,13 @@ impl RngCore for CountingRng {
     fn fill_bytes(&mut self, dest: &mut [u8]) {
         impls::fill_bytes_via_next(self, dest);
     }
-
-    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
+}
+impl Random for CountingRng {
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), snow::Error> {
         self.fill_bytes(dest);
         Ok(())
     }
 }
-
-impl CryptoRng for CountingRng {}
-impl Random for CountingRng {}
 
 #[allow(clippy::cast_possible_truncation)]
 fn get_inc_key(start: u8) -> [u8; 32] {
@@ -54,7 +52,7 @@ fn get_inc_key(start: u8) -> [u8; 32] {
 #[allow(unused)]
 struct TestResolver {
     next_byte: u8,
-    parent:    DefaultResolver,
+    parent: DefaultResolver,
 }
 
 #[allow(unused)]

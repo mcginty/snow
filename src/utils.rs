@@ -5,7 +5,7 @@ use core::ops::{Deref, DerefMut};
 /// that can be toggled as enabled.
 pub struct Toggle<T> {
     inner: T,
-    on:    bool,
+    on: bool,
 }
 
 impl<T> Toggle<T> {

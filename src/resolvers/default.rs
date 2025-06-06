@@ -177,7 +177,11 @@ struct Kyber1024 {
     pubkey: kyber1024::PublicKey,
 }
 
-impl Random for OsRng {}
+impl Random for OsRng {
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
+        <Self as rand_core::TryRngCore>::try_fill_bytes(self, dest).map_err(|_| Error::Rng)
+    }
+}
 
 #[cfg(feature = "use-curve25519")]
 impl Dh25519 {
@@ -208,11 +212,12 @@ impl Dh for Dh25519 {
         self.derive_pubkey();
     }
 
-    fn generate(&mut self, rng: &mut dyn Random) {
+    fn generate(&mut self, rng: &mut dyn Random) -> Result<(), Error> {
         let mut bytes = [0_u8; CIPHERKEYLEN];
-        rng.fill_bytes(&mut bytes);
+        rng.try_fill_bytes(&mut bytes)?;
         self.privkey = bytes;
         self.derive_pubkey();
+        Ok(())
     }
 
     fn pubkey(&self) -> &[u8] {
@@ -268,11 +273,12 @@ impl Dh for P256 {
         self.derive_pubkey();
     }
 
-    fn generate(&mut self, rng: &mut dyn Random) {
+    fn generate(&mut self, rng: &mut dyn Random) -> Result<(), Error> {
         let mut bytes = [0_u8; 32];
-        rng.fill_bytes(&mut bytes);
+        rng.try_fill_bytes(&mut bytes)?;
         self.privkey = bytes;
         self.derive_pubkey();
+        Ok(())
     }
 
     fn pubkey(&self) -> &[u8] {

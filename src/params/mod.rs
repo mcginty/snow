@@ -160,20 +160,20 @@ impl FromStr for KemChoice {
 #[allow(clippy::module_name_repetitions)]
 pub struct NoiseParams {
     /// The full pattern string.
-    pub name:      String,
+    pub name: String,
     /// In this case, always `Noise`.
-    pub base:      BaseChoice,
+    pub base: BaseChoice,
     /// The pattern's handshake choice (e.g. `XX`).
     pub handshake: HandshakeChoice,
     /// The pattern's DH choice (e.g. `25519`).
-    pub dh:        DHChoice,
+    pub dh: DHChoice,
     #[cfg(feature = "hfs")]
     /// The pattern's KEM choice (e.g. `Kyber1024`).
-    pub kem:       Option<KemChoice>,
+    pub kem: Option<KemChoice>,
     /// The pattern's cipher choice (e.g. `AESGCM`).
-    pub cipher:    CipherChoice,
+    pub cipher: CipherChoice,
     /// The pattern's hash choice (e.g. `SHA256`).
-    pub hash:      HashChoice,
+    pub hash: HashChoice,
 }
 
 impl NoiseParams {
@@ -193,7 +193,8 @@ impl NoiseParams {
 
     #[cfg(feature = "hfs")]
     /// Construct a new NoiseParams via specifying enums directly.
-    #[must_use] pub fn new(
+    #[must_use]
+    pub fn new(
         name: String,
         base: BaseChoice,
         handshake: HandshakeChoice,
@@ -235,13 +236,16 @@ impl FromStr for NoiseParams {
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,
             split
                 .peek()
-                .ok_or(PatternProblem::TooFewParameters)?.split('+')
+                .ok_or(PatternProblem::TooFewParameters)?
+                .split('+')
                 .nth(0)
                 .ok_or(PatternProblem::TooFewParameters)?
                 .parse()?,
             split
                 .next()
-                .ok_or(PatternProblem::TooFewParameters)?.split_once('+').map(|x| x.1)
+                .ok_or(PatternProblem::TooFewParameters)?
+                .split_once('+')
+                .map(|x| x.1)
                 .map(str::parse)
                 .transpose()?,
             split.next().ok_or(PatternProblem::TooFewParameters)?.parse()?,

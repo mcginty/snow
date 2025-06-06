@@ -26,7 +26,7 @@ static PARAMS: LazyLock<NoiseParams> =
 static RESPONDER: LazyLock<Keypair> = LazyLock::new(|| Keypair {
     private: Vec::from_hex("52fbe3721d1adbe312d270ca2db5ce5bd39ddc206075f3a8f06d422619c8eb5d")
         .expect("valid hex"),
-    public:  Vec::from_hex("435ce8a8415ccd44de5e207581ac7207b416683028bcaecc9eb38d944e6f900c")
+    public: Vec::from_hex("435ce8a8415ccd44de5e207581ac7207b416683028bcaecc9eb38d944e6f900c")
         .expect("valid hex"),
 });
 

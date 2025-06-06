@@ -15,10 +15,10 @@ use core::{convert::TryFrom, fmt};
 /// Also see: [the relevant Noise spec section](https://noiseprotocol.org/noise.html#the-handshakestate-object).
 pub struct TransportState {
     cipherstates: CipherStates,
-    pattern:      HandshakePattern,
-    dh_len:       usize,
-    rs:           Toggle<[u8; MAXDHLEN]>,
-    initiator:    bool,
+    pattern: HandshakePattern,
+    dh_len: usize,
+    rs: Toggle<[u8; MAXDHLEN]>,
+    initiator: bool,
 }
 
 impl TransportState {

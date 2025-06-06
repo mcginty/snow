@@ -4,10 +4,15 @@ use crate::{
     constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN, TAGLEN},
     Error,
 };
-use rand_core::{CryptoRng, RngCore};
 
 /// CSPRNG operations
-pub trait Random: CryptoRng + RngCore + Send + Sync {}
+pub trait Random: Send + Sync {
+    /// Fill `dest` entirely with random data.
+    ///
+    /// # Errors
+    /// Returns `Error::Rng` in the event that the provided RNG failed.
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error>;
+}
 
 /// Diffie-Hellman operations
 pub trait Dh: Send + Sync {
@@ -24,7 +29,10 @@ pub trait Dh: Send + Sync {
     fn set(&mut self, privkey: &[u8]);
 
     /// Generate a new private key
-    fn generate(&mut self, rng: &mut dyn Random);
+    ///
+    /// # Errors
+    /// Returns `Error::Rng` in the event that the provided RNG failed.
+    fn generate(&mut self, rng: &mut dyn Random) -> Result<(), Error>;
 
     /// Get the public key
     fn pubkey(&self) -> &[u8];

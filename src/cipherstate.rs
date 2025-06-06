@@ -8,8 +8,8 @@ use crate::{
 };
 
 pub(crate) struct CipherState {
-    cipher:  Box<dyn Cipher>,
-    n:       u64,
+    cipher: Box<dyn Cipher>,
+    n: u64,
     has_key: bool,
 }
 
@@ -124,7 +124,7 @@ impl CipherStates {
 }
 
 pub(crate) struct StatelessCipherState {
-    cipher:  Box<dyn Cipher>,
+    cipher: Box<dyn Cipher>,
     has_key: bool,
 }
 

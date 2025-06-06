@@ -22,7 +22,7 @@ use std::{
 #[derive(Clone)]
 struct HexBytes<T> {
     original: String,
-    payload:  T,
+    payload: T,
 }
 
 impl<T: AsRef<[u8]>> From<T> for HexBytes<T> {
@@ -83,7 +83,7 @@ impl<T: AsRef<[u8]>> Serialize for HexBytes<T> {
 
 #[derive(Serialize, Deserialize)]
 struct TestMessage {
-    payload:    HexBytes<Vec<u8>>,
+    payload: HexBytes<Vec<u8>>,
     ciphertext: HexBytes<Vec<u8>>,
 }
 
@@ -126,13 +126,13 @@ struct TestVector {
     #[serde(skip_serializing_if = "Option::is_none")]
     init_remote_static: Option<HexBytes<Vec<u8>>>,
 
-    resp_prologue:      HexBytes<Vec<u8>>,
+    resp_prologue: HexBytes<Vec<u8>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_psks:          Option<Vec<HexBytes<[u8; 32]>>>,
+    resp_psks: Option<Vec<HexBytes<[u8; 32]>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_static:        Option<HexBytes<Vec<u8>>>,
+    resp_static: Option<HexBytes<Vec<u8>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    resp_ephemeral:     Option<HexBytes<Vec<u8>>>,
+    resp_ephemeral: Option<HexBytes<Vec<u8>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     resp_remote_static: Option<HexBytes<Vec<u8>>>,
 
@@ -306,14 +306,14 @@ fn test_vectors_from_json(json: &str) {
 
 fn random_slice<const N: usize>() -> [u8; N] {
     let mut v = [0_u8; N];
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     rng.fill_bytes(&mut v);
     v
 }
 
 fn random_vec(size: usize) -> Vec<u8> {
     let mut v = vec![0_u8; size];
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     rng.fill_bytes(&mut v);
     v
 }
@@ -382,7 +382,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = init.write_message(&payload, &mut ibuf).unwrap();
         messages.push(TestMessage {
-            payload:    payload.clone().into(),
+            payload: payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
         i += 1;
@@ -395,7 +395,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = resp.write_message(&payload, &mut ibuf).unwrap();
         messages.push(TestMessage {
-            payload:    payload.clone().into(),
+            payload: payload.clone().into(),
             ciphertext: ibuf[..len].to_vec().into(),
         });
         i += 1;
@@ -414,7 +414,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
     let payload = random_vec(32);
     let len = init.write_message(&payload, &mut ibuf).unwrap();
     messages.push(TestMessage {
-        payload:    payload.clone().into(),
+        payload: payload.clone().into(),
         ciphertext: ibuf[..len].to_vec().into(),
     });
 
@@ -422,7 +422,7 @@ fn generate_vector(params: NoiseParams) -> TestVector {
         let payload = random_vec(32);
         let len = resp.write_message(&payload, &mut obuf).unwrap();
         messages.push(TestMessage {
-            payload:    payload.clone().into(),
+            payload: payload.clone().into(),
             ciphertext: obuf[..len].to_vec().into(),
         });
     }

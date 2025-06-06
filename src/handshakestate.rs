@@ -237,7 +237,7 @@ impl HandshakeState {
                     }
 
                     if !self.fixed_ephemeral {
-                        self.e.generate(&mut *self.rng);
+                        self.e.generate(&mut *self.rng)?;
                     }
                     let pubkey = self.e.pubkey();
                     message[byte_index..byte_index + pubkey.len()].copy_from_slice(pubkey);

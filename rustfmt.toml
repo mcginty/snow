@@ -1,11 +1,7 @@
 indent_style = "Block"
-use_small_heuristics="Max"
-imports_granularity="Crate"
+use_small_heuristics = "Max"
+imports_granularity = "Crate"
 match_block_trailing_comma = true
 reorder_impl_items = true
 reorder_imports = true
 use_field_init_shorthand = true
-use_try_shorthand = true
-normalize_doc_attributes = true
-enum_discrim_align_threshold = 40
-struct_field_align_threshold = 40

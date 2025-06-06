@@ -10,25 +10,21 @@ use crate::{
 
 #[derive(Copy, Clone)]
 pub(crate) struct SymmetricStateData {
-    h:       [u8; MAXHASHLEN],
-    ck:      [u8; MAXHASHLEN],
+    h: [u8; MAXHASHLEN],
+    ck: [u8; MAXHASHLEN],
     has_key: bool,
 }
 
 impl Default for SymmetricStateData {
     fn default() -> Self {
-        SymmetricStateData {
-            h:       [0_u8; MAXHASHLEN],
-            ck:      [0_u8; MAXHASHLEN],
-            has_key: false,
-        }
+        SymmetricStateData { h: [0_u8; MAXHASHLEN], ck: [0_u8; MAXHASHLEN], has_key: false }
     }
 }
 
 pub(crate) struct SymmetricState {
     cipherstate: CipherState,
-    hasher:      Box<dyn Hash>,
-    inner:       SymmetricStateData,
+    hasher: Box<dyn Hash>,
+    inner: SymmetricStateData,
 }
 
 impl SymmetricState {
