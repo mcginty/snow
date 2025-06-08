@@ -21,7 +21,7 @@ use chacha20poly1305::ChaCha20Poly1305;
 use chacha20poly1305::XChaCha20Poly1305;
 
 #[cfg(any(feature = "use-chacha20poly1305", feature = "use-xchacha20poly1305"))]
-use chacha20poly1305::{aead::AeadInPlace, KeyInit};
+use chacha20poly1305::{KeyInit, aead::AeadInPlace};
 
 #[cfg(feature = "use-aes-gcm")]
 use aes_gcm::Aes256Gcm;
@@ -32,7 +32,7 @@ use crate::params::KemChoice;
 #[cfg(feature = "use-pqcrypto-kyber1024")]
 use crate::types::Kem;
 #[cfg(feature = "p256")]
-use p256::{self, elliptic_curve::sec1::ToEncodedPoint, EncodedPoint};
+use p256::{self, EncodedPoint, elliptic_curve::sec1::ToEncodedPoint};
 #[cfg(feature = "use-pqcrypto-kyber1024")]
 use pqcrypto_kyber::kyber1024;
 #[cfg(feature = "use-pqcrypto-kyber1024")]
@@ -40,16 +40,18 @@ use pqcrypto_traits::kem::{Ciphertext, PublicKey, SecretKey, SharedSecret};
 
 use super::CryptoResolver;
 use crate::{
+    Error,
     constants::{CIPHERKEYLEN, TAGLEN},
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
-    Error,
 };
 
 // NB: Intentionally private so RNG details aren't leaked into
 // the public API.
+#[cfg(feature = "use-getrandom")]
 struct OsRng;
 
+#[cfg(feature = "use-getrandom")]
 impl Random for OsRng {
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
         getrandom::fill(dest).map_err(|_| Error::Rng)
@@ -65,7 +67,14 @@ pub struct DefaultResolver;
 
 impl CryptoResolver for DefaultResolver {
     fn resolve_rng(&self) -> Option<Box<dyn Random>> {
-        Some(Box::new(OsRng))
+        #[cfg(feature = "use-getrandom")]
+        {
+            Some(Box::new(OsRng))
+        }
+        #[cfg(not(feature = "use-getrandom"))]
+        {
+            None
+        }
     }
 
     fn resolve_dh(&self, choice: &DHChoice) -> Option<Box<dyn Dh>> {
@@ -977,5 +986,16 @@ mod tests {
         assert_eq!(ss2_len, shared_secret_2.len());
         assert_eq!(ss1_len, ss2_len);
         assert_eq!(ct_len, ciphertext.len());
+    }
+
+    #[test]
+    fn test_rng_resolver() {
+        let rng = DefaultResolver.resolve_rng();
+
+        if cfg!(feature = "use-getrandom") {
+            assert!(rng.is_some());
+        } else {
+            assert!(rng.is_none());
+        }
     }
 }

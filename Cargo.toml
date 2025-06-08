@@ -28,6 +28,7 @@ default-resolver-crypto = [
     "use-blake2",
     "use-sha2",
     "use-curve25519",
+    "use-getrandom",
 ]
 nightly = ["blake2/simd_opt", "subtle/nightly"]
 ring-resolver = ["ring", "std"]
@@ -57,6 +58,7 @@ use-xchacha20poly1305 = ["chacha20poly1305", "default-resolver"]
 use-blake2 = ["blake2", "default-resolver"]
 use-sha2 = ["sha2", "default-resolver"]
 use-aes-gcm = ["aes-gcm", "default-resolver"]
+use-getrandom = ["getrandom", "default-resolver"]
 use-pqcrypto-kyber1024 = [
     "pqcrypto-kyber",
     "pqcrypto-traits",
@@ -73,10 +75,10 @@ harness = false
 travis-ci = { repository = "mcginty/snow", branch = "master" }
 
 [dependencies]
-getrandom = { version = "0.3" }
 subtle = { version = "2.4", default-features = false }
 
 # default crypto provider
+getrandom = { version = "0.3", optional = true }
 aes-gcm = { version = "0.10", optional = true, default-features = false, features = [
     "aes",
 ] }
