@@ -42,14 +42,7 @@ pqclean_kyber1024 = ["use-pqcrypto-kyber1024"]
 xchachapoly = ["use-xchacha20poly1305"]
 
 # Enable std features on dependencies if possible.
-std = [
-    "getrandom/std",
-    "subtle/std",
-    "ring/std",
-    "blake2/std",
-    "sha2/std",
-    "byteorder/std",
-]
+std = ["getrandom/std", "subtle/std", "ring/std", "blake2/std", "sha2/std"]
 
 # Crypto primitives for default-resolver.
 use-curve25519 = ["curve25519-dalek", "default-resolver"]
@@ -93,7 +86,6 @@ pqcrypto-traits = { version = "0.3", optional = true }
 
 # ring crypto provider
 ring = { version = "0.17.12", optional = true }
-byteorder = { version = "1.4", optional = true, default-features = false }
 
 [dev-dependencies]
 criterion = "0.6"
