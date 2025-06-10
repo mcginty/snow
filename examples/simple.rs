@@ -9,7 +9,7 @@
 //! Run the server a-like-a-so `cargo run --example simple -- -s`, then run the client
 //! as `cargo run --example simple` to see the magic happen.
 
-use snow::{params::NoiseParams, Builder};
+use snow::{Builder, params::NoiseParams};
 use std::{
     io::{self, Read, Write},
     net::{TcpListener, TcpStream},
@@ -23,7 +23,7 @@ static PARAMS: LazyLock<NoiseParams> =
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
     let server_mode =
-        std::env::args().next_back().map_or(true, |arg| arg == "-s" || arg == "--server");
+        std::env::args().next_back().is_none_or(|arg| arg == "-s" || arg == "--server");
 
     if server_mode {
         run_server();

@@ -10,7 +10,7 @@
 //! as `cargo run --example oneway` to see the magic happen.
 
 use hex::FromHex;
-use snow::{params::NoiseParams, Builder, Keypair};
+use snow::{Builder, Keypair, params::NoiseParams};
 use std::{
     io::{self, Read, Write},
     net::{TcpListener, TcpStream},
@@ -33,7 +33,7 @@ static RESPONDER: LazyLock<Keypair> = LazyLock::new(|| Keypair {
 #[cfg(any(feature = "default-resolver", feature = "ring-accelerated"))]
 fn main() {
     let server_mode =
-        std::env::args().next_back().map_or(true, |arg| arg == "-s" || arg == "--server");
+        std::env::args().next_back().is_none_or(|arg| arg == "-s" || arg == "--server");
 
     if server_mode {
         run_server(&RESPONDER.private, SECRET);
