@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/mcginty/snow/workflows/Build/badge.svg)](https://github.com/mcginty/snow/actions)
 [![dependency status](https://deps.rs/repo/github/mcginty/snow/status.svg)](https://deps.rs/repo/github/mcginty/snow)
 
-![totally official snow logo](https://i.imgur.com/gFgvo49.jpg?1)
+![very official snow logo](./docs/snow.jpg)
 
 An implementation of Trevor Perrin's [Noise Protocol](https://noiseprotocol.org/) that
 is designed to be Hard To Fuck Up™.
