@@ -35,13 +35,12 @@ let mut noise = noise.into_transport_mode()?;
 
 See the full documentation at [https://docs.rs/snow](https://docs.rs/snow).
 
-## Implemented
+## Specification
 
-Snow is currently tracking against [Noise spec revision 34](https://noiseprotocol.org/noise_rev34.html).
-
-However, a not all features have been implemented yet (pull requests welcome):
-
-- [ ] [The `fallback` modifier](https://noiseprotocol.org/noise_rev34.html#the-fallback-modifier)
+Snow is tracking against [Noise spec revision 34](https://noiseprotocol.org/noise_rev34.html),
+the latest Noise Protocol version. All features are implemented with the exception of
+[the `fallback` modifier](https://noiseprotocol.org/noise_rev34.html#the-fallback-modifier)
+(PRs welcome).
 
 ## Crypto
 
