@@ -5,6 +5,8 @@ use crate::{
     types::{Cipher, Dh, Hash, Random},
     Error,
 };
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
 use ring::{
     aead::{self, LessSafeKey, UnboundKey},
     digest,
@@ -296,12 +298,14 @@ impl Hash for HashSHA512 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::{collections::BTreeSet, vec};
+    #[cfg(feature = "std")]
+    use std::collections::BTreeSet;
 
     #[test]
     fn test_randomness_sanity() {
-        use std::collections::HashSet;
-
-        let mut samples = HashSet::new();
+        let mut samples = BTreeSet::new();
         let mut rng = RingRng::default();
         for _ in 0..100_000 {
             let mut buf = vec![0u8; 128];

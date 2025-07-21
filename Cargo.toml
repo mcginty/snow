@@ -31,8 +31,8 @@ default-resolver-crypto = [
     "use-getrandom",
 ]
 nightly = ["blake2/simd_opt", "subtle/nightly"]
-ring-resolver = ["ring", "std"]
-ring-accelerated = ["ring-resolver", "default-resolver", "std"]
+ring-resolver = ["ring"]
+ring-accelerated = ["ring-resolver", "default-resolver"]
 vector-tests = []
 hfs = []
 risky-raw-split = []
