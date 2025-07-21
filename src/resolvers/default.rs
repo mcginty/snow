@@ -41,10 +41,12 @@ use pqcrypto_traits::kem::{Ciphertext, PublicKey, SecretKey, SharedSecret};
 use super::CryptoResolver;
 use crate::{
     Error,
-    constants::{CIPHERKEYLEN, TAGLEN},
+    constants::CIPHERKEYLEN,
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
 };
+#[cfg(any(feature = "use-aes-gcm", feature = "use-chacha20poly1305", feature = "use-xchacha20poly1305"))]
+use crate::constants::TAGLEN;
 
 // NB: Intentionally private so RNG details aren't leaked into
 // the public API.
