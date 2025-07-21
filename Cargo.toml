@@ -42,7 +42,7 @@ pqclean_kyber1024 = ["use-pqcrypto-kyber1024"]
 xchachapoly = ["use-xchacha20poly1305"]
 
 # Enable std features on dependencies if possible.
-std = ["getrandom/std", "subtle/std", "ring/std", "blake2/std", "sha2/std"]
+std = ["getrandom?/std", "subtle/std", "ring?/std", "blake2?/std", "sha2?/std"]
 
 # Crypto primitives for default-resolver.
 use-curve25519 = ["curve25519-dalek", "default-resolver"]
