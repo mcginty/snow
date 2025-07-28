@@ -70,6 +70,34 @@ impl StatelessTransportState {
         cipher.encrypt(nonce, payload, message)
     }
 
+    /// Construct a message from `plaintext` and write it to the `out` buffer like
+    /// [`write_message`](Self::write_message). Additionally when computing
+    /// the authentication tag, mix in the contents of `authtext` which the receiving
+    /// side will need to also include for successful decryption and authentication.
+    ///
+    /// Returns the number of bytes written to `out`.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::Input` if the size of the output exceeds the max message
+    /// length in the Noise Protocol (65535 bytes).
+    pub fn write_message_with_additional_data(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        plaintext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, Error> {
+        if !self.initiator && self.pattern.is_oneway() {
+            return Err(StateProblem::OneWay.into());
+        } else if plaintext.len() + TAGLEN > MAXMSGLEN || plaintext.len() + TAGLEN > out.len() {
+            return Err(Error::Input);
+        }
+
+        let cipher = if self.initiator { &self.cipherstates.0 } else { &self.cipherstates.1 };
+        cipher.encrypt_ad(nonce, authtext, plaintext, out)
+    }
+
     /// Read a noise message from `message` and write the payload to the `payload` buffer.
     ///
     /// Returns the number of bytes written to `payload`.
@@ -94,6 +122,39 @@ impl StatelessTransportState {
         } else {
             let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
             cipher.decrypt(nonce, payload, message)
+        }
+    }
+
+    /// Read a noise message from `ciphertext` and write the decrypted payload to `out`
+    /// buffer like [`read_message`](Self::read_message). Additionally when computing
+    /// the authentication tag, mix in the contents of `authtext`. This needs to be the
+    /// same data which was passed to
+    /// [`write_message_with_additional_data`](Self::write_message_with_additional_data).
+    ///
+    /// Returns the number of bytes written to `out`.
+    ///
+    /// # Errors
+    ///
+    /// Will result in `Error::Input` if the message is more than 65535 bytes.
+    ///
+    /// Will result in `Error::Decrypt` if the contents couldn't be decrypted and/or the
+    /// authentication tag didn't verify.
+    ///
+    /// Will result in `StateProblem::Exhausted` if the max nonce overflows.
+    pub fn read_message_with_additional_data(
+        &self,
+        nonce: u64,
+        authtext: &[u8],
+        ciphertext: &[u8],
+        out: &mut [u8],
+    ) -> Result<usize, Error> {
+        if ciphertext.len() > MAXMSGLEN {
+            Err(Error::Input)
+        } else if self.initiator && self.pattern.is_oneway() {
+            Err(StateProblem::OneWay.into())
+        } else {
+            let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
+            cipher.decrypt_ad(nonce, authtext, ciphertext, out)
         }
     }
 
