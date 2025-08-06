@@ -31,8 +31,12 @@ default-resolver-crypto = [
     "use-getrandom",
 ]
 nightly = ["blake2/simd_opt", "subtle/nightly"]
-ring-resolver = ["ring", "std"]
-ring-accelerated = ["ring-resolver", "default-resolver", "std"]
+ring-resolver = ["ring"]
+# _ring_ doesn't provide BLAKE2 or X25519 (with APIs `snow` can use at least), so enable those
+# to ensure any default-supported pattern will still work while compiling minimal RustCrypto dependencies otherwise.
+# This is preferred over needing to also enable `default-resolver-crypto` when many of the crates won't be used
+# at runtime.
+ring-accelerated = ["ring-resolver", "default-resolver", "use-blake2", "use-curve25519"]
 vector-tests = []
 hfs = []
 risky-raw-split = []
