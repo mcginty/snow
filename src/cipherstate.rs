@@ -70,14 +70,6 @@ impl CipherState {
         Ok(len)
     }
 
-    pub fn encrypt(&mut self, plaintext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
-        self.encrypt_ad(&[0_u8; 0], plaintext, out)
-    }
-
-    pub fn decrypt(&mut self, ciphertext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
-        self.decrypt_ad(&[0_u8; 0], ciphertext, out)
-    }
-
     pub fn rekey(&mut self) {
         self.cipher.rekey();
     }
@@ -163,14 +155,6 @@ impl StatelessCipherState {
         validate_nonce(nonce)?;
 
         self.cipher.decrypt(nonce, authtext, ciphertext, out)
-    }
-
-    pub fn encrypt(&self, nonce: u64, plaintext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
-        self.encrypt_ad(nonce, &[], plaintext, out)
-    }
-
-    pub fn decrypt(&self, nonce: u64, ciphertext: &[u8], out: &mut [u8]) -> Result<usize, Error> {
-        self.decrypt_ad(nonce, &[], ciphertext, out)
     }
 
     pub fn rekey(&mut self) {

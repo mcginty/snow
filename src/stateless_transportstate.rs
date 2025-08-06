@@ -45,57 +45,50 @@ impl StatelessTransportState {
         self.rs.get().map(|rs| &rs[..self.dh_len])
     }
 
-    /// Construct a message from `payload` (and pending handshake tokens if in handshake state),
-    /// and write it to the `message` buffer.
+    /// Construct a message from `plaintext`, and write it to the `message`
+    /// buffer.
     ///
     /// Returns the number of bytes written to `message`.
     ///
     /// # Errors
     ///
-    /// Will result in `Error::Input` if the size of the output exceeds the max message
-    /// length in the Noise Protocol (65535 bytes).
+    /// Will result in `Error::Input` if the size of the output exceeds the max
+    /// message length in the Noise Protocol (65535 bytes).
     pub fn write_message(
         &self,
         nonce: u64,
         payload: &[u8],
         message: &mut [u8],
     ) -> Result<usize, Error> {
-        if !self.initiator && self.pattern.is_oneway() {
-            return Err(StateProblem::OneWay.into());
-        } else if payload.len() + TAGLEN > MAXMSGLEN || payload.len() + TAGLEN > message.len() {
-            return Err(Error::Input);
-        }
-
-        let cipher = if self.initiator { &self.cipherstates.0 } else { &self.cipherstates.1 };
-        cipher.encrypt(nonce, payload, message)
+        self.write_message_with_additional_data(nonce, &[], payload, message)
     }
 
-    /// Construct a message from `plaintext` and write it to the `out` buffer like
-    /// [`write_message`](Self::write_message). Additionally when computing
-    /// the authentication tag, mix in the contents of `authtext` which the receiving
-    /// side will need to also include for successful decryption and authentication.
+    /// Construct a message from `plaintext`, and write it to the `message`
+    /// buffer. Additionally, the contents of `authtext` will be mixed into the
+    /// authentication tag, such that the receiving side will also need to
+    /// include it successful decryption and authentication.
     ///
-    /// Returns the number of bytes written to `out`.
+    /// Returns the number of bytes written to `message`.
     ///
     /// # Errors
     ///
-    /// Will result in `Error::Input` if the size of the output exceeds the max message
-    /// length in the Noise Protocol (65535 bytes).
+    /// Will result in `Error::Input` if the size of the output exceeds the max
+    /// message length in the Noise Protocol (65535 bytes).
     pub fn write_message_with_additional_data(
         &self,
         nonce: u64,
         authtext: &[u8],
         plaintext: &[u8],
-        out: &mut [u8],
+        message: &mut [u8],
     ) -> Result<usize, Error> {
         if !self.initiator && self.pattern.is_oneway() {
             return Err(StateProblem::OneWay.into());
-        } else if plaintext.len() + TAGLEN > MAXMSGLEN || plaintext.len() + TAGLEN > out.len() {
+        } else if plaintext.len() + TAGLEN > MAXMSGLEN || plaintext.len() + TAGLEN > message.len() {
             return Err(Error::Input);
         }
 
         let cipher = if self.initiator { &self.cipherstates.0 } else { &self.cipherstates.1 };
-        cipher.encrypt_ad(nonce, authtext, plaintext, out)
+        cipher.encrypt_ad(nonce, authtext, plaintext, message)
     }
 
     /// Read a noise message from `message` and write the payload to the `payload` buffer.
@@ -108,45 +101,37 @@ impl StatelessTransportState {
     /// Will result in `Error::Decrypt` if the contents couldn't be decrypted and/or the
     /// authentication tag didn't verify.
     ///
-    /// Will result in `StateProblem::Exhausted` if the max nonce overflows.
+    /// Will result in `StateProblem::Exhausted` if the max nonce is `u64::MAX`.
     pub fn read_message(
         &self,
         nonce: u64,
         payload: &[u8],
         message: &mut [u8],
     ) -> Result<usize, Error> {
-        if payload.len() > MAXMSGLEN {
-            Err(Error::Input)
-        } else if self.initiator && self.pattern.is_oneway() {
-            Err(StateProblem::OneWay.into())
-        } else {
-            let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
-            cipher.decrypt(nonce, payload, message)
-        }
+        self.read_message_with_additional_data(nonce, &[], payload, message)
     }
 
-    /// Read a noise message from `ciphertext` and write the decrypted payload to `out`
-    /// buffer like [`read_message`](Self::read_message). Additionally when computing
-    /// the authentication tag, mix in the contents of `authtext`. This needs to be the
-    /// same data which was passed to
-    /// [`write_message_with_additional_data`](Self::write_message_with_additional_data).
+    /// Read a noise message from `message` and write the payload to the
+    /// `payload` buffer. Additionally, the contents of `authtext` will be mixed
+    /// into the authentication tag, and must match the `authtext` provided
+    /// during encryption.
     ///
-    /// Returns the number of bytes written to `out`.
+    /// Returns the number of bytes written to `payload`.
     ///
     /// # Errors
+    /// Will result in `Error::Input` if the message is more than 65535
+    /// bytes.
     ///
-    /// Will result in `Error::Input` if the message is more than 65535 bytes.
+    /// Will result in `Error::Decrypt` if the contents couldn't be decrypted
+    /// and/or the authentication tag didn't verify.
     ///
-    /// Will result in `Error::Decrypt` if the contents couldn't be decrypted and/or the
-    /// authentication tag didn't verify.
-    ///
-    /// Will result in `StateProblem::Exhausted` if the max nonce overflows.
+    /// Will result in `StateProblem::Exhausted` if the max nonce is `u64::MAX`.
     pub fn read_message_with_additional_data(
         &self,
         nonce: u64,
         authtext: &[u8],
         ciphertext: &[u8],
-        out: &mut [u8],
+        message: &mut [u8],
     ) -> Result<usize, Error> {
         if ciphertext.len() > MAXMSGLEN {
             Err(Error::Input)
@@ -154,7 +139,7 @@ impl StatelessTransportState {
             Err(StateProblem::OneWay.into())
         } else {
             let cipher = if self.initiator { &self.cipherstates.1 } else { &self.cipherstates.0 };
-            cipher.decrypt_ad(nonce, authtext, ciphertext, out)
+            cipher.decrypt_ad(nonce, authtext, ciphertext, message)
         }
     }
 
