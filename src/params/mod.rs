@@ -1,4 +1,3 @@
-#![allow(clippy::match_on_vec_items)]
 #![allow(clippy::enum_glob_use)]
 
 //! All structures related to Noise parameter definitions (cryptographic primitive choices, protocol
@@ -105,6 +104,9 @@ pub enum HashChoice {
     Blake2s,
     /// The BLAKE2b hash function, designed to be more efficient on 64-bit architectures.
     Blake2b,
+    /// The BLAKE3 hash function, designed to be more efficient than BLAKE3 through,
+    /// in part, parallelism.
+    Blake3,
 }
 
 impl FromStr for HashChoice {
@@ -117,6 +119,7 @@ impl FromStr for HashChoice {
             "SHA512" => Ok(SHA512),
             "BLAKE2s" => Ok(Blake2s),
             "BLAKE2b" => Ok(Blake2b),
+            "BLAKE3" => Ok(Blake3),
             _ => Err(PatternProblem::UnsupportedHashType.into()),
         }
     }
