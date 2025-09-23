@@ -133,7 +133,11 @@ extern crate alloc;
         feature = "use-chacha20poly1305",
         feature = "use-xchacha20poly1305"
     )),
-    not(any(feature = "use-sha2", feature = "use-blake2"))
+    not(any(
+        feature = "use-sha2",
+        feature = "use-blake2",
+        feature = "use-blake3"
+    ))
 ))]
 compile_error!(
     "Valid selection of crypto primitived must be enabled when using feature 'default-resolver'.
