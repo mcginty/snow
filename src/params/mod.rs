@@ -105,8 +105,8 @@ pub enum HashChoice {
     /// The BLAKE2b hash function, designed to be more efficient on 64-bit architectures.
     Blake2b,
     #[cfg(feature = "use-blake3")]
-    /// The BLAKE3 hash function, designed to be more efficient than BLAKE3 through,
-    /// in part, parallelism.
+    /// The BLAKE3 hash function, designed to be more efficient than BLAKE2 through,
+    /// in part, parallelism and a reduced round count.
     Blake3,
 }
 
