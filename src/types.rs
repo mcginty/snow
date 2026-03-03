@@ -1,5 +1,8 @@
 //! The traits for cryptographic implementations that can be used by Noise.
 
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 use crate::{
     constants::{CIPHERKEYLEN, MAXBLOCKLEN, MAXHASHLEN, TAGLEN},
     Error,
@@ -74,6 +77,9 @@ pub trait Cipher: Send + Sync {
         ciphertext: &[u8],
         out: &mut [u8],
     ) -> Result<usize, Error>;
+    
+    /// Clone the cipher state in order to support multiple rekey instances.
+    fn clone_box(&self) -> Box<dyn Cipher>;
 
     /// Rekey according to Section 4.2 of the Noise Specification, with a default
     /// implementation guaranteed to be secure for all ciphers.
@@ -87,6 +93,12 @@ pub trait Cipher: Send + Sync {
         key.copy_from_slice(&ciphertext[..CIPHERKEYLEN]);
 
         self.set(&key);
+    }
+}
+
+impl Clone for Box<dyn Cipher> {
+    fn clone(&self) -> Self {
+        self.clone_box()
     }
 }
 
