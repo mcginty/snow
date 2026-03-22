@@ -1,4 +1,3 @@
-#![allow(clippy::match_on_vec_items)]
 #![allow(clippy::enum_glob_use)]
 
 //! All structures related to Noise parameter definitions (cryptographic primitive choices, protocol
