@@ -150,7 +150,7 @@ Check out their [documentation](getrandom-custom) for details.
 `snow` is offered with a dual choice-of-license between:
 
 - [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
-- [MIT license](https://opensource.org/license/mit/)
+- [MIT license](https://opensource.org/licenses/MIT)
 
 where you may choose either of these licenses to follow for this work.
 
