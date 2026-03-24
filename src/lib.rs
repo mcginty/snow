@@ -131,12 +131,17 @@ extern crate alloc;
     not(any(
         feature = "use-aes-gcm",
         feature = "use-chacha20poly1305",
+        // `default-resolver` and `ring-resolver` may be enabled at the same time
+        // when using the `ring-accelerated` feature. _ring_ provides AES-GCM and
+        // ChaChaPoly-1305 too, which are the only two required ciphers.
+        feature = "ring-resolver",
         feature = "use-xchacha20poly1305"
     )),
     not(any(
         feature = "use-sha2",
         feature = "use-blake2",
-        feature = "use-blake3"
+        feature = "use-blake3",
+        feature = "ring-resolver"
     ))
 ))]
 compile_error!(
