@@ -1,0 +1,32 @@
+[tools]
+rust = "1.85.0"
+"cargo:cargo-nextest" = "latest"
+cargo-binstall = "latest"
+
+[task_config]
+includes = ["tasks"]
+
+[tasks.build]
+description = "Build the project"
+run = "cargo build"
+
+[tasks.lint]
+description = "Run clippy (use on MSRV 1.85)"
+run = "cargo clippy --features 'hfs use-pqcrypto-kyber1024 use-p256 use-xchacha20poly1305 vector-tests' --tests --benches --examples -- -Dwarnings"
+
+[tasks.fmt]
+description = "Format code"
+run = "cargo fmt"
+
+[tasks.fmt-check]
+description = "Check formatting without modifying files"
+run = "cargo fmt --check"
+
+[tasks.bench]
+description = "Run benchmarks"
+run = "cargo bench"
+
+[tasks.check]
+description = "Check all targets compile"
+run = "cargo check --features 'hfs use-pqcrypto-kyber1024 use-p256 use-blake3 use-xchacha20poly1305' --benches --tests --examples"
+

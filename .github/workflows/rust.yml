@@ -21,12 +21,10 @@ jobs:
         rust: [stable, beta, nightly, 1.85.0]
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.rust }}
-          components: clippy
-      - uses: taiki-e/install-action@nextest
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v4
+        env:
+          MISE_RUST_VERSION: ${{ matrix.rust }}
       - uses: Swatinem/rust-cache@v2
       - name: Install LLVM and Clang
         if: startsWith(matrix.os, 'windows')
@@ -38,4 +36,4 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
       - name: Run tests
-        run: bash ./ci-tests.sh
+        run: mise run test

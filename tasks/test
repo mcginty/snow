@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE description="Run full CI test suite"
 set -e
 TARGET="$([ -n "$1" ] && echo "--target $1" || echo "")"
 MSRV="$(cargo metadata --no-deps | jq -r .packages[0].rust_version)"
