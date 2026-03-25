@@ -46,13 +46,21 @@ pqclean_kyber1024 = ["use-pqcrypto-kyber1024"]
 xchachapoly = ["use-xchacha20poly1305"]
 
 # Enable std features on dependencies if possible.
-std = ["getrandom?/std", "subtle/std", "ring?/std", "blake2?/std", "sha2?/std"]
+std = [
+    "getrandom?/std",
+    "subtle/std",
+    "ring?/std",
+    "blake2?/std",
+    "blake3?/std",
+    "sha2?/std",
+]
 
 # Crypto primitives for default-resolver.
 use-curve25519 = ["curve25519-dalek", "default-resolver"]
 use-chacha20poly1305 = ["chacha20poly1305", "default-resolver"]
 use-xchacha20poly1305 = ["chacha20poly1305", "default-resolver"]
 use-blake2 = ["blake2", "default-resolver"]
+use-blake3 = ["blake3", "default-resolver"]
 use-sha2 = ["sha2", "default-resolver"]
 use-aes-gcm = ["aes-gcm", "default-resolver"]
 use-getrandom = ["getrandom", "default-resolver"]
@@ -81,6 +89,7 @@ aes-gcm = { version = "0.10", optional = true, default-features = false, feature
 ] }
 chacha20poly1305 = { version = "0.10", optional = true, default-features = false }
 blake2 = { version = "0.10", optional = true, default-features = false }
+blake3 = { version = "1.8", optional = true, default-features = false }
 sha2 = { version = "0.10", optional = true, default-features = false }
 curve25519-dalek = { version = "4.1.3", optional = true, default-features = false }
 p256 = { version = "0.13.2", features = ["ecdh"], optional = true }

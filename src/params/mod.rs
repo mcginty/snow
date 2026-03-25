@@ -104,6 +104,10 @@ pub enum HashChoice {
     Blake2s,
     /// The BLAKE2b hash function, designed to be more efficient on 64-bit architectures.
     Blake2b,
+    #[cfg(feature = "use-blake3")]
+    /// The BLAKE3 hash function, designed to be more efficient than BLAKE2 through,
+    /// in part, parallelism and a reduced round count.
+    Blake3,
 }
 
 impl FromStr for HashChoice {
@@ -116,6 +120,8 @@ impl FromStr for HashChoice {
             "SHA512" => Ok(SHA512),
             "BLAKE2s" => Ok(Blake2s),
             "BLAKE2b" => Ok(Blake2b),
+            #[cfg(feature = "use-blake3")]
+            "BLAKE3" => Ok(Blake3),
             _ => Err(PatternProblem::UnsupportedHashType.into()),
         }
     }

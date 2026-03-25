@@ -137,8 +137,12 @@ extern crate alloc;
         feature = "ring-resolver",
         feature = "use-xchacha20poly1305"
     )),
-    // See above rationale; _ring_ provides SHA2 at minimum which is a supported config.
-    not(any(feature = "use-sha2", feature = "use-blake2", feature = "ring-resolver"))
+    not(any(
+        feature = "use-sha2",
+        feature = "use-blake2",
+        feature = "use-blake3",
+        feature = "ring-resolver"
+    ))
 ))]
 compile_error!(
     "Valid selection of crypto primitived must be enabled when using feature 'default-resolver'.

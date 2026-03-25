@@ -100,6 +100,8 @@ impl CryptoResolver for DefaultResolver {
             HashChoice::Blake2s => Some(Box::<HashBLAKE2s>::default()),
             #[cfg(feature = "use-blake2")]
             HashChoice::Blake2b => Some(Box::<HashBLAKE2b>::default()),
+            #[cfg(feature = "use-blake3")]
+            HashChoice::Blake3 => Some(Box::<HashBlake3>::default()),
             _ => None,
         }
     }
@@ -188,6 +190,13 @@ struct HashBLAKE2b {
 #[derive(Default)]
 struct HashBLAKE2s {
     hasher: Blake2s256,
+}
+
+/// Wraps `blake3`'s implementation
+#[cfg(feature = "use-blake3")]
+#[derive(Default)]
+struct HashBlake3 {
+    hasher: blake3::Hasher,
 }
 
 /// Wraps `kyber1024`'s implementation
@@ -581,6 +590,34 @@ impl Hash for HashBLAKE2s {
     fn result(&mut self, out: &mut [u8]) {
         let hash = self.hasher.finalize_reset();
         out[..32].copy_from_slice(&hash);
+    }
+}
+
+#[cfg(feature = "use-blake3")]
+impl Hash for HashBlake3 {
+    fn name(&self) -> &'static str {
+        "BLAKE3"
+    }
+
+    fn block_len(&self) -> usize {
+        blake3::BLOCK_LEN
+    }
+
+    fn hash_len(&self) -> usize {
+        blake3::OUT_LEN
+    }
+
+    fn reset(&mut self) {
+        self.hasher = blake3::Hasher::new();
+    }
+
+    fn input(&mut self, data: &[u8]) {
+        self.hasher.update(data);
+    }
+
+    fn result(&mut self, out: &mut [u8]) {
+        let hash = self.hasher.finalize();
+        out[..blake3::OUT_LEN].copy_from_slice(hash.as_bytes());
     }
 }
 
