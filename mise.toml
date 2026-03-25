@@ -1,5 +1,5 @@
 [tools]
-rust = "1.85.0"
+rust = "stable"
 "cargo:cargo-nextest" = "latest"
 cargo-binstall = "latest"
 
