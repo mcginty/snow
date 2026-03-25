@@ -52,7 +52,7 @@ std = [
     "ring?/std",
     "blake2?/std",
     "blake3?/std",
-    "sha2?/std",
+    "sha2?/alloc",
 ]
 
 # Crypto primitives for default-resolver.
@@ -90,7 +90,7 @@ aes-gcm = { version = "0.10.3", optional = true, default-features = false, featu
 chacha20poly1305 = { version = "0.10", optional = true, default-features = false }
 blake2 = { version = "0.10", optional = true, default-features = false }
 blake3 = { version = "1.8", optional = true, default-features = false }
-sha2 = { version = "0.10", optional = true, default-features = false }
+sha2 = { version = "0.11", optional = true, default-features = false }
 curve25519-dalek = { version = "4.1.3", optional = true, default-features = false }
 p256 = { version = "0.13.2", features = ["ecdh"], optional = true }
 
