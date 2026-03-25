@@ -134,3 +134,5 @@ missing_assert_message = "warn"
 pedantic = { level = "warn", priority = -1 }
 doc_markdown = "allow"
 used_underscore_items = "allow"
+allow-unwrap-in-tests = "allow"
+match_on_vec_items = "allow"
