@@ -145,21 +145,21 @@ struct P256 {
 
 /// Wraps `aes-gcm`'s AES256-GCM implementation.
 #[cfg(feature = "use-aes-gcm")]
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct CipherAesGcm {
     key: [u8; CIPHERKEYLEN],
 }
 
 /// Wraps `chacha20_poly1305_aead`'s `ChaCha20Poly1305` implementation.
 #[cfg(feature = "use-chacha20poly1305")]
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct CipherChaChaPoly {
     key: [u8; CIPHERKEYLEN],
 }
 
 /// Wraps `chachapoly1305`'s XChaCha20Poly1305 implementation.
 #[cfg(feature = "use-xchacha20poly1305")]
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct CipherXChaChaPoly {
     key: [u8; CIPHERKEYLEN],
 }
@@ -375,6 +375,10 @@ impl Cipher for CipherAesGcm {
         .map(|()| message_len)
         .map_err(|_| Error::Decrypt)
     }
+    
+    fn clone_box(&self) -> Box<dyn Cipher> {
+        Box::new(self.clone())
+    }
 }
 
 #[cfg(feature = "use-chacha20poly1305")]
@@ -427,6 +431,10 @@ impl Cipher for CipherChaChaPoly {
 
         Ok(message_len)
     }
+    
+    fn clone_box(&self) -> Box<dyn Cipher> {
+        Box::new(self.clone())
+    }
 }
 
 #[cfg(feature = "use-xchacha20poly1305")]
@@ -478,6 +486,10 @@ impl Cipher for CipherXChaChaPoly {
             .map_err(|_| Error::Decrypt)?;
 
         Ok(message_len)
+    }
+    
+    fn clone_box(&self) -> Box<dyn Cipher> {
+        Box::new(self.clone())
     }
 }
 

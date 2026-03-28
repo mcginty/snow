@@ -115,6 +115,7 @@ impl CipherStates {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct StatelessCipherState {
     cipher: Box<dyn Cipher>,
     has_key: bool,
@@ -185,6 +186,7 @@ impl From<CipherState> for StatelessCipherState {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct StatelessCipherStates(pub StatelessCipherState, pub StatelessCipherState);
 
 impl From<CipherStates> for StatelessCipherStates {

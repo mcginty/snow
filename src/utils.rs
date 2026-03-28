@@ -47,3 +47,12 @@ impl<T> DerefMut for Toggle<T> {
         &mut self.inner
     }
 }
+
+impl<T: Clone> Clone for Toggle<T> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+            on: self.on,
+        }
+    }
+}

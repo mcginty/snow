@@ -143,6 +143,10 @@ impl Cipher for CipherAESGCM {
             Ok(out0.len())
         }
     }
+    
+    fn clone_box(&self) -> Box<dyn Cipher> {
+        panic!("The ring crate will not let you clone the key. :(");
+    }
 }
 
 struct CipherChaChaPoly {
@@ -221,6 +225,10 @@ impl Cipher for CipherChaChaPoly {
             out[..out0.len()].copy_from_slice(out0);
             Ok(out0.len())
         }
+    }
+    
+    fn clone_box(&self) -> Box<dyn Cipher> {
+        panic!("The ring crate will not let you clone the key. :(");
     }
 }
 struct HashSHA256 {
