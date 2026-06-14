@@ -27,10 +27,15 @@ use chacha20poly1305::{KeyInit, aead::AeadInPlace};
 use aes_gcm::Aes256Gcm;
 
 // PQ
-#[cfg(feature = "use-pqcrypto-kyber1024")]
+#[cfg(feature = "hfs")]
 use crate::params::KemChoice;
-#[cfg(feature = "use-pqcrypto-kyber1024")]
+#[cfg(feature = "hfs")]
 use crate::types::Kem;
+#[cfg(feature = "use-ml-kem")]
+use ml_kem::{
+    Ciphertext as MlKemCiphertext, Decapsulate, Encapsulate, Kem as MlKemAlg, Key, KeyExport,
+    MlKem768,
+};
 #[cfg(feature = "p256")]
 use p256::{self, EncodedPoint, elliptic_curve::sec1::ToEncodedPoint};
 #[cfg(feature = "use-pqcrypto-kyber1024")]
@@ -119,10 +124,15 @@ impl CryptoResolver for DefaultResolver {
         }
     }
 
-    #[cfg(feature = "use-pqcrypto-kyber1024")]
+    #[cfg(feature = "hfs")]
     fn resolve_kem(&self, choice: &KemChoice) -> Option<Box<dyn Kem>> {
         match *choice {
+            #[cfg(feature = "use-pqcrypto-kyber1024")]
             KemChoice::Kyber1024 => Some(Box::new(Kyber1024::default())),
+            #[cfg(feature = "use-ml-kem")]
+            KemChoice::MlKem768 => Some(Box::new(MlKem768Kem::default())),
+            #[allow(unreachable_patterns)]
+            _ => None,
         }
     }
 }
@@ -679,6 +689,71 @@ impl Kem for Kyber1024 {
         let shared_secret = kyber1024::decapsulate(&kyber_ciphertext, &self.privkey);
         shared_secret_out.copy_from_slice(shared_secret.as_bytes());
         Ok(shared_secret.as_bytes().len())
+    }
+}
+
+#[cfg(feature = "use-ml-kem")]
+type MlKem768Ek = ml_kem::EncapsulationKey<MlKem768>;
+#[cfg(feature = "use-ml-kem")]
+type MlKem768Dk = ml_kem::DecapsulationKey<MlKem768>;
+
+/// ML-KEM-768 (FIPS 203) via RustCrypto's pure-Rust `ml-kem`.
+#[cfg(feature = "use-ml-kem")]
+#[derive(Default)]
+struct MlKem768Kem {
+    dk: Option<MlKem768Dk>,
+    pubkey: Key<MlKem768Ek>,
+}
+
+#[cfg(feature = "use-ml-kem")]
+impl Kem for MlKem768Kem {
+    fn name(&self) -> &'static str {
+        "ML-KEM-768"
+    }
+
+    fn pub_len(&self) -> usize {
+        self.pubkey.len()
+    }
+
+    fn ciphertext_len(&self) -> usize {
+        MlKemCiphertext::<MlKem768>::default().len()
+    }
+
+    fn shared_secret_len(&self) -> usize {
+        32 // FIPS 203
+    }
+
+    fn generate(&mut self, _rng: &mut dyn Random) {
+        // System RNG, like the Kyber path; snow's `rng` is unused.
+        let (dk, ek) = MlKem768::generate_keypair();
+        self.pubkey = ek.to_bytes();
+        self.dk = Some(dk);
+    }
+
+    fn pubkey(&self) -> &[u8] {
+        &self.pubkey[..]
+    }
+
+    fn encapsulate(
+        &self,
+        pubkey: &[u8],
+        shared_secret_out: &mut [u8],
+        ciphertext_out: &mut [u8],
+    ) -> Result<(usize, usize), Error> {
+        let key = Key::<MlKem768Ek>::try_from(pubkey).map_err(|_| Error::Kem)?;
+        let ek = MlKem768Ek::new(&key).map_err(|_| Error::Kem)?;
+        let (ciphertext, shared_secret) = ek.encapsulate();
+        shared_secret_out[..shared_secret.len()].copy_from_slice(shared_secret.as_ref());
+        ciphertext_out[..ciphertext.len()].copy_from_slice(ciphertext.as_ref());
+        Ok((shared_secret.len(), ciphertext.len()))
+    }
+
+    fn decapsulate(&self, ciphertext: &[u8], shared_secret_out: &mut [u8]) -> Result<usize, Error> {
+        let dk = self.dk.as_ref().ok_or(Error::Kem)?;
+        let ct = MlKemCiphertext::<MlKem768>::try_from(ciphertext).map_err(|_| Error::Kem)?;
+        let shared_secret = dk.decapsulate(&ct);
+        shared_secret_out[..shared_secret.len()].copy_from_slice(shared_secret.as_ref());
+        Ok(shared_secret.len())
     }
 }
 

@@ -133,6 +133,8 @@ impl FromStr for HashChoice {
 pub enum KemChoice {
     /// The 1024-bit Kyber variant.
     Kyber1024,
+    /// ML-KEM-768 (FIPS 203), NIST security category 3.
+    MlKem768,
 }
 
 #[cfg(feature = "hfs")]
@@ -143,6 +145,7 @@ impl FromStr for KemChoice {
         use self::KemChoice::*;
         match s {
             "Kyber1024" => Ok(Kyber1024),
+            "ML-KEM-768" => Ok(MlKem768),
             _ => Err(PatternProblem::UnsupportedKemType.into()),
         }
     }
