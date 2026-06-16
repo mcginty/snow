@@ -10,8 +10,6 @@
 An implementation of Trevor Perrin's [Noise Protocol](https://noiseprotocol.org/) that
 is designed to be Hard To Fuck Up™.
 
-🔥 **Warning** 🔥 This library has not received any formal audit.
-
 ## What's it look like?
 
 See `examples/simple.rs` for a more complete TCP client/server example.
@@ -47,6 +45,12 @@ the latest Noise Protocol version. All features are implemented with the excepti
 Cryptographic providers are swappable through `Builder::with_resolver()`, but by default
 it chooses select, artisanal pure-Rust implementations (see `Cargo.toml` for a quick
 overview).
+
+## Security
+
+Snow has received one [security audit by Trail of Bits](https://github.com/trailofbits/publications/blob/bf5f47b1b4a53560e36b81655142329751230883/reviews/2024-03-agilebits-snow-securityreview.pdf), finding only a few minor issues.
+
+These findings and any other future advisories may be found [on Snow's GitHub Security index](https://github.com/mcginty/snow/security).
 
 ### Other Providers
 
