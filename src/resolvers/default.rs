@@ -6,7 +6,7 @@ use alloc::boxed::Box;
 use curve25519_dalek::montgomery::MontgomeryPoint;
 
 // Hashes
-#[cfg(all(feature = "use-blake2", not(feature = "serde")))]
+#[cfg(feature = "use-blake2")]
 use blake2::{Blake2b, Blake2b512, Blake2s, Blake2s256, Digest as BlakeDigest};
 #[cfg(feature = "serde")]
 use sha2::digest::{array::Array, common::hazmat::SerializableState};
@@ -100,9 +100,9 @@ impl CryptoResolver for DefaultResolver {
             HashChoice::SHA256 => Some(Box::<HashSHA256>::default()),
             #[cfg(feature = "use-sha2")]
             HashChoice::SHA512 => Some(Box::<HashSHA512>::default()),
-            #[cfg(all(feature = "use-blake2", not(feature = "serde")))]
+            #[cfg(feature = "use-blake2")]
             HashChoice::Blake2s => Some(Box::<HashBLAKE2s>::default()),
-            #[cfg(all(feature = "use-blake2", not(feature = "serde")))]
+            #[cfg(feature = "use-blake2")]
             HashChoice::Blake2b => Some(Box::<HashBLAKE2b>::default()),
             #[cfg(all(feature = "use-blake3", not(feature = "serde")))]
             HashChoice::Blake3 => Some(Box::<HashBlake3>::default()),
@@ -228,16 +228,20 @@ struct HashSHA512 {
 }
 
 /// Wraps `blake2-rfc`'s implementation.
-#[cfg(all(feature = "use-blake2", not(feature = "serde")))]
+#[cfg(feature = "use-blake2")]
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct HashBLAKE2b {
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_hash", deserialize_with = "deserialize_hash"))]
     hasher: Blake2b512,
 }
 
 /// Wraps `blake2-rfc`'s implementation.
-#[cfg(all(feature = "use-blake2", not(feature = "serde")))]
+#[cfg(feature = "use-blake2")]
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct HashBLAKE2s {
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_hash", deserialize_with = "deserialize_hash"))]
     hasher: Blake2s256,
 }
 
@@ -594,7 +598,8 @@ impl Hash for HashSHA512 {
     }
 }
 
-#[cfg(all(feature = "use-blake2", not(feature = "serde")))]
+#[cfg(feature = "use-blake2")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Hash for HashBLAKE2b {
     fn name(&self) -> &'static str {
         "BLAKE2b"
@@ -622,7 +627,8 @@ impl Hash for HashBLAKE2b {
     }
 }
 
-#[cfg(all(feature = "use-blake2", not(feature = "serde")))]
+#[cfg(feature = "use-blake2")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Hash for HashBLAKE2s {
     fn name(&self) -> &'static str {
         "BLAKE2s"
@@ -791,7 +797,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(feature = "use-blake2", not(feature = "serde")))]
+    #[cfg(feature = "use-blake2")]
     fn test_blake2b() {
         // BLAKE2b test - draft-saarinen-blake2-06
         let mut output = [0_u8; 64];
@@ -808,7 +814,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(all(feature = "use-blake2", not(feature = "serde")))]
+    #[cfg(feature = "use-blake2")]
     fn test_blake2s() {
         // BLAKE2s test - draft-saarinen-blake2-06
         let mut output = [0_u8; 32];

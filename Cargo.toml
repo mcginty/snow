@@ -30,7 +30,7 @@ default-resolver-crypto = [
     "use-curve25519",
     "use-getrandom",
 ]
-nightly = ["blake2/simd_opt", "subtle/nightly"]
+nightly = ["subtle/nightly"]
 ring-resolver = ["ring"]
 # _ring_ doesn't provide BLAKE2 or X25519 (with APIs `snow` can use at least), so enable those
 # to ensure any default-supported pattern will still work while compiling minimal RustCrypto dependencies otherwise.
@@ -50,7 +50,7 @@ std = [
     "getrandom?/std",
     "subtle/std",
     "ring?/std",
-    "blake2?/std",
+    "blake2?/alloc",
     "blake3?/std",
     "sha2?/alloc",
 ]
@@ -90,7 +90,7 @@ aes-gcm = { version = "0.10.3", optional = true, default-features = false, featu
     "aes",
 ] }
 chacha20poly1305 = { version = "0.10", optional = true, default-features = false }
-blake2 = { version = "0.10", optional = true, default-features = false }
+blake2 = { git = "https://github.com/Stypox/RustCrypto_hashes", branch = "blake2-serializable", optional = true, default-features = false }
 blake3 = { version = "1.8", optional = true, default-features = false }
 sha2 = { version = "0.11", optional = true, default-features = false }
 curve25519-dalek = { version = "4.1.3", optional = true, default-features = false }
