@@ -38,6 +38,7 @@ macro_rules! pattern_enum {
         /// section.
         #[allow(missing_docs)]
         #[derive(Copy, Clone, PartialEq, Debug)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         pub enum $name {
             $($variant),*,
         }
@@ -78,6 +79,7 @@ macro_rules! pattern_enum {
 ///
 /// See: <https://noiseprotocol.org/noise.html#handshake-patterns>
 #[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub(crate) enum DhToken {
     Ee,
     Es,
@@ -89,6 +91,7 @@ pub(crate) enum DhToken {
 ///
 /// See: <https://noiseprotocol.org/noise.html#handshake-patterns>
 #[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub(crate) enum Token {
     E,
     S,
@@ -160,6 +163,7 @@ impl HandshakePattern {
 
 /// A modifier applied to the base pattern as defined in the Noise spec.
 #[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum HandshakeModifier {
     /// Insert a PSK to mix at the associated position
     Psk(u8),
@@ -190,6 +194,7 @@ impl FromStr for HandshakeModifier {
 
 /// Handshake modifiers that will be used during key exchange handshake.
 #[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HandshakeModifierList {
     /// List of parsed modifiers.
     pub list: Vec<HandshakeModifier>,
@@ -219,6 +224,7 @@ impl FromStr for HandshakeModifierList {
 /// The pattern/modifier combination choice (no primitives specified)
 /// for a full noise protocol definition.
 #[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HandshakeChoice {
     /// The base pattern itself
     pub pattern: HandshakePattern,

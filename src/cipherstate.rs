@@ -2,11 +2,11 @@
 use alloc::boxed::Box;
 
 use crate::{
-    constants::{CIPHERKEYLEN, TAGLEN},
-    error::{Error, InitStage, StateProblem},
-    types::Cipher,
+    constants::{CIPHERKEYLEN, TAGLEN}, error::{Error, InitStage, StateProblem}, types::Cipher,
 };
 
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub(crate) struct CipherState {
     cipher: Box<dyn Cipher>,
     n: u64,
@@ -87,6 +87,7 @@ impl CipherState {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub(crate) struct CipherStates(pub CipherState, pub CipherState);
 
 impl CipherStates {

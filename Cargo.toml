@@ -72,6 +72,8 @@ use-pqcrypto-kyber1024 = [
 ]
 use-p256 = ["p256", "default-resolver"]
 
+serde = ["dep:serde", "serde_bytes", "typetag", "pqcrypto-kyber?/serialization"]
+
 [[bench]]
 name = "benches"
 harness = false
@@ -99,6 +101,11 @@ pqcrypto-traits = { version = "0.3", optional = true }
 
 # ring crypto provider
 ring = { version = "0.17.12", optional = true }
+
+# serialization
+serde = { version = "1.0.228", default-features = false, features = ["derive"], optional = true }
+serde_bytes = { version = "0.11.19", optional = true }
+typetag = { version = "0.2", optional = true }
 
 [dev-dependencies]
 criterion = "0.8"

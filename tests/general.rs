@@ -17,6 +17,7 @@ use x25519_dalek as x25519;
 type TestResult = Result<(), Box<dyn core::error::Error>>;
 
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct CountingRng(u64);
 
 impl RngCore for CountingRng {
@@ -33,6 +34,8 @@ impl RngCore for CountingRng {
         impls::fill_bytes_via_next(self, dest);
     }
 }
+
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Random for CountingRng {
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), snow::Error> {
         self.fill_bytes(dest);

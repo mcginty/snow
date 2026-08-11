@@ -6,8 +6,10 @@ use alloc::boxed::Box;
 use curve25519_dalek::montgomery::MontgomeryPoint;
 
 // Hashes
-#[cfg(feature = "use-blake2")]
+#[cfg(all(feature = "use-blake2", not(feature = "serde")))]
 use blake2::{Blake2b, Blake2b512, Blake2s, Blake2s256, Digest as BlakeDigest};
+#[cfg(feature = "serde")]
+use sha2::digest::{array::Array, common::hazmat::SerializableState};
 #[cfg(feature = "use-sha2")]
 #[allow(unused)]
 // `blake2` and `sha2` both try to export `digest::Digest`.
@@ -51,9 +53,11 @@ use crate::constants::TAGLEN;
 // NB: Intentionally private so RNG details aren't leaked into
 // the public API.
 #[cfg(feature = "use-getrandom")]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct OsRng;
 
 #[cfg(feature = "use-getrandom")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Random for OsRng {
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
         getrandom::fill(dest).map_err(|_| Error::Rng)
@@ -96,11 +100,11 @@ impl CryptoResolver for DefaultResolver {
             HashChoice::SHA256 => Some(Box::<HashSHA256>::default()),
             #[cfg(feature = "use-sha2")]
             HashChoice::SHA512 => Some(Box::<HashSHA512>::default()),
-            #[cfg(feature = "use-blake2")]
+            #[cfg(all(feature = "use-blake2", not(feature = "serde")))]
             HashChoice::Blake2s => Some(Box::<HashBLAKE2s>::default()),
-            #[cfg(feature = "use-blake2")]
+            #[cfg(all(feature = "use-blake2", not(feature = "serde")))]
             HashChoice::Blake2b => Some(Box::<HashBLAKE2b>::default()),
-            #[cfg(feature = "use-blake3")]
+            #[cfg(all(feature = "use-blake3", not(feature = "serde")))]
             HashChoice::Blake3 => Some(Box::<HashBlake3>::default()),
             _ => None,
         }
@@ -130,22 +134,43 @@ impl CryptoResolver for DefaultResolver {
 /// Wraps x25519-dalek.
 #[cfg(feature = "use-curve25519")]
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Dh25519 {
     privkey: [u8; 32],
     pubkey: [u8; 32],
 }
 
+#[cfg(all(feature = "serde", feature = "p256"))]
+fn serialize_encoded_point<S>(a: &EncodedPoint, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer
+{
+    serializer.serialize_bytes(&a.to_bytes())
+}
+
+#[cfg(all(feature = "serde", feature = "p256"))]
+fn deserialize_encoded_point<'de, D>(deserializer: D) -> Result<EncodedPoint, D::Error>
+where
+    D: serde::Deserializer<'de>
+{
+    let bytes = <Vec<u8> as serde::Deserialize<'de>>::deserialize(deserializer)?;
+    EncodedPoint::from_bytes(&bytes).map_err(serde::de::Error::custom)
+}
+
 /// Wraps p256
 #[cfg(feature = "p256")]
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct P256 {
     privkey: [u8; 32],
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_encoded_point", deserialize_with = "deserialize_encoded_point"))]
     pubkey: EncodedPoint,
 }
 
 /// Wraps `aes-gcm`'s AES256-GCM implementation.
 #[cfg(feature = "use-aes-gcm")]
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct CipherAesGcm {
     key: [u8; CIPHERKEYLEN],
 }
@@ -153,6 +178,7 @@ struct CipherAesGcm {
 /// Wraps `chacha20_poly1305_aead`'s `ChaCha20Poly1305` implementation.
 #[cfg(feature = "use-chacha20poly1305")]
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct CipherChaChaPoly {
     key: [u8; CIPHERKEYLEN],
 }
@@ -160,40 +186,63 @@ struct CipherChaChaPoly {
 /// Wraps `chachapoly1305`'s XChaCha20Poly1305 implementation.
 #[cfg(feature = "use-xchacha20poly1305")]
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct CipherXChaChaPoly {
     key: [u8; CIPHERKEYLEN],
+}
+
+#[cfg(feature = "serde")]
+fn serialize_hash<S, H>(a: &H, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer, H: SerializableState
+{
+    serializer.serialize_bytes(&a.serialize())
+}
+
+#[cfg(feature = "serde")]
+fn deserialize_hash<'de, D, H>(deserializer: D) -> Result<H, D::Error>
+where
+    D: serde::Deserializer<'de>, H: SerializableState
+{
+    let bytes = <Vec<u8> as serde::Deserialize<'de>>::deserialize(deserializer)?;
+    let bytes_arr = Array::<u8, H::SerializedStateSize>::try_from(bytes.as_slice()).map_err(serde::de::Error::custom)?;
+    H::deserialize(&bytes_arr).map_err(serde::de::Error::custom)
 }
 
 /// Wraps `RustCrypto`'s SHA-256 implementation.
 #[cfg(feature = "use-sha2")]
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct HashSHA256 {
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_hash", deserialize_with = "deserialize_hash"))]
     hasher: Sha256,
 }
 
 /// Wraps `RustCrypto`'s SHA-512 implementation.
 #[cfg(feature = "use-sha2")]
 #[derive(Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct HashSHA512 {
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_hash", deserialize_with = "deserialize_hash"))]
     hasher: Sha512,
 }
 
 /// Wraps `blake2-rfc`'s implementation.
-#[cfg(feature = "use-blake2")]
+#[cfg(all(feature = "use-blake2", not(feature = "serde")))]
 #[derive(Default)]
 struct HashBLAKE2b {
     hasher: Blake2b512,
 }
 
 /// Wraps `blake2-rfc`'s implementation.
-#[cfg(feature = "use-blake2")]
+#[cfg(all(feature = "use-blake2", not(feature = "serde")))]
 #[derive(Default)]
 struct HashBLAKE2s {
     hasher: Blake2s256,
 }
 
 /// Wraps `blake3`'s implementation
-#[cfg(feature = "use-blake3")]
+#[cfg(all(feature = "use-blake3", not(feature = "serde")))]
 #[derive(Default)]
 struct HashBlake3 {
     hasher: blake3::Hasher,
@@ -201,6 +250,7 @@ struct HashBlake3 {
 
 /// Wraps `kyber1024`'s implementation
 #[cfg(feature = "use-pqcrypto-kyber1024")]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 struct Kyber1024 {
     privkey: kyber1024::SecretKey,
     pubkey: kyber1024::PublicKey,
@@ -215,6 +265,7 @@ impl Dh25519 {
 }
 
 #[cfg(feature = "use-curve25519")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Dh for Dh25519 {
     fn name(&self) -> &'static str {
         "25519"
@@ -272,6 +323,7 @@ impl P256 {
 }
 
 #[cfg(feature = "p256")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Dh for P256 {
     fn name(&self) -> &'static str {
         "P256"
@@ -324,6 +376,7 @@ impl Dh for P256 {
 }
 
 #[cfg(feature = "use-aes-gcm")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Cipher for CipherAesGcm {
     fn name(&self) -> &'static str {
         "AESGCM"
@@ -378,6 +431,7 @@ impl Cipher for CipherAesGcm {
 }
 
 #[cfg(feature = "use-chacha20poly1305")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Cipher for CipherChaChaPoly {
     fn name(&self) -> &'static str {
         "ChaChaPoly"
@@ -430,6 +484,7 @@ impl Cipher for CipherChaChaPoly {
 }
 
 #[cfg(feature = "use-xchacha20poly1305")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Cipher for CipherXChaChaPoly {
     fn name(&self) -> &'static str {
         "XChaChaPoly"
@@ -482,6 +537,7 @@ impl Cipher for CipherXChaChaPoly {
 }
 
 #[cfg(feature = "use-sha2")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Hash for HashSHA256 {
     fn block_len(&self) -> usize {
         64
@@ -510,6 +566,7 @@ impl Hash for HashSHA256 {
 }
 
 #[cfg(feature = "use-sha2")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Hash for HashSHA512 {
     fn name(&self) -> &'static str {
         "SHA512"
@@ -537,7 +594,7 @@ impl Hash for HashSHA512 {
     }
 }
 
-#[cfg(feature = "use-blake2")]
+#[cfg(all(feature = "use-blake2", not(feature = "serde")))]
 impl Hash for HashBLAKE2b {
     fn name(&self) -> &'static str {
         "BLAKE2b"
@@ -565,7 +622,7 @@ impl Hash for HashBLAKE2b {
     }
 }
 
-#[cfg(feature = "use-blake2")]
+#[cfg(all(feature = "use-blake2", not(feature = "serde")))]
 impl Hash for HashBLAKE2s {
     fn name(&self) -> &'static str {
         "BLAKE2s"
@@ -593,7 +650,7 @@ impl Hash for HashBLAKE2s {
     }
 }
 
-#[cfg(feature = "use-blake3")]
+#[cfg(all(feature = "use-blake3", not(feature = "serde")))]
 impl Hash for HashBlake3 {
     fn name(&self) -> &'static str {
         "BLAKE3"
@@ -632,6 +689,7 @@ impl Default for Kyber1024 {
 }
 
 #[cfg(feature = "use-pqcrypto-kyber1024")]
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Kem for Kyber1024 {
     fn name(&self) -> &'static str {
         "Kyber1024"
@@ -733,7 +791,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "use-blake2")]
+    #[cfg(all(feature = "use-blake2", not(feature = "serde")))]
     fn test_blake2b() {
         // BLAKE2b test - draft-saarinen-blake2-06
         let mut output = [0_u8; 64];
@@ -750,7 +808,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "use-blake2")]
+    #[cfg(all(feature = "use-blake2", not(feature = "serde")))]
     fn test_blake2s() {
         // BLAKE2s test - draft-saarinen-blake2-06
         let mut output = [0_u8; 32];
