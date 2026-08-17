@@ -708,7 +708,7 @@ struct MlKem768Kem {
 #[cfg(feature = "use-ml-kem")]
 impl Kem for MlKem768Kem {
     fn name(&self) -> &'static str {
-        "ML-KEM-768"
+        "MLKEM768"
     }
 
     fn pub_len(&self) -> usize {

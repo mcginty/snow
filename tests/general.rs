@@ -292,7 +292,7 @@ fn test_NNhfs_sanity_session() -> TestResult {
 #[cfg(feature = "use-ml-kem")]
 fn test_NNhfs_mlkem768_sanity_session() -> TestResult {
     // ml-kem keygen is non-deterministic, so just run a full session.
-    let params: NoiseParams = "Noise_NNhfs_25519+ML-KEM-768_ChaChaPoly_SHA256".parse()?;
+    let params: NoiseParams = "Noise_NNhfs_25519+MLKEM768_ChaChaPoly_SHA256".parse()?;
     let mut h_i = Builder::new(params.clone()).build_initiator()?;
     let mut h_r = Builder::new(params).build_responder()?;
 
@@ -318,7 +318,7 @@ fn test_NNhfs_mlkem768_sanity_session() -> TestResult {
 #[cfg(feature = "use-ml-kem")]
 fn test_XXhfs_mlkem768_session() -> TestResult {
     // XX with hybrid forward secrecy: X25519 static-key auth, ML-KEM-768 KEM.
-    let params: NoiseParams = "Noise_XXhfs_25519+ML-KEM-768_ChaChaPoly_SHA256".parse()?;
+    let params: NoiseParams = "Noise_XXhfs_25519+MLKEM768_ChaChaPoly_SHA256".parse()?;
     let mut h_i = Builder::new(params.clone())
         .local_private_key(&get_inc_key(0))?
         .build_initiator()?;

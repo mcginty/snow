@@ -145,7 +145,7 @@ impl FromStr for KemChoice {
         use self::KemChoice::*;
         match s {
             "Kyber1024" => Ok(Kyber1024),
-            "ML-KEM-768" => Ok(MlKem768),
+            "MLKEM768" => Ok(MlKem768),
             _ => Err(PatternProblem::UnsupportedKemType.into()),
         }
     }
