@@ -28,6 +28,7 @@ use core::{
 /// get started.
 ///
 /// See: <https://noiseprotocol.org/noise.html#the-handshakestate-object>
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HandshakeState {
     pub(crate) rng: Box<dyn Random>,
     pub(crate) symmetricstate: SymmetricState,
@@ -43,6 +44,7 @@ pub struct HandshakeState {
     #[cfg(feature = "hfs")]
     pub(crate) kem: Option<Box<dyn Kem>>,
     #[cfg(feature = "hfs")]
+    #[cfg_attr(feature = "serde", serde(with = "serde_bytes"))]
     pub(crate) kem_re: Option<[u8; MAXKEMPUBLEN]>,
     pub(crate) my_turn: bool,
     pub(crate) message_patterns: MessagePatterns,

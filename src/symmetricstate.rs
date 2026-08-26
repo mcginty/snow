@@ -9,8 +9,11 @@ use crate::{
 };
 
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub(crate) struct SymmetricStateData {
+    #[cfg_attr(feature = "serde", serde(with = "serde_bytes"))]
     h: [u8; MAXHASHLEN],
+    #[cfg_attr(feature = "serde", serde(with = "serde_bytes"))]
     ck: [u8; MAXHASHLEN],
     has_key: bool,
 }
@@ -21,6 +24,7 @@ impl Default for SymmetricStateData {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub(crate) struct SymmetricState {
     cipherstate: CipherState,
     hasher: Box<dyn Hash>,

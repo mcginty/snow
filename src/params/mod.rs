@@ -19,6 +19,7 @@ pub(crate) use self::patterns::{DhToken, HandshakeTokens, MessagePatterns, Token
 
 /// I recommend you choose `Noise`.
 #[derive(PartialEq, Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum BaseChoice {
     /// Ole' faithful.
     Noise,
@@ -38,6 +39,7 @@ impl FromStr for BaseChoice {
 
 /// Which Diffie-Hellman primitive to use. One of `25519` or `448`, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum DHChoice {
     /// The Curve25519 elliptic curve.
     Curve25519,
@@ -65,6 +67,7 @@ impl FromStr for DHChoice {
 
 /// One of `ChaChaPoly` or `AESGCM`, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum CipherChoice {
     /// The ChaCha20Poly1305 AEAD.
     ChaChaPoly,
@@ -94,6 +97,7 @@ impl FromStr for CipherChoice {
 
 /// One of the supported SHA-family or BLAKE-family hash choices, per the spec.
 #[derive(PartialEq, Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum HashChoice {
     /// The SHA-256 hash function.
     SHA256,
@@ -130,6 +134,7 @@ impl FromStr for HashChoice {
 /// One of the supported Kems provided for unstable HFS extension.
 #[cfg(feature = "hfs")]
 #[derive(PartialEq, Copy, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum KemChoice {
     /// The 1024-bit Kyber variant.
     Kyber1024,
@@ -162,6 +167,7 @@ impl FromStr for KemChoice {
 /// let params: NoiseParams = "Noise_XX_25519_AESGCM_SHA256".parse().unwrap();
 /// ```
 #[derive(PartialEq, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[allow(clippy::module_name_repetitions)]
 pub struct NoiseParams {
     /// The full pattern string.

@@ -6,6 +6,7 @@ use crate::{
 };
 
 /// CSPRNG operations
+#[cfg_attr(feature = "serde", typetag::serde(tag = "type"))]
 pub trait Random: Send + Sync {
     /// Fill `dest` entirely with random data.
     ///
@@ -15,6 +16,7 @@ pub trait Random: Send + Sync {
 }
 
 /// Diffie-Hellman operations
+#[cfg_attr(feature = "serde", typetag::serde(tag = "type"))]
 pub trait Dh: Send + Sync {
     /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
@@ -53,6 +55,7 @@ pub trait Dh: Send + Sync {
 }
 
 /// Cipher operations
+#[cfg_attr(feature = "serde", typetag::serde(tag = "type"))]
 pub trait Cipher: Send + Sync {
     /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
@@ -91,6 +94,7 @@ pub trait Cipher: Send + Sync {
 }
 
 /// Hashing operations
+#[cfg_attr(feature = "serde", typetag::serde(tag = "type"))]
 pub trait Hash: Send + Sync {
     /// The string that the Noise spec defines for the primitive
     fn name(&self) -> &'static str;
@@ -171,6 +175,7 @@ pub trait Hash: Send + Sync {
 
 /// Kem operations.
 #[cfg(feature = "hfs")]
+#[cfg_attr(feature = "serde", typetag::serde(tag = "type"))]
 pub trait Kem: Send + Sync {
     /// The string that the Noise spec defines for the primitive.
     fn name(&self) -> &'static str;
