@@ -10,7 +10,7 @@ use snow::{
     Builder, Error,
 };
 
-use rand_core::{impls, RngCore};
+use rand_core::{utils, Rng as _, TryRng};
 use snow::{params::*, types::*};
 use x25519_dalek as x25519;
 
@@ -19,18 +19,21 @@ type TestResult = Result<(), Box<dyn core::error::Error>>;
 #[derive(Default)]
 struct CountingRng(u64);
 
-impl RngCore for CountingRng {
-    fn next_u32(&mut self) -> u32 {
-        u32::try_from(self.next_u64()).expect("u32 should be plenty")
+impl TryRng for CountingRng {
+    type Error = core::convert::Infallible;
+
+    fn try_next_u32(&mut self) -> Result<u32, Self::Error> {
+        let next = self.try_next_u64()?;
+        Ok(u32::try_from(next).expect("u32 should be plenty"))
     }
 
-    fn next_u64(&mut self) -> u64 {
+    fn try_next_u64(&mut self) -> Result<u64, Self::Error> {
         self.0 += 1;
-        self.0
+        Ok(self.0)
     }
 
-    fn fill_bytes(&mut self, dest: &mut [u8]) {
-        impls::fill_bytes_via_next(self, dest);
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Self::Error> {
+        utils::fill_bytes_via_next_word(dest, || self.try_next_u64())
     }
 }
 impl Random for CountingRng {

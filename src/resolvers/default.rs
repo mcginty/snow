@@ -20,11 +20,14 @@ use chacha20poly1305::ChaCha20Poly1305;
 #[cfg(feature = "use-xchacha20poly1305")]
 use chacha20poly1305::XChaCha20Poly1305;
 
-#[cfg(any(feature = "use-chacha20poly1305", feature = "use-xchacha20poly1305"))]
-use chacha20poly1305::{KeyInit, aead::AeadInPlace};
+#[cfg(all(
+    not(feature = "use-aes-gcm"),
+    any(feature = "use-chacha20poly1305", feature = "use-xchacha20poly1305")
+))]
+use chacha20poly1305::{KeyInit as _, aead::AeadInOut as _};
 
 #[cfg(feature = "use-aes-gcm")]
-use aes_gcm::Aes256Gcm;
+use aes_gcm::{Aes256Gcm, KeyInit as _, aead::AeadInOut as _};
 
 // PQ
 #[cfg(feature = "use-pqcrypto-kyber1024")]
@@ -32,7 +35,7 @@ use crate::params::KemChoice;
 #[cfg(feature = "use-pqcrypto-kyber1024")]
 use crate::types::Kem;
 #[cfg(feature = "p256")]
-use p256::{self, EncodedPoint, elliptic_curve::sec1::ToEncodedPoint};
+use p256::{self, Sec1Point, elliptic_curve::sec1::ToSec1Point};
 #[cfg(feature = "use-pqcrypto-kyber1024")]
 use pqcrypto_kyber::kyber1024;
 #[cfg(feature = "use-pqcrypto-kyber1024")]
@@ -140,7 +143,7 @@ struct Dh25519 {
 #[derive(Default)]
 struct P256 {
     privkey: [u8; 32],
-    pubkey: EncodedPoint,
+    pubkey: Sec1Point,
 }
 
 /// Wraps `aes-gcm`'s AES256-GCM implementation.
@@ -266,7 +269,7 @@ impl P256 {
     fn derive_pubkey(&mut self) {
         let secret_key = p256::SecretKey::from_bytes(&self.privkey.into()).unwrap();
         let public_key = secret_key.public_key();
-        let encoded_pub = public_key.to_encoded_point(false);
+        let encoded_pub = public_key.to_sec1_point(false);
         self.pubkey = encoded_pub;
     }
 }
@@ -342,7 +345,11 @@ impl Cipher for CipherAesGcm {
         copy_slices!(plaintext, out);
 
         let tag = aead
-            .encrypt_in_place_detached(&nonce_bytes.into(), authtext, &mut out[0..plaintext.len()])
+            .encrypt_inout_detached(
+                &nonce_bytes.into(),
+                authtext,
+                (&mut out[0..plaintext.len()]).into(),
+            )
             .expect("Encryption failed!");
 
         copy_slices!(tag, &mut out[plaintext.len()..]);
@@ -362,15 +369,16 @@ impl Cipher for CipherAesGcm {
         let mut nonce_bytes = [0_u8; 12];
         copy_slices!(nonce.to_be_bytes(), &mut nonce_bytes[4..]);
 
-        let message_len = ciphertext.len() - TAGLEN;
+        let (message, tag) = ciphertext.split_last_chunk::<TAGLEN>().ok_or(Error::Decrypt)?;
+        let message_len = message.len();
 
-        copy_slices!(ciphertext[..message_len], out);
+        copy_slices!(message, out);
 
-        aead.decrypt_in_place_detached(
+        aead.decrypt_inout_detached(
             &nonce_bytes.into(),
             authtext,
-            &mut out[..message_len],
-            ciphertext[message_len..].into(),
+            (&mut out[..message_len]).into(),
+            tag.into(),
         )
         .map(|()| message_len)
         .map_err(|_| Error::Decrypt)
@@ -394,7 +402,11 @@ impl Cipher for CipherChaChaPoly {
         copy_slices!(plaintext, out);
 
         let tag = ChaCha20Poly1305::new(&self.key.into())
-            .encrypt_in_place_detached(&nonce_bytes.into(), authtext, &mut out[0..plaintext.len()])
+            .encrypt_inout_detached(
+                &nonce_bytes.into(),
+                authtext,
+                (&mut out[0..plaintext.len()]).into(),
+            )
             .unwrap();
 
         copy_slices!(tag, &mut out[plaintext.len()..]);
@@ -412,16 +424,17 @@ impl Cipher for CipherChaChaPoly {
         let mut nonce_bytes = [0_u8; 12];
         copy_slices!(nonce.to_le_bytes(), &mut nonce_bytes[4..]);
 
-        let message_len = ciphertext.len() - TAGLEN;
+        let (message, tag) = ciphertext.split_last_chunk::<TAGLEN>().ok_or(Error::Decrypt)?;
+        let message_len = message.len();
 
-        copy_slices!(ciphertext[..message_len], out);
+        copy_slices!(message, out);
 
         ChaCha20Poly1305::new(&self.key.into())
-            .decrypt_in_place_detached(
+            .decrypt_inout_detached(
                 &nonce_bytes.into(),
                 authtext,
-                &mut out[..message_len],
-                ciphertext[message_len..].into(),
+                (&mut out[..message_len]).into(),
+                tag.into(),
             )
             .map_err(|_| Error::Decrypt)?;
 
@@ -446,7 +459,11 @@ impl Cipher for CipherXChaChaPoly {
         copy_slices!(plaintext, out);
 
         let tag = XChaCha20Poly1305::new(&self.key.into())
-            .encrypt_in_place_detached(&nonce_bytes.into(), authtext, &mut out[0..plaintext.len()])
+            .encrypt_inout_detached(
+                &nonce_bytes.into(),
+                authtext,
+                (&mut out[0..plaintext.len()]).into(),
+            )
             .unwrap();
 
         copy_slices!(tag, &mut out[plaintext.len()..]);
@@ -464,16 +481,17 @@ impl Cipher for CipherXChaChaPoly {
         let mut nonce_bytes = [0_u8; 24];
         copy_slices!(&nonce.to_le_bytes(), &mut nonce_bytes[16..]);
 
-        let message_len = ciphertext.len() - TAGLEN;
+        let (message, tag) = ciphertext.split_last_chunk::<TAGLEN>().ok_or(Error::Decrypt)?;
+        let message_len = message.len();
 
-        copy_slices!(ciphertext[..message_len], out);
+        copy_slices!(message, out);
 
         XChaCha20Poly1305::new(&self.key.into())
-            .decrypt_in_place_detached(
+            .decrypt_inout_detached(
                 &nonce_bytes.into(),
                 authtext,
-                &mut out[..message_len],
-                ciphertext[message_len..].into(),
+                (&mut out[..message_len]).into(),
+                tag.into(),
             )
             .map_err(|_| Error::Decrypt)?;
 
