@@ -21,10 +21,15 @@ use chacha20poly1305::ChaCha20Poly1305;
 use chacha20poly1305::XChaCha20Poly1305;
 
 #[cfg(any(feature = "use-chacha20poly1305", feature = "use-xchacha20poly1305"))]
-use chacha20poly1305::{KeyInit, aead::AeadInPlace};
+use chacha20poly1305::{KeyInit, aead::AeadInOut};
 
 #[cfg(feature = "use-aes-gcm")]
 use aes_gcm::Aes256Gcm;
+#[cfg(all(
+    feature = "use-aes-gcm",
+    not(any(feature = "use-chacha20poly1305", feature = "use-xchacha20poly1305"))
+))]
+use aes_gcm::{KeyInit, aead::AeadInOut};
 
 // PQ
 #[cfg(feature = "use-pqcrypto-kyber1024")]
@@ -39,14 +44,18 @@ use pqcrypto_kyber::kyber1024;
 use pqcrypto_traits::kem::{Ciphertext, PublicKey, SecretKey, SharedSecret};
 
 use super::CryptoResolver;
+#[cfg(any(
+    feature = "use-aes-gcm",
+    feature = "use-chacha20poly1305",
+    feature = "use-xchacha20poly1305"
+))]
+use crate::constants::TAGLEN;
 use crate::{
     Error,
     constants::CIPHERKEYLEN,
     params::{CipherChoice, DHChoice, HashChoice},
     types::{Cipher, Dh, Hash, Random},
 };
-#[cfg(any(feature = "use-aes-gcm", feature = "use-chacha20poly1305", feature = "use-xchacha20poly1305"))]
-use crate::constants::TAGLEN;
 
 // NB: Intentionally private so RNG details aren't leaked into
 // the public API.
@@ -342,7 +351,11 @@ impl Cipher for CipherAesGcm {
         copy_slices!(plaintext, out);
 
         let tag = aead
-            .encrypt_in_place_detached(&nonce_bytes.into(), authtext, &mut out[0..plaintext.len()])
+            .encrypt_inout_detached(
+                &nonce_bytes.into(),
+                authtext,
+                (&mut out[0..plaintext.len()]).into(),
+            )
             .expect("Encryption failed!");
 
         copy_slices!(tag, &mut out[plaintext.len()..]);
@@ -366,11 +379,14 @@ impl Cipher for CipherAesGcm {
 
         copy_slices!(ciphertext[..message_len], out);
 
-        aead.decrypt_in_place_detached(
+        let tag: &[u8; TAGLEN] =
+            ciphertext[message_len..].try_into().map_err(|_| Error::Decrypt)?;
+
+        aead.decrypt_inout_detached(
             &nonce_bytes.into(),
             authtext,
-            &mut out[..message_len],
-            ciphertext[message_len..].into(),
+            (&mut out[..message_len]).into(),
+            tag.into(),
         )
         .map(|()| message_len)
         .map_err(|_| Error::Decrypt)
@@ -394,7 +410,11 @@ impl Cipher for CipherChaChaPoly {
         copy_slices!(plaintext, out);
 
         let tag = ChaCha20Poly1305::new(&self.key.into())
-            .encrypt_in_place_detached(&nonce_bytes.into(), authtext, &mut out[0..plaintext.len()])
+            .encrypt_inout_detached(
+                &nonce_bytes.into(),
+                authtext,
+                (&mut out[0..plaintext.len()]).into(),
+            )
             .unwrap();
 
         copy_slices!(tag, &mut out[plaintext.len()..]);
@@ -416,12 +436,15 @@ impl Cipher for CipherChaChaPoly {
 
         copy_slices!(ciphertext[..message_len], out);
 
+        let tag: &[u8; TAGLEN] =
+            ciphertext[message_len..].try_into().map_err(|_| Error::Decrypt)?;
+
         ChaCha20Poly1305::new(&self.key.into())
-            .decrypt_in_place_detached(
+            .decrypt_inout_detached(
                 &nonce_bytes.into(),
                 authtext,
-                &mut out[..message_len],
-                ciphertext[message_len..].into(),
+                (&mut out[..message_len]).into(),
+                tag.into(),
             )
             .map_err(|_| Error::Decrypt)?;
 
@@ -446,7 +469,11 @@ impl Cipher for CipherXChaChaPoly {
         copy_slices!(plaintext, out);
 
         let tag = XChaCha20Poly1305::new(&self.key.into())
-            .encrypt_in_place_detached(&nonce_bytes.into(), authtext, &mut out[0..plaintext.len()])
+            .encrypt_inout_detached(
+                &nonce_bytes.into(),
+                authtext,
+                (&mut out[0..plaintext.len()]).into(),
+            )
             .unwrap();
 
         copy_slices!(tag, &mut out[plaintext.len()..]);
@@ -468,12 +495,15 @@ impl Cipher for CipherXChaChaPoly {
 
         copy_slices!(ciphertext[..message_len], out);
 
+        let tag: &[u8; TAGLEN] =
+            ciphertext[message_len..].try_into().map_err(|_| Error::Decrypt)?;
+
         XChaCha20Poly1305::new(&self.key.into())
-            .decrypt_in_place_detached(
+            .decrypt_inout_detached(
                 &nonce_bytes.into(),
                 authtext,
-                &mut out[..message_len],
-                ciphertext[message_len..].into(),
+                (&mut out[..message_len]).into(),
+                tag.into(),
             )
             .map_err(|_| Error::Decrypt)?;
 
