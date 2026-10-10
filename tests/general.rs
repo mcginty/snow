@@ -288,6 +288,110 @@ fn test_NNhfs_sanity_session() -> TestResult {
 }
 
 #[test]
+#[cfg(feature = "hfs")]
+#[cfg(feature = "use-ml-kem")]
+fn test_NNhfs_mlkem768_sanity_session() -> TestResult {
+    // ml-kem keygen is non-deterministic, so just run a full session.
+    let params: NoiseParams = "Noise_NNhfs_25519+MLKEM768_ChaChaPoly_SHA256".parse()?;
+    let mut h_i = Builder::new(params.clone()).build_initiator()?;
+    let mut h_r = Builder::new(params).build_responder()?;
+
+    let mut buffer_msg = [0_u8; 4096];
+    let mut buffer_out = [0_u8; 4096];
+    let len = h_i.write_message(b"abc", &mut buffer_msg)?;
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
+
+    let len = h_r.write_message(b"defg", &mut buffer_msg)?;
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)?;
+
+    let mut h_i = h_i.into_transport_mode()?;
+    let mut h_r = h_r.into_transport_mode()?;
+
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg)?;
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
+    assert_eq!(&buffer_out[..len], b"hack the planet");
+    Ok(())
+}
+
+#[test]
+#[cfg(feature = "hfs")]
+#[cfg(feature = "use-ml-kem")]
+fn test_XXhfs_mlkem768_session() -> TestResult {
+    // XX with hybrid forward secrecy: X25519 static-key auth, ML-KEM-768 KEM.
+    let params: NoiseParams = "Noise_XXhfs_25519+MLKEM768_ChaChaPoly_SHA256".parse()?;
+    let mut h_i = Builder::new(params.clone())
+        .local_private_key(&get_inc_key(0))?
+        .build_initiator()?;
+    let mut h_r = Builder::new(params)
+        .local_private_key(&get_inc_key(1))?
+        .build_responder()?;
+
+    let mut buffer_msg = [0_u8; 4096];
+    let mut buffer_out = [0_u8; 4096];
+
+    // XX is a three-message handshake.
+    let len = h_i.write_message(b"", &mut buffer_msg)?;
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
+    let len = h_r.write_message(b"", &mut buffer_msg)?;
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)?;
+    let len = h_i.write_message(b"", &mut buffer_msg)?;
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
+
+    let mut h_i = h_i.into_transport_mode()?;
+    let mut h_r = h_r.into_transport_mode()?;
+
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg)?;
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
+    assert_eq!(&buffer_out[..len], b"hack the planet");
+
+    // And the reverse direction.
+    let len = h_r.write_message(b"acknowledged", &mut buffer_msg)?;
+    let len = h_i.read_message(&buffer_msg[..len], &mut buffer_out)?;
+    assert_eq!(&buffer_out[..len], b"acknowledged");
+    Ok(())
+}
+
+#[test]
+#[cfg(feature = "hfs")]
+#[cfg(feature = "use-ml-kem")]
+fn test_IKhfs_mlkem768_session() -> TestResult {
+    // IK with hybrid forward secrecy: the responder's static key is known in
+    // advance, so the initiator's identity goes out encrypted in message one.
+    let params: NoiseParams = "Noise_IKhfs_25519+MLKEM768_ChaChaPoly_SHA256".parse()?;
+    let initiator_public = x25519::x25519(get_inc_key(0), x25519::X25519_BASEPOINT_BYTES);
+    let responder_public = x25519::x25519(get_inc_key(1), x25519::X25519_BASEPOINT_BYTES);
+    let mut h_i = Builder::new(params.clone())
+        .local_private_key(&get_inc_key(0))?
+        .remote_public_key(&responder_public)?
+        .build_initiator()?;
+    let mut h_r = Builder::new(params).local_private_key(&get_inc_key(1))?.build_responder()?;
+
+    let mut buffer_msg = [0_u8; 4096];
+    let mut buffer_out = [0_u8; 4096];
+
+    // IK is a two-message handshake.
+    let len = h_i.write_message(b"", &mut buffer_msg)?;
+    h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
+    let len = h_r.write_message(b"", &mut buffer_msg)?;
+    h_i.read_message(&buffer_msg[..len], &mut buffer_out)?;
+
+    let mut h_i = h_i.into_transport_mode()?;
+    let mut h_r = h_r.into_transport_mode()?;
+
+    assert_eq!(h_r.get_remote_static(), Some(&initiator_public[..]));
+
+    let len = h_i.write_message(b"hack the planet", &mut buffer_msg)?;
+    let len = h_r.read_message(&buffer_msg[..len], &mut buffer_out)?;
+    assert_eq!(&buffer_out[..len], b"hack the planet");
+
+    // And the reverse direction.
+    let len = h_r.write_message(b"acknowledged", &mut buffer_msg)?;
+    let len = h_i.read_message(&buffer_msg[..len], &mut buffer_out)?;
+    assert_eq!(&buffer_out[..len], b"acknowledged");
+    Ok(())
+}
+
+#[test]
 fn test_XXpsk0_expected_value() -> TestResult {
     let params: NoiseParams = "Noise_XXpsk0_25519_ChaChaPoly_SHA256".parse()?;
     let mut h_i = Builder::new(params.clone())

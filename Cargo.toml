@@ -70,6 +70,7 @@ use-pqcrypto-kyber1024 = [
     "hfs",
     "default-resolver",
 ]
+use-ml-kem = ["ml-kem", "hfs", "default-resolver"]
 use-p256 = ["p256", "default-resolver"]
 
 [[bench]]
@@ -96,6 +97,9 @@ p256 = { version = "0.13.2", features = ["ecdh"], optional = true }
 
 pqcrypto-kyber = { version = "0.8", optional = true }
 pqcrypto-traits = { version = "0.3", optional = true }
+ml-kem = { version = "0.3.2", optional = true, default-features = false, features = [
+    "getrandom",
+] }
 
 # ring crypto provider
 ring = { version = "0.17.12", optional = true }
